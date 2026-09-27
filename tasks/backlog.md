@@ -2,7 +2,7 @@
 Fuente de estado hasta migrar a GitHub Issues. Prioridad por orden; no son Issues remotos creados.
 
 ## FND-001 — Revisar Foundation y primer commit
-Estado: ready. Responsable: Gustavo con agente local.
+Estado: done (2026-09-27, commit `332e5f0`; remoto público Codelab-ai-dev/brambiLab). Responsable: Gustavo con agente local.
 Aceptación: revisar alcance y convenciones; crear commit local; registrar hash y elegir posteriormente remoto/visibilidad. Evidencia: hash real. No crear historial ficticio.
 
 ## BL-001-001 — Inventario y estado inicial V0
