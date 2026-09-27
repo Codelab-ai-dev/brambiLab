@@ -15,5 +15,7 @@ Comando de movimiento, límites, secuencia, caducidad, confirmación y parada ex
 ## Fallos a cubrir
 Pérdida de enlace, app detenida, reinicio ESP32, comando inválido y alimentación inestable. El firmware debe arrancar parado y dejar de accionar al caducar comandos. La prueba inicial será con ruedas sin contacto con el suelo.
 
+Propuesta: un interruptor físico accesible que corte la potencia de los motores sin depender del firmware ni de la app. Especificarlo en BL-001-002 según la batería y el driver reales.
+
 ## Límite de v1
 Sin navegación autónoma ni integración ROS. La arquitectura final de cómputo se decidirá cuando existan necesidades medidas.

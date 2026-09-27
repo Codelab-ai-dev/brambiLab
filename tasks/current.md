@@ -1,15 +1,21 @@
 # Punto de reanudación
 Actualizado: 2026-09-27
 
-Foundation versionada. Commit inicial `332e5f0` publicado en `main` de https://github.com/Codelab-ai-dev/brambiLab (repositorio público).
+Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
-Siguiente: BL-001-001 (inventario) en la rama `docs/BL-001-001-inventory`.
+En curso: BL-001-001 (inventario) en la rama `docs/BL-001-001-inventory`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
 Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar, lee [AGENTS.md](../AGENTS.md).
 
 ## Información necesaria para BL-001-001
-Fotos nítidas de placa, driver, batería y conexiones; modelos legibles; dimensiones útiles del chasis; explicación de cómo se controla ahora y qué funciona. Confirmar disponibilidad del CMF Phone 1 y componentes del soporte. No inferir esos datos de la planificación anterior.
+No inferir estos datos de la planificación anterior. Fotos según [conventions.md](../docs/conventions.md) (nombre con fecha, sin EXIF).
+1. Control: placa actual, fotos de ambas caras con la serigrafía legible. ¿Hay algún ESP32 disponible y de qué variante?
+2. Potencia: modelo del driver y foto de su cableado; modelo o etiqueta de los motores y cuántos son.
+3. Batería: química, tensión nominal, capacidad, conector y cargador. ¿Hay interruptor, fusible o BMS?
+4. Funcionamiento actual: con qué se controla hoy (mando, app, nada) y qué funciona. Un vídeo corto con las ruedas levantadas sirve como prueba V0.
+5. Mecánica: medidas del chasis (largo, ancho y alto), separación entre fijaciones, espacio libre para el teléfono y tipo de ruedas o transmisión.
+6. Teléfono y soporte: disponibilidad del CMF Phone 1, ubicación de los CAD/STL del soporte pan/tilt y modelos de servos si los hay.
 
 ## Última entrega
-2026-09-27 · FND-001: `git init`, commit inicial `332e5f0` y push a `origin/main`. Verificado: 18 enlaces Markdown relativos sin roturas y archivos en UTF-8. Sin pruebas físicas ni ejecución de firmware/app. Pendiente: aplicar arreglos de la revisión inicial (.gitignore, BOM/hardware, nombres de fotos).
+2026-09-27 · BL-001-001 (preparación): hardware.md y bom.md alineados y ampliados con los elementos que faltaban; convención de nombres y limpieza EXIF para fotos; `.gitignore` para multimedia y builds; prueba de corte físico propuesta en validation.md; enlaces de los índices de docs/. Verificado: enlaces Markdown relativos. Sin pruebas físicas.
 
-2026-09-27 · FND-002: licencias Apache-2.0 / CC BY 4.0 / CERN-OHL-W-2.0 en [LICENSE.md](../LICENSE.md), ADR-007 aceptado.
+Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).

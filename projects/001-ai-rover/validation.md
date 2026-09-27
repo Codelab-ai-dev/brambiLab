@@ -9,5 +9,6 @@ Todas las pruebas siguientes están pendientes. Parámetros definitivos se fijar
 | Comando inválido | Enviar dato fuera de contrato | Rechazo sin actuación inesperada | Pendiente |
 | Pérdida de enlace | Interrumpir envío | Parada dentro del timeout especificado | Pendiente |
 | Reinicio | Reiniciar controlador durante ensayo | Regresa a estado parado | Pendiente |
+| Corte físico | Accionar el interruptor de potencia con motores en marcha | Los motores se detienen sin intervención del software | Pendiente |
 
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y archivo de evidencia. No afirmar seguridad funcional certificada a partir de estas pruebas de prototipo.
