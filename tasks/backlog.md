@@ -28,7 +28,7 @@ Estado: backlog. Depende: BL-001-001.
 Aceptación: comparar Wi-Fi, BLE y USB cuando sean compatibles con los modelos reales; latencia requerida, recuperación y esfuerzo; fuentes fechadas; proponer ADR-005 sin darlo por aprobado.
 
 ## FND-002 — Definir licencias y publicación
-Estado: backlog.
+Estado: done (2026-09-27, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 Aceptación: Gustavo elige términos para código, documentación y diseños; revisar derechos de recursos de terceros; registrar la decisión antes de etiquetar contenido como open source.
 
 ## FND-003 — Especificar web v2
