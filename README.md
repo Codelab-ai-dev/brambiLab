@@ -22,4 +22,4 @@ Extrae el ZIP y abre esta carpeta con Claude Code. Usa el prompt de [START_HERE.
 - `tasks/`: seguimiento inicial hasta migrar las tareas a GitHub Issues.
 - `platform/web/`: espacio reservado para la futura web.
 
-Idioma inicial: español; identificadores, rutas y nombres de código en inglés. La licencia de publicación está pendiente de elección; este paquete no concede una licencia open source.
+Idioma inicial: español; identificadores, rutas y nombres de código en inglés. Licencias: código Apache-2.0, documentación CC BY 4.0 y diseños CERN-OHL-W-2.0. Detalle por ruta en [LICENSE.md](LICENSE.md).

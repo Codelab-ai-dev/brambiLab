@@ -10,4 +10,6 @@ Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar,
 Fotos nítidas de placa, driver, batería y conexiones; modelos legibles; dimensiones útiles del chasis; explicación de cómo se controla ahora y qué funciona. Confirmar disponibilidad del CMF Phone 1 y componentes del soporte. No inferir esos datos de la planificación anterior.
 
 ## Última entrega
-2026-09-27 · FND-001: `git init`, commit inicial `332e5f0` y push a `origin/main`. Verificado: 18 enlaces Markdown relativos sin roturas y archivos en UTF-8. Sin pruebas físicas ni ejecución de firmware/app. Pendiente: aplicar arreglos de la revisión inicial (.gitignore, BOM/hardware, nombres de fotos) y la licencia (FND-002).
+2026-09-27 · FND-001: `git init`, commit inicial `332e5f0` y push a `origin/main`. Verificado: 18 enlaces Markdown relativos sin roturas y archivos en UTF-8. Sin pruebas físicas ni ejecución de firmware/app. Pendiente: aplicar arreglos de la revisión inicial (.gitignore, BOM/hardware, nombres de fotos).
+
+2026-09-27 · FND-002: licencias Apache-2.0 / CC BY 4.0 / CERN-OHL-W-2.0 en [LICENSE.md](../LICENSE.md), ADR-007 aceptado.
