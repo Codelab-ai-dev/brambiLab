@@ -192,9 +192,9 @@ test("toolbar is one tab stop with arrow-key navigation", async ({ page }) => {
   await page.getByRole("button", { name: "Negrita" }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("button", { name: "Cursiva" })).toBeFocused();
-  // End goes to the last enabled button: media, undo and redo are disabled in a fresh editor.
+  // End goes to the last enabled button: undo and redo are disabled in a fresh editor.
   await page.keyboard.press("End");
-  await expect(page.getByRole("button", { name: "YouTube" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Descarga", exact: true })).toBeFocused();
   await page.keyboard.press("Home");
   await expect(page.getByRole("button", { name: "Negrita" })).toBeFocused();
   const tabbable = await page.getByRole("toolbar", { name: "Formato del contenido" }).locator('button[tabindex="0"]').count();

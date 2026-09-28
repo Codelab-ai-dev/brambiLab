@@ -42,7 +42,38 @@ export type Snapshot = {
   project_fields?: ProjectFields;
   category_id: string | null;
   tag_ids: string[];
+  /** Ready image used as cover (WEB-004). */
+  cover_asset_id?: string | null;
 };
+
+export type AssetKind = "image" | "video" | "resource";
+
+export type Asset = {
+  id: string;
+  kind: AssetKind;
+  status: "pending" | "ready" | "failed";
+  original_name: string;
+  mime: string;
+  bytes: number;
+  sha256: string;
+  width: number | null;
+  height: number | null;
+  public_enabled: boolean;
+  downloadable: boolean;
+  created_at: string;
+  texts: Partial<Record<Locale, { alt: string; caption: string }>>;
+};
+
+export type AssetReference = { content_id: string; locale: Locale; version: number; usage: "image" | "video" | "poster" | "download" | "cover"; published: boolean };
+export type AssetDetail = Asset & { references: AssetReference[] };
+
+export const assetKindLabels: Record<AssetKind, string> = { image: "Imagen", video: "Vídeo", resource: "Recurso" };
+
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export type Revision = Snapshot & {
   version: number;
@@ -117,6 +148,7 @@ export function snapshotFrom(rev: Revision | null): Snapshot {
     ...(rev.project_fields ? { project_fields: rev.project_fields } : {}),
     category_id: rev.category_id,
     tag_ids: rev.tag_ids ?? [],
+    ...(rev.cover_asset_id ? { cover_asset_id: rev.cover_asset_id } : {}),
   };
 }
 

@@ -6,13 +6,20 @@ import { useState, type ReactNode } from "react";
 import { t, type Locale } from "~/i18n";
 import { isSafeHref, type Block, type Doc, type Inline, type TextNode } from "./schema";
 
-type Props = { doc: Doc; locale: Locale };
+/** Stored-file facts used to reserve space and label downloads; optional (e.g. import preview). */
+export type AssetMeta = { width: number | null; height: number | null; bytes: number };
 
-export function DocumentView({ doc, locale }: Props) {
-  return <div className="space-y-4 leading-relaxed">{doc.content.map((b, i) => renderBlock(b, i, locale))}</div>;
+type Props = { doc: Doc; locale: Locale; assets?: Record<string, AssetMeta> };
+
+export function DocumentView({ doc, locale, assets = {} }: Props) {
+  return <div className="space-y-4 leading-relaxed">{doc.content.map((b, i) => renderBlock(b, i, locale, assets))}</div>;
 }
 
-function renderBlock(b: Block, key: number, locale: Locale): ReactNode {
+function formatSize(n: number): string {
+  return n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function renderBlock(b: Block, key: number, locale: Locale, assets: Record<string, AssetMeta> = {}): ReactNode {
   switch (b.type) {
     case "paragraph":
       // Empty paragraphs are spacing in the editor; keep the line so layouts match the preview.
@@ -30,7 +37,7 @@ function renderBlock(b: Block, key: number, locale: Locale): ReactNode {
       return (
         <ul key={key} className="list-disc space-y-1 pl-6">
           {b.content.map((item, i) => (
-            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, locale))}</li>
+            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, locale, assets))}</li>
           ))}
         </ul>
       );
@@ -38,14 +45,14 @@ function renderBlock(b: Block, key: number, locale: Locale): ReactNode {
       return (
         <ol key={key} start={b.attrs?.start} className="list-decimal space-y-1 pl-6">
           {b.content.map((item, i) => (
-            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, locale))}</li>
+            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, locale, assets))}</li>
           ))}
         </ol>
       );
     case "blockquote":
       return (
         <blockquote key={key} className="space-y-2 border-l-4 border-border pl-4 text-text-muted">
-          {b.content.map((c, i) => renderBlock(c, i, locale))}
+          {b.content.map((c, i) => renderBlock(c, i, locale, assets))}
         </blockquote>
       );
     case "codeBlock": {
@@ -88,15 +95,56 @@ function renderBlock(b: Block, key: number, locale: Locale): ReactNode {
       );
     case "youtube":
       return <YouTubeEmbed key={key} videoId={b.attrs.videoId} start={b.attrs.start} locale={locale} />;
-    case "image":
-    case "video":
-    case "download":
-      // Assets are served from WEB-004; until then show an honest placeholder, never a fake file.
+    case "image": {
+      const meta = assets[b.attrs.assetId];
       return (
-        <p key={key} className="rounded border border-dashed border-border p-3 text-sm text-text-muted">
-          {t(locale, "doc.media.pending")}
+        <figure key={key} className="my-6">
+          <img
+            src={`/media/${b.attrs.assetId}`}
+            alt={b.attrs.alt}
+            width={meta?.width ?? undefined}
+            height={meta?.height ?? undefined}
+            loading="lazy"
+            decoding="async"
+            className="h-auto max-w-full rounded-md"
+          />
+          {b.attrs.caption && <figcaption className="mt-2 text-sm text-text-muted">{b.attrs.caption}</figcaption>}
+        </figure>
+      );
+    }
+    case "video": {
+      const meta = assets[b.attrs.assetId];
+      return (
+        <figure key={key} className="my-6">
+          <video
+            src={`/media/${b.attrs.assetId}`}
+            poster={b.attrs.posterAssetId ? `/media/${b.attrs.posterAssetId}` : undefined}
+            width={meta?.width ?? undefined}
+            height={meta?.height ?? undefined}
+            controls
+            preload="metadata"
+            playsInline
+            className="w-full rounded-md bg-surface-muted"
+          />
+          {b.attrs.caption && <figcaption className="mt-2 text-sm text-text-muted">{b.attrs.caption}</figcaption>}
+        </figure>
+      );
+    }
+    case "download": {
+      const meta = assets[b.attrs.assetId];
+      return (
+        <p key={key}>
+          <a
+            href={`/media/${b.attrs.assetId}/download`}
+            className="inline-flex items-center gap-3 rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <span aria-hidden="true">↓</span>
+            {b.attrs.label}
+            {meta && <span className="font-mono text-xs font-normal text-text-muted">{formatSize(meta.bytes)}</span>}
+          </a>
         </p>
       );
+    }
   }
 }
 

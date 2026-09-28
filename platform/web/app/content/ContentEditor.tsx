@@ -2,8 +2,10 @@
 // (immediatelyRender: false): the server renders the frame and toolbar, never the editor itself.
 // Every change is converted to the canonical document; the parent decides when to save.
 
+import { NodeSelection } from "@tiptap/pm/state";
 import { useEditor, useEditorState, EditorContent, type Editor } from "@tiptap/react";
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import type { Asset, AssetKind, Locale } from "./api-types";
 import { editorExtensions } from "./editor-extensions";
 import { isSafeHref, languagePattern, parseYouTube, type Doc } from "./schema";
 import { UnsupportedContentError, toCanonical, toTiptap } from "./tiptap-adapter";
@@ -30,7 +32,17 @@ const m = {
   image: "Imagen",
   video: "Vídeo",
   download: "Descarga",
-  mediaPending: "Imágenes, vídeos y descargas estarán disponibles cuando exista la carga de archivos (WEB-004).",
+  mediaUnavailable: "Los medios se insertan desde el editor de un contenido.",
+  mediaHelp: "Imagen, vídeo y descarga usan la biblioteca de medios; también puedes pegar o soltar imágenes.",
+  mediaSelected: "Medio seleccionado",
+  alt: "Texto alternativo",
+  altHelp: "Describe la imagen para quien no la ve; vacío sólo si es decorativa.",
+  caption: "Pie (opcional)",
+  label: "Etiqueta del enlace de descarga",
+  poster: "Póster del vídeo",
+  choosePoster: "Elegir póster",
+  removePoster: "Quitar póster",
+  applyMedia: "Aplicar",
   tableTools: "Herramientas de tabla",
   addRow: "Añadir fila",
   addColumn: "Añadir columna",
@@ -57,8 +69,20 @@ const m = {
 
 type Panel = null | "link" | "youtube" | "language";
 
+/** What the editor needs from the panel to work with library assets (WEB-004). */
+export type MediaBridge = {
+  locale: Locale;
+  pick: (kind: AssetKind, title: string) => Promise<Asset | null>;
+  /** Uploads a pasted/dropped image; resolves to null on failure (the caller reports it). */
+  upload: (file: File) => Promise<Asset | null>;
+};
+
+const mediaTypes = new Set(["image", "video", "download"]);
+const pastedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 type Props = {
   initialDoc: Doc;
+  media?: MediaBridge;
   /** Called with the canonical document after every change, plus notes about normalizations. */
   onChange: (doc: Doc, notes: string[]) => void;
   /** Called when the content cannot be expressed canonically (e.g. merged cells). */
@@ -66,7 +90,29 @@ type Props = {
   readOnly?: boolean;
 };
 
-export function ContentEditor({ initialDoc, onChange, onInvalid, readOnly = false }: Props) {
+export function ContentEditor({ initialDoc, onChange, onInvalid, readOnly = false, media }: Props) {
+  // Tiptap keeps the options it was created with; read the latest bridge through a ref.
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+  const editorRef = useRef<Editor | null>(null);
+
+  // Pasted or dropped images become private assets, inserted once ready. Never data URLs.
+  const insertFiles = (files: File[], pos?: number) => {
+    const bridge = mediaRef.current;
+    const images = files.filter((f) => pastedImageTypes.has(f.type));
+    if (!bridge || images.length === 0) return false;
+    for (const file of images) {
+      void bridge.upload(file).then((asset) => {
+        const e = editorRef.current;
+        if (!asset || !e) return;
+        const node = { type: "image", attrs: { assetId: asset.id, alt: asset.texts[bridge.locale]?.alt ?? "", caption: asset.texts[bridge.locale]?.caption || null } };
+        if (pos !== undefined) e.chain().insertContentAt(pos, node).run();
+        else e.chain().focus().insertContentAt(e.state.selection.to, node).run();
+      });
+    }
+    return true;
+  };
+
   const editor = useEditor({
     extensions: editorExtensions,
     content: toTiptap(initialDoc),
@@ -74,6 +120,16 @@ export function ContentEditor({ initialDoc, onChange, onInvalid, readOnly = fals
     immediatelyRender: false,
     editorProps: {
       attributes: { "aria-label": m.editorLabel, "aria-multiline": "true", role: "textbox", class: "px-4 py-3" },
+      handlePaste: (_view, event) => insertFiles(Array.from(event.clipboardData?.files ?? [])),
+      handleDrop: (view, event) => {
+        const files = Array.from(event.dataTransfer?.files ?? []);
+        if (files.length === 0) return false;
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+        return insertFiles(files, pos);
+      },
+    },
+    onCreate: ({ editor }) => {
+      editorRef.current = editor;
     },
     onUpdate: ({ editor }) => {
       try {
@@ -87,13 +143,13 @@ export function ContentEditor({ initialDoc, onChange, onInvalid, readOnly = fals
 
   return (
     <div className="bl-editor rounded-md border border-border bg-surface">
-      <Toolbar editor={editor} disabled={readOnly || !editor} />
+      <Toolbar editor={editor} disabled={readOnly || !editor} media={readOnly ? undefined : media} />
       {editor ? <EditorContent editor={editor} /> : <p className="px-4 py-3 text-text-muted">{m.loading}</p>}
     </div>
   );
 }
 
-function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolean }) {
+function Toolbar({ editor, disabled, media }: { editor: Editor | null; disabled: boolean; media?: MediaBridge }) {
   const [panel, setPanel] = useState<Panel>(null);
   const mediaNoteId = useId();
   const state = useEditorState({
@@ -117,10 +173,18 @@ function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolea
             language: (e.getAttributes("codeBlock").language as string | undefined) ?? "",
             canUndo: e.can().undo(),
             canRedo: e.can().redo(),
+            // A selected media node (click on it) can be edited in place.
+            mediaNode:
+              e.state.selection instanceof NodeSelection && mediaTypes.has(e.state.selection.node.type.name)
+                ? { type: e.state.selection.node.type.name, attrs: e.state.selection.node.attrs as Record<string, string | null> }
+                : null,
           }
         : null,
   });
   const chain = () => editor!.chain().focus();
+  // Blocks (media, YouTube) go after the selection: inserting must never replace what is selected,
+  // e.g. the media node inserted just before.
+  const insertBlock = (node: Record<string, unknown>) => chain().insertContentAt(editor!.state.selection.to, node).run();
   const s = state ?? ({} as NonNullable<typeof state>);
 
   return (
@@ -157,10 +221,36 @@ function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolea
           <ToolButton label={m.youtube} short="YouTube" disabled={disabled} expanded={panel === "youtube"} onClick={() => setPanel(panel === "youtube" ? null : "youtube")} />
         </Group>
         <Group>
-          {/* Media controls stay visible but disabled, with the reason in plain text. */}
-          <ToolButton label={m.image} short="Imagen" disabled describedBy={mediaNoteId} onClick={() => {}} />
-          <ToolButton label={m.video} short="Vídeo" disabled describedBy={mediaNoteId} onClick={() => {}} />
-          <ToolButton label={m.download} short="Descarga" disabled describedBy={mediaNoteId} onClick={() => {}} />
+          <ToolButton
+            label={m.image}
+            short="Imagen"
+            disabled={disabled || !media}
+            describedBy={mediaNoteId}
+            onClick={async () => {
+              const a = await media!.pick("image", "Insertar imagen");
+              if (a) insertBlock({ type: "image", attrs: { assetId: a.id, alt: a.texts[media!.locale]?.alt ?? "", caption: a.texts[media!.locale]?.caption || null } });
+            }}
+          />
+          <ToolButton
+            label={m.video}
+            short="Vídeo"
+            disabled={disabled || !media}
+            describedBy={mediaNoteId}
+            onClick={async () => {
+              const a = await media!.pick("video", "Insertar vídeo");
+              if (a) insertBlock({ type: "video", attrs: { assetId: a.id, caption: a.texts[media!.locale]?.caption || null, posterAssetId: null } });
+            }}
+          />
+          <ToolButton
+            label={m.download}
+            short="Descarga"
+            disabled={disabled || !media}
+            describedBy={mediaNoteId}
+            onClick={async () => {
+              const a = await media!.pick("resource", "Insertar descarga");
+              if (a) insertBlock({ type: "download", attrs: { assetId: a.id, label: a.original_name } });
+            }}
+          />
         </Group>
         <Group>
           <ToolButton label={m.undo} short="↶" disabled={disabled || !s.canUndo} onClick={() => chain().undo().run()} />
@@ -181,8 +271,17 @@ function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolea
       )}
 
       <p id={mediaNoteId} className="px-3 pb-2 text-xs text-text-muted">
-        {m.mediaPending}
+        {media ? m.mediaHelp : m.mediaUnavailable}
       </p>
+
+      {editor && media && s.mediaNode && (
+        <MediaNodeForm
+          key={JSON.stringify(s.mediaNode)}
+          node={s.mediaNode}
+          media={media}
+          onApply={(attrs) => chain().updateAttributes(s.mediaNode!.type, attrs).run()}
+        />
+      )}
 
       {editor && panel === "link" && (
         <InlineForm
@@ -208,7 +307,7 @@ function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolea
           submit={m.youtubeInsert}
           validate={(v) => (parseYouTube(v) ? null : m.youtubeInvalid)}
           onSubmit={(v) => {
-            chain().insertContent({ type: "youtube", attrs: parseYouTube(v)! }).run();
+            insertBlock({ type: "youtube", attrs: parseYouTube(v)! });
             setPanel(null);
           }}
           onCancel={() => setPanel(null)}
@@ -230,6 +329,71 @@ function Toolbar({ editor, disabled }: { editor: Editor | null; disabled: boolea
         />
       )}
     </div>
+  );
+}
+
+// Edits the document's own alt/caption/label/poster for the selected media node. These values
+// live in the revision snapshot; the library texts are only defaults.
+function MediaNodeForm({ node, media, onApply }: { node: { type: string; attrs: Record<string, string | null> }; media: MediaBridge; onApply: (attrs: Record<string, string | null>) => void }) {
+  const [alt, setAlt] = useState(node.attrs.alt ?? "");
+  const [caption, setCaption] = useState(node.attrs.caption ?? "");
+  const [label, setLabel] = useState(node.attrs.label ?? "");
+  const [poster, setPoster] = useState(node.attrs.posterAssetId ?? null);
+  const [error, setError] = useState<string | null>(null);
+  const id = useId();
+  return (
+    <form
+      aria-label={m.mediaSelected}
+      className="flex flex-wrap items-end gap-3 border-t border-border bg-surface-muted px-3 py-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (node.type === "download" && !label.trim()) {
+          setError("La descarga necesita una etiqueta.");
+          return;
+        }
+        setError(null);
+        if (node.type === "image") onApply({ alt, caption: caption || null });
+        else if (node.type === "video") onApply({ caption: caption || null, posterAssetId: poster });
+        else onApply({ label: label.trim() });
+      }}
+    >
+      <p className="w-full text-xs font-semibold">{m.mediaSelected}</p>
+      {node.type === "image" && (
+        <div className="flex min-w-56 flex-1 flex-col gap-1">
+          <label htmlFor={`${id}-alt`} className="text-sm font-medium">{m.alt}</label>
+          <input id={`${id}-alt`} value={alt} maxLength={300} onChange={(e) => setAlt(e.target.value)} aria-describedby={`${id}-alt-help`} className="min-h-9 rounded border border-border-strong bg-surface px-2" />
+          <p id={`${id}-alt-help`} className="text-xs text-text-muted">{m.altHelp}</p>
+        </div>
+      )}
+      {node.type !== "download" && (
+        <div className="flex min-w-56 flex-1 flex-col gap-1">
+          <label htmlFor={`${id}-caption`} className="text-sm font-medium">{m.caption}</label>
+          <input id={`${id}-caption`} value={caption} maxLength={500} onChange={(e) => setCaption(e.target.value)} className="min-h-9 rounded border border-border-strong bg-surface px-2" />
+        </div>
+      )}
+      {node.type === "download" && (
+        <div className="flex min-w-56 flex-1 flex-col gap-1">
+          <label htmlFor={`${id}-label`} className="text-sm font-medium">{m.label}</label>
+          <input id={`${id}-label`} value={label} maxLength={200} onChange={(e) => setLabel(e.target.value)} aria-invalid={error ? true : undefined} className="min-h-9 rounded border border-border-strong bg-surface px-2 aria-invalid:border-danger" />
+        </div>
+      )}
+      {node.type === "video" && (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium">{m.poster}</span>
+          <div className="flex gap-2">
+            <button type="button" className="min-h-9 rounded border border-border-strong bg-surface px-3 text-sm" onClick={async () => {
+              const a = await media.pick("image", "Elegir póster del vídeo");
+              if (a) setPoster(a.id);
+            }}>
+              {poster ? "Cambiar póster" : m.choosePoster}
+            </button>
+            {poster && <button type="button" className="min-h-9 rounded px-3 text-sm text-danger" onClick={() => setPoster(null)}>{m.removePoster}</button>}
+          </div>
+        </div>
+      )}
+      <button type="submit" className="min-h-9 rounded bg-primary px-3 text-sm font-medium text-primary-contrast">{m.applyMedia}</button>
+      {error && <p role="alert" className="w-full text-xs text-danger">{error}</p>}
+    </form>
   );
 }
 

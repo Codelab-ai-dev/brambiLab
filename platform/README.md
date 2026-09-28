@@ -88,5 +88,22 @@ cd platform/web && npx playwright install chromium
 BASE_URL=http://localhost:8000 npm run e2e      # SHOTS_DIR=/tmp/x guarda capturas
 ```
 
-## Pendiente
+## Medios (WEB-004, #20)
+**Biblioteca** en `/admin/medios`:
+- subida con progreso, cancelación y reintento;
+- textos es/en por defecto, permisos y lista de dónde se usa cada archivo;
+- borrado sólo si ninguna revisión lo usa.
+
+**Editor:** insertar imagen, vídeo (con póster) y descarga desde la biblioteca, elegir portada, y pegar o soltar imágenes.
+
+**Validación y saneado** (web-v1.md §12.1):
+- JPEG, PNG y WebP (sin EXIF/GPS/XMP y con la orientación aplicada), MP4, y PDF/ZIP/STL;
+- archivos disfrazados, SVG, HEIC y ejecutables rechazados.
+
+**Entrega** en `/media/{id}` y `/media/{id}/download`:
+- autorizada en cada petición: el propietario ve todo; un visitante, sólo lo público y referenciado por una revisión publicada;
+- Range/206/416, `nosniff`, CSP `sandbox`, `no-cache` + ETag.
+
+Volumen `media_data` → `/data/media` (`STORAGE_LOCAL_ROOT`); límites en `MEDIA_MAX_*_BYTES`.
+
 Dominio y callback OAuth, recursos reales del VPS, datos de Resend y destino de backups (web-v1.md §17). Revocar el token de GitHub tras leer la identidad (hoy sólo se descarta) y limitar la tasa de `/auth/github/start`: mejoras propuestas, no implementadas.

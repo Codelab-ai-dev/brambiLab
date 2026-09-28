@@ -62,3 +62,15 @@ export function describe(error: ApiError): string {
 export function newIdempotencyKey(): string {
   return `save-${crypto.randomUUID()}`;
 }
+
+/** PATCH/DELETE of a library asset from the browser (Go checks session, CSRF and Origin). */
+export async function assetRequest(method: "PATCH" | "DELETE", id: string, csrf: string, body?: unknown) {
+  const r = await fetch(`/api/v1/admin/assets/${id}`, {
+    method,
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const json = (r.status === 204 ? null : await r.json().catch(() => null)) as { code?: string } | null;
+  return { ok: r.ok, status: r.status, json };
+}

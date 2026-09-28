@@ -34,10 +34,17 @@ describe("DocumentView", () => {
     expect(html).not.toContain("<a");
   });
 
-  it("shows an honest placeholder for media until uploads exist", () => {
-    const html = renderToStaticMarkup(<DocumentView doc={fixture("media")} locale="en" />);
-    expect(html.match(/File pending/g)).toHaveLength(3);
-    expect(html).not.toMatch(/<img|<video/);
+  it("renders real media through /media with reserved dimensions", () => {
+    const html = renderToStaticMarkup(
+      <DocumentView doc={fixture("media")} locale="es" assets={{ "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11": { width: 1200, height: 800, bytes: 1 }, "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c14": { width: null, height: null, bytes: 2_500_000 } }} />,
+    );
+    expect(html).toContain('<img src="/media/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11" alt="Placa de control, cara frontal" width="1200" height="800" loading="lazy"');
+    expect(html).toContain("<figcaption");
+    expect(html).toMatch(/<video src="\/media\/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c12" poster="\/media\/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c13"[^>]*controls="" preload="metadata"/);
+    expect(html).toContain('href="/media/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c14/download"');
+    expect(html).toContain("2.4 MB");
+    // Label text is escaped, never HTML.
+    expect(html).toContain("Soporte STL v1 &quot;beta&quot;");
   });
 
   it("keeps wide tables in a scrollable, focusable region", () => {
@@ -52,9 +59,9 @@ describe("ContentEditor on the server", () => {
     expect(html).toContain('role="toolbar"');
     expect(html).toContain("Cargando el editor");
     expect(html).not.toContain("ProseMirror");
-    // Media controls are disabled and explain why.
+    // Without a media bridge (e.g. on the server) media controls are disabled and explain why.
     expect(html.match(/disabled="" aria-describedby=|aria-describedby="[^"]+"[^>]*disabled=""/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-    expect(html).toContain("WEB-004");
+    expect(html).toContain("Los medios se insertan desde el editor de un contenido.");
   });
 });
 
