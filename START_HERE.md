@@ -1,17 +1,18 @@
-# Arranque del Sprint 0
-## 1. Revisa el paquete
-Extrae el ZIP y abre `brambilab/`. No contiene historial Git ni remoto. Si ya tienes un repositorio, copia los archivos en una rama y resuelve diferencias sin sobrescribir instrucciones existentes.
-
-## 2. Primer commit en una carpeta nueva
-Con Git instalado e identidad ya configurada:
+# Arranque
+## 1. Obtén el repositorio
+El repositorio es público: https://github.com/Codelab-ai-dev/brambiLab. El commit inicial (`332e5f0`) ya existe; no hace falta volver a crear el historial.
 ```bash
+git clone https://github.com/Codelab-ai-dev/brambiLab.git brambilab
 cd brambilab
-git init -b main
-git add .
-git diff --cached --stat
-git commit -m "docs(foundation): initialize BrambiLab v1"
 ```
-No se ha ejecutado este commit en tu equipo. Configura tu identidad Git si Git la solicita. El remoto de GitHub y su visibilidad siguen pendientes; no hay URL que asumir.
+
+## 2. Acceso para publicar
+Para hacer push y abrir PRs, inicia sesión con GitHub CLI y conecta Git a esas credenciales:
+```bash
+gh auth login
+gh auth setup-git
+```
+Configura tu identidad Git en el repositorio si todavía no existe (`git config user.name` y `git config user.email`). No pegues tokens en conversaciones con agentes.
 
 ## 3. Primera sesión con Claude Code
 Pega este encargo:
@@ -21,5 +22,5 @@ Pega este encargo:
 ## 4. Revisión con ChatGPT/Codex
 Comparte el handoff y el diff o los archivos modificados; si hay acceso conectado al repo, comparte rama y commit/PR. No basta con decir que otro agente terminó: se necesitan los cambios para revisarlos.
 
-## 5. Al habilitar GitHub
+## 5. Al migrar las tareas a GitHub Issues
 Migra cada tarea del backlog a un Issue, conserva su ID y registra el enlace. Cambia tasks/backlog.md a índice de enlaces; usa Issues como único estado operativo. Cada PR referencia su Issue. No publiques datos personales o secretos en evidencias.
