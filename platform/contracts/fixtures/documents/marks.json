@@ -1,0 +1,141 @@
+{
+ "type": "doc",
+ "content": [
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "negrita y cursiva",
+     "marks": [
+      {
+       "type": "bold"
+      },
+      {
+       "type": "italic"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "enlace con ",
+     "marks": [
+      {
+       "type": "link",
+       "attrs": {
+        "href": "https://example.com/a_(b)?q=1&r=2"
+       }
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "negrita",
+     "marks": [
+      {
+       "type": "link",
+       "attrs": {
+        "href": "https://example.com/a_(b)?q=1&r=2"
+       }
+      },
+      {
+       "type": "bold"
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": " dentro",
+     "marks": [
+      {
+       "type": "link",
+       "attrs": {
+        "href": "https://example.com/a_(b)?q=1&r=2"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "código enlazado",
+     "marks": [
+      {
+       "type": "link",
+       "attrs": {
+        "href": "#pinout"
+       }
+      },
+      {
+       "type": "code"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "uno",
+     "marks": [
+      {
+       "type": "link",
+       "attrs": {
+        "href": "mailto:hola@example.com"
+       }
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": " "
+    },
+    {
+     "type": "text",
+     "text": "dos",
+     "marks": [
+      {
+       "type": "link",
+       "attrs": {
+        "href": "/es/articulos/x"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "palabra"
+    },
+    {
+     "type": "text",
+     "text": "pegada",
+     "marks": [
+      {
+       "type": "bold"
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "sin espacios"
+    }
+   ]
+  }
+ ]
+}

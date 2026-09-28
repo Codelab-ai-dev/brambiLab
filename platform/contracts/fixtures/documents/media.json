@@ -1,0 +1,34 @@
+{
+ "type": "doc",
+ "content": [
+  {
+   "type": "image",
+   "attrs": {
+    "assetId": "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11",
+    "alt": "Placa de control, cara frontal",
+    "caption": "Foto del 2026-09-28"
+   }
+  },
+  {
+   "type": "video",
+   "attrs": {
+    "assetId": "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c12",
+    "posterAssetId": "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c13",
+    "caption": "Prueba con ruedas levantadas"
+   }
+  },
+  {
+   "type": "download",
+   "attrs": {
+    "assetId": "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c14",
+    "label": "Soporte STL v1 \"beta\""
+   }
+  },
+  {
+   "type": "youtube",
+   "attrs": {
+    "videoId": "a-b_c1D2e3F"
+   }
+  }
+ ]
+}
