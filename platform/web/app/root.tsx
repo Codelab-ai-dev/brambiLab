@@ -5,16 +5,20 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useParams,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import { defaultLocale, isLocale, t } from "./i18n";
+import { t } from "./i18n";
+import { homePath, localeOfPath } from "./site/paths";
 import "./app.css";
+import { forwardHeaders } from "./site/seo";
+
+// Unmatched paths and errors outside a route with its own headers are never cached.
+export const headers = forwardHeaders;
 
 function useLocale() {
-  const { lang } = useParams();
-  return isLocale(lang) ? lang : defaultLocale;
+  return localeOfPath(useLocation().pathname);
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -46,9 +50,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let details = t(locale, "error.generic");
   let stack: string | undefined;
 
-  if (isRouteErrorResponse(error) && error.status === 404) {
-    message = "404";
-    details = t(locale, "error.notFound");
+  // 404, bad parameters and an unavailable API are different answers; none pretends to be empty.
+  if (isRouteErrorResponse(error)) {
+    message = String(error.status);
+    if (error.status === 404) details = t(locale, "error.notFound");
+    else if (error.status === 400) details = t(locale, "error.badRequest");
+    else if (error.status === 503) details = t(locale, "error.unavailable");
   } else if (import.meta.env.DEV && error instanceof Error) {
     details = error.message;
     stack = error.stack;
@@ -56,8 +63,14 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-16">
-      <h1 className="text-3xl font-semibold">{message}</h1>
+      <p className="font-mono text-xs tracking-widest text-accent uppercase">BrambiLab</p>
+      <h1 className="mt-2 text-3xl font-semibold">{message}</h1>
       <p className="mt-4">{details}</p>
+      <p className="mt-8">
+        <a href={homePath(locale)} className="text-accent underline underline-offset-2">
+          {t(locale, "error.home")}
+        </a>
+      </p>
       {stack && (
         <pre className="mt-4 w-full overflow-x-auto p-4">
           <code>{stack}</code>

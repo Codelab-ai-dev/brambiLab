@@ -1327,7 +1327,16 @@ components:
               slug: { type: string }
               project_slug: { type: [string, "null"] }
               lastmod: { type: string, format: date-time }
-              alternates: { type: array, items: { $ref: "#/components/schemas/Locale" } }
+              alternates:
+                type: array
+                description: The other visible translation of the same content, by its current slugs.
+                items:
+                  type: object
+                  required: [locale, slug, project_slug]
+                  properties:
+                    locale: { $ref: "#/components/schemas/Locale" }
+                    slug: { type: string }
+                    project_slug: { type: [string, "null"] }
         page: { type: integer }
         page_size: { type: integer, const: 5000 }
         total: { type: integer }

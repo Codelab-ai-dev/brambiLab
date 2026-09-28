@@ -1,73 +1,123 @@
 import type { Route } from "./+types/home";
 import { BenchHero } from "~/components/site/BenchHero";
-import { defaultLocale, isLocale, t, type Locale, type MessageKey } from "~/i18n";
+import { t, type Locale, type MessageKey } from "~/i18n";
+import { publicGet } from "~/site/api.server";
+import { localeOf, seo } from "~/site/loader.server";
+import { homePath, sectionPath } from "~/site/paths";
+import { forwardHeaders, seoMeta } from "~/site/seo";
+import type { Card, Home as HomeData } from "~/site/types";
+import { CardGrid, Container } from "~/site/ui";
+import { ContactLinks } from "~/site/ContactLinks";
+
+export const headers = forwardHeaders;
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  return [
-    { title: "BrambiLab" },
-    { name: "description", content: t(loaderData.locale, "site.tagline") },
-    // Provisional home: keep it out of search indexes until WEB-006 defines SEO.
-    { name: "robots", content: "noindex" },
-  ];
+  return seoMeta(loaderData?.seo);
 }
 
-export function loader({ params }: Route.LoaderArgs) {
-  return { locale: isLocale(params.lang) ? params.lang : defaultLocale };
+export async function loader({ request }: Route.LoaderArgs) {
+  const locale = localeOf(request);
+  const home = await publicGet<HomeData>(`/api/v1/public/${locale}/home`);
+  return {
+    locale,
+    home,
+    seo: seo({
+      locale,
+      path: homePath(locale),
+      title: "BrambiLab",
+      description: home.site.intro || t(locale, "site.tagline"),
+      alternates: { es: homePath("es"), en: homePath("en") },
+    }),
+    switcher: { href: homePath(locale === "es" ? "en" : "es"), available: true },
+  };
 }
 
-const channels: { ch: string; title: MessageKey; text: MessageKey }[] = [
-  { ch: "CH1", title: "site.publish.projects.title", text: "site.publish.projects.text" },
-  { ch: "CH2", title: "site.publish.log.title", text: "site.publish.log.text" },
-  { ch: "CH3", title: "site.publish.articles.title", text: "site.publish.articles.text" },
-];
-const protocol: MessageKey[] = ["site.method.hypothesis", "site.method.failures", "site.method.evidence"];
+type Channel = { id: string; ch: string; title: MessageKey; empty: MessageKey; cards: Card[]; more?: { href: string; label: MessageKey } };
 
 export default function Home({ loaderData }: Route.ComponentProps) {
+  const { home } = loaderData;
   const locale: Locale = loaderData.locale;
+  const featured = home.featured.length > 0;
+  const channels: Channel[] = [
+    {
+      id: "projects",
+      ch: "CH1",
+      title: featured ? "home.featured" : "home.projects",
+      empty: "home.noneProjects",
+      cards: featured ? home.featured : home.latest_projects,
+      more: { href: sectionPath(locale, "projects"), label: "home.allProjects" },
+    },
+    { id: "logs", ch: "CH2", title: "home.logs", empty: "home.noneLogs", cards: home.latest_logs },
+    { id: "articles", ch: "CH3", title: "home.articles", empty: "home.noneArticles", cards: home.latest_articles, more: { href: sectionPath(locale, "articles"), label: "home.allArticles" } },
+  ];
+  const hasContact = home.site.contact_email !== "" || home.site.links.length > 0;
+
   return (
     <main>
       <BenchHero locale={locale} />
 
-      {/* Output channels: what will be published. Honest status: nothing is on air yet. */}
-      <section id="publish" aria-labelledby="publish-title" className="scroll-mt-4">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 id="publish-title" className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-            {t(locale, "site.publish.title")}
-          </h2>
-          <ol className="mt-10 grid gap-5 md:grid-cols-3">
-            {channels.map((c) => (
-              <li key={c.ch} className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-surface p-6 transition-shadow hover:shadow-[0_0_0_1px_var(--color-accent)]">
-                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 origin-left scale-x-25 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-                <div className="flex items-center justify-between font-mono text-xs tracking-widest uppercase">
-                  <span className="rounded bg-primary px-2 py-0.5 text-primary-contrast">{c.ch}</span>
-                  <span className="flex items-center gap-2 text-text-muted">
-                    <span aria-hidden="true" className="size-1.5 rounded-full border border-text-muted" />
-                    {t(locale, "site.soon")}
-                  </span>
-                </div>
-                <h3 className="mt-6 text-2xl font-semibold">{t(locale, c.title)}</h3>
-                <p className="mt-3 leading-relaxed text-text-muted">{t(locale, c.text)}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      {home.site.intro && (
+        <section aria-label={t(locale, "about.title")} className="border-b border-border">
+          <Container className="py-12">
+            <p className="max-w-3xl text-xl leading-relaxed whitespace-pre-line sm:text-2xl">{home.site.intro}</p>
+          </Container>
+        </section>
+      )}
 
-      {/* Test protocol: how everything is documented. */}
-      <section aria-labelledby="method-title" className="border-t border-border bg-surface-muted">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      {/* Output channels: real published content, or an honest empty state per channel. */}
+      <div id="publish" className="scroll-mt-4">
+        {channels.map((c) => (
+          <section key={c.id} aria-labelledby={`${c.id}-title`} className="border-b border-border">
+            <Container className="py-14 sm:py-16">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <h2 id={`${c.id}-title`} className="flex items-center gap-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+                  <span className="rounded bg-primary px-2 py-0.5 font-mono text-xs tracking-widest text-primary-contrast">{c.ch}</span>
+                  {t(locale, c.title)}
+                </h2>
+                {c.more && c.cards.length > 0 && (
+                  <a href={c.more.href} className="text-sm font-medium text-accent underline underline-offset-4">
+                    {t(locale, c.more.label)} →
+                  </a>
+                )}
+              </div>
+              <div className="mt-8">
+                {c.cards.length > 0 ? (
+                  <CardGrid locale={locale} cards={c.cards} />
+                ) : (
+                  <p className="flex items-center gap-2 font-mono text-sm text-text-muted">
+                    <span aria-hidden="true" className="size-1.5 rounded-full border border-text-muted" />
+                    {t(locale, c.empty)}
+                  </p>
+                )}
+              </div>
+            </Container>
+          </section>
+        ))}
+      </div>
+
+      <section aria-labelledby="method-title" className="border-b border-border bg-surface-muted">
+        <Container className="grid gap-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
           <h2 id="method-title" className="text-3xl font-semibold tracking-tight sm:text-4xl">
             {t(locale, "site.method.title")}
           </h2>
           <ol className="flex flex-col divide-y divide-border border-y border-border">
-            {protocol.map((m, i) => (
+            {(["site.method.hypothesis", "site.method.failures", "site.method.evidence"] as MessageKey[]).map((m, i) => (
               <li key={m} className="flex items-baseline gap-6 py-5">
                 <span className="font-mono text-sm text-accent">{String(i + 1).padStart(2, "0")}</span>
                 <p className="text-lg sm:text-xl">{t(locale, m)}</p>
               </li>
             ))}
           </ol>
-        </div>
+        </Container>
+      </section>
+
+      <section aria-labelledby="contact-title">
+        <Container className="py-14">
+          <h2 id="contact-title" className="text-2xl font-semibold tracking-tight">
+            {t(locale, "home.contact")}
+          </h2>
+          <div className="mt-6">{hasContact ? <ContactLinks locale={locale} site={home.site} /> : <p className="text-text-muted">{t(locale, "contact.empty")}</p>}</div>
+        </Container>
       </section>
     </main>
   );

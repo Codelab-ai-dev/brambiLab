@@ -2,6 +2,7 @@ package public
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -304,12 +305,19 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 
 // SitemapEntry is one canonical public page; alternates lists the locales of the same content.
 type SitemapEntry struct {
-	Kind        string    `json:"kind"`
-	Locale      string    `json:"locale"`
-	Slug        string    `json:"slug"`
-	ProjectSlug *string   `json:"project_slug"`
-	LastMod     time.Time `json:"lastmod"`
-	Alternates  []string  `json:"alternates"`
+	Kind        string             `json:"kind"`
+	Locale      string             `json:"locale"`
+	Slug        string             `json:"slug"`
+	ProjectSlug *string            `json:"project_slug"`
+	LastMod     time.Time          `json:"lastmod"`
+	Alternates  []SitemapAlternate `json:"alternates"`
+}
+
+// SitemapAlternate is the other visible translation of the same content, by its current slugs.
+type SitemapAlternate struct {
+	Locale      string  `json:"locale"`
+	Slug        string  `json:"slug"`
+	ProjectSlug *string `json:"project_slug"`
 }
 
 func (h *Handler) sitemap(w http.ResponseWriter, r *http.Request) {
@@ -335,7 +343,12 @@ func (h *Handler) sitemap(w http.ResponseWriter, r *http.Request) {
 func sitemapEntries(ctx context.Context, q querier, limit, offset int) ([]SitemapEntry, int, error) {
 	rows, err := q.Query(ctx, `
 		SELECT v.kind, v.locale, r.slug, pr.slug, v.published_at,
-		       ARRAY(SELECT o.locale FROM visible_translations o WHERE o.content_id = v.content_id AND o.locale <> v.locale),
+		       COALESCE((SELECT json_agg(json_build_object('locale', o.locale, 'slug', orr.slug, 'project_slug', opr.slug) ORDER BY o.locale)
+		                 FROM visible_translations o
+		                 JOIN revisions orr ON orr.id = o.revision_id
+		                 LEFT JOIN visible_translations opv ON opv.content_id = o.project_id AND opv.locale = o.locale
+		                 LEFT JOIN revisions opr ON opr.id = opv.revision_id
+		                 WHERE o.content_id = v.content_id AND o.locale <> v.locale), '[]'::json),
 		       count(*) OVER ()
 		FROM visible_translations v
 		JOIN revisions r ON r.id = v.revision_id
@@ -350,7 +363,11 @@ func sitemapEntries(ctx context.Context, q querier, limit, offset int) ([]Sitema
 	total := 0
 	for rows.Next() {
 		var e SitemapEntry
-		if err := rows.Scan(&e.Kind, &e.Locale, &e.Slug, &e.ProjectSlug, &e.LastMod, &e.Alternates, &total); err != nil {
+		var alts []byte
+		if err := rows.Scan(&e.Kind, &e.Locale, &e.Slug, &e.ProjectSlug, &e.LastMod, &alts, &total); err != nil {
+			return nil, 0, err
+		}
+		if err := json.Unmarshal(alts, &e.Alternates); err != nil {
 			return nil, 0, err
 		}
 		e.LastMod = e.LastMod.UTC()

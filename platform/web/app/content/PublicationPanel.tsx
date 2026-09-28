@@ -18,6 +18,7 @@ import {
   type Locale,
   type PublicationJob,
 } from "./api-types";
+import { siteFromApiPath } from "~/site/paths";
 import { describe, publicationRequest, type ApiError, type PublicationAction } from "~/lib/admin-client";
 
 type Outcome = { tone: "success" | "danger"; message: string; error?: ApiError } | null;
@@ -118,10 +119,14 @@ export function PublicationPanel({ contentId, locale, csrf, initial, savedVersio
             <dd>
               v{state.published_version} · desde {formatDate(state.published_at)}
             </dd>
-            {state.route && (
+            {state.route && siteFromApiPath(state.route) && (
               <>
-                <dt className="text-text-muted">Ruta pública</dt>
-                <dd className="font-mono text-xs break-all">{state.route}</dd>
+                <dt className="text-text-muted">Página pública</dt>
+                <dd>
+                  <a href={siteFromApiPath(state.route)!} className="font-mono text-xs break-all text-accent underline underline-offset-2">
+                    Ver publicación<span className="sr-only"> en {lang}</span> · {siteFromApiPath(state.route)}
+                  </a>
+                </dd>
               </>
             )}
           </>

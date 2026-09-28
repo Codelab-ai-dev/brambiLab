@@ -65,6 +65,8 @@ services:
     restart: unless-stopped
     environment:
       INTERNAL_API_URL: http://api:8080
+      # Canonical, hreflang, Open Graph and sitemap URLs (never the request Host). Required in production.
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8000}
     depends_on:
       api:
         condition: service_healthy

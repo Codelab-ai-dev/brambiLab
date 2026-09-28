@@ -7,19 +7,40 @@ import { t, type Locale } from "~/i18n";
 import { isSafeHref, type Block, type Doc, type Inline, type TextNode } from "./schema";
 
 /** Stored-file facts used to reserve space and label downloads; optional (e.g. import preview). */
-export type AssetMeta = { width: number | null; height: number | null; bytes: number };
+export type AssetMeta = { width: number | null; height: number | null; bytes: number; downloadable?: boolean };
 
-type Props = { doc: Doc; locale: Locale; assets?: Record<string, AssetMeta> };
+type Props = {
+  doc: Doc;
+  locale: Locale;
+  assets?: Record<string, AssetMeta>;
+  /**
+   * Public pages: `assets` lists exactly what visitors can fetch now. A referenced file missing
+   * from it (permissions revoked after publishing) is shown as unavailable instead of broken.
+   */
+  publicOnly?: boolean;
+};
 
-export function DocumentView({ doc, locale, assets = {} }: Props) {
-  return <div className="space-y-4 leading-relaxed">{doc.content.map((b, i) => renderBlock(b, i, locale, assets))}</div>;
+export function DocumentView({ doc, locale, assets = {}, publicOnly = false }: Props) {
+  const ctx: Ctx = { locale, assets, publicOnly };
+  return <div className="space-y-4 leading-relaxed">{doc.content.map((b, i) => renderBlock(b, i, ctx))}</div>;
+}
+
+type Ctx = { locale: Locale; assets: Record<string, AssetMeta>; publicOnly: boolean };
+
+function Unavailable({ locale }: { locale: Locale }) {
+  return (
+    <p className="rounded-md border border-dashed border-border px-4 py-3 text-sm text-text-muted" data-media="unavailable">
+      {t(locale, "media.unavailable")}
+    </p>
+  );
 }
 
 function formatSize(n: number): string {
   return n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function renderBlock(b: Block, key: number, locale: Locale, assets: Record<string, AssetMeta> = {}): ReactNode {
+function renderBlock(b: Block, key: number, ctx: Ctx): ReactNode {
+  const { locale, assets, publicOnly } = ctx;
   switch (b.type) {
     case "paragraph":
       // Empty paragraphs are spacing in the editor; keep the line so layouts match the preview.
@@ -37,7 +58,7 @@ function renderBlock(b: Block, key: number, locale: Locale, assets: Record<strin
       return (
         <ul key={key} className="list-disc space-y-1 pl-6">
           {b.content.map((item, i) => (
-            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, locale, assets))}</li>
+            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, ctx))}</li>
           ))}
         </ul>
       );
@@ -45,14 +66,14 @@ function renderBlock(b: Block, key: number, locale: Locale, assets: Record<strin
       return (
         <ol key={key} start={b.attrs?.start} className="list-decimal space-y-1 pl-6">
           {b.content.map((item, i) => (
-            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, locale, assets))}</li>
+            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, ctx))}</li>
           ))}
         </ol>
       );
     case "blockquote":
       return (
         <blockquote key={key} className="space-y-2 border-l-4 border-border pl-4 text-text-muted">
-          {b.content.map((c, i) => renderBlock(c, i, locale, assets))}
+          {b.content.map((c, i) => renderBlock(c, i, ctx))}
         </blockquote>
       );
     case "codeBlock": {
@@ -97,6 +118,7 @@ function renderBlock(b: Block, key: number, locale: Locale, assets: Record<strin
       return <YouTubeEmbed key={key} videoId={b.attrs.videoId} start={b.attrs.start} locale={locale} />;
     case "image": {
       const meta = assets[b.attrs.assetId];
+      if (publicOnly && !meta) return <Unavailable key={key} locale={locale} />;
       return (
         <figure key={key} className="my-6">
           <img
@@ -114,11 +136,13 @@ function renderBlock(b: Block, key: number, locale: Locale, assets: Record<strin
     }
     case "video": {
       const meta = assets[b.attrs.assetId];
+      if (publicOnly && !meta) return <Unavailable key={key} locale={locale} />;
+      const poster = b.attrs.posterAssetId && (!publicOnly || assets[b.attrs.posterAssetId]) ? `/media/${b.attrs.posterAssetId}` : undefined;
       return (
         <figure key={key} className="my-6">
           <video
             src={`/media/${b.attrs.assetId}`}
-            poster={b.attrs.posterAssetId ? `/media/${b.attrs.posterAssetId}` : undefined}
+            poster={poster}
             width={meta?.width ?? undefined}
             height={meta?.height ?? undefined}
             controls
@@ -132,6 +156,7 @@ function renderBlock(b: Block, key: number, locale: Locale, assets: Record<strin
     }
     case "download": {
       const meta = assets[b.attrs.assetId];
+      if (publicOnly && !meta?.downloadable) return <Unavailable key={key} locale={locale} />;
       return (
         <p key={key}>
           <a

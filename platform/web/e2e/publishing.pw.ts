@@ -89,7 +89,7 @@ test("publish with real media, anonymous access, unsaved buffer and withdrawal",
   await expect(panel.getByRole("status").filter({ hasText: "Versión 1 publicada." })).toBeVisible();
   await expect(panel.locator("[data-status]")).toHaveAttribute("data-status", "published");
   const route = `/api/v1/public/es/articles/${slug}`;
-  await expect(panel).toContainText(route);
+  await expect(panel.getByRole("link", { name: /^Ver publicación/ })).toHaveAttribute("href", `/es/articulos/${slug}`);
   expect(dialogs.at(-1)).toContain("¿Publicar ahora la versión 1 en Español?");
   await shot(page, "publication-published");
 
