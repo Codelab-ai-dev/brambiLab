@@ -35,22 +35,23 @@ func TestReservedPasswordMigratesAndIsReady(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer admin.Close(ctx)
+	// Cleanups run LIFO: registered first, the connection closes last, after every DROP below.
+	t.Cleanup(func() {
+		ctx, cancel := cleanupCtx()
+		defer cancel()
+		if err := admin.Close(ctx); err != nil {
+			t.Errorf("close admin connection: %v", err)
+		}
+	})
 
 	name := fmt.Sprintf("bl_reserved_%d", time.Now().UnixNano())
 	quotedPW := strings.ReplaceAll(reservedPassword, "'", "''")
-	for _, stmt := range []string{
-		fmt.Sprintf(`CREATE ROLE %s LOGIN PASSWORD '%s'`, name, quotedPW),
-		fmt.Sprintf(`CREATE DATABASE %s OWNER %s`, name, name),
-	} {
-		if _, err := admin.Exec(ctx, stmt); err != nil {
-			t.Fatalf("setup: %v", err)
-		}
-	}
-	t.Cleanup(func() {
-		_, _ = admin.Exec(ctx, fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, name))
-		_, _ = admin.Exec(ctx, fmt.Sprintf(`DROP ROLE IF EXISTS %s`, name))
-	})
+	// Each resource registers its own cleanup right after creation, so a failure halfway through
+	// setup still removes what was created. The database is dropped before its owner role.
+	adminExec(t, admin, fmt.Sprintf(`CREATE ROLE %s LOGIN PASSWORD '%s'`, name, quotedPW))
+	t.Cleanup(func() { adminCleanup(t, admin, fmt.Sprintf(`DROP ROLE %s`, name)) })
+	adminExec(t, admin, fmt.Sprintf(`CREATE DATABASE %s OWNER %s`, name, name))
+	t.Cleanup(func() { adminCleanup(t, admin, fmt.Sprintf(`DROP DATABASE %s WITH (FORCE)`, name)) })
 
 	ac := admin.Config()
 	setPGEnv(t, ac.Host, strconv.Itoa(int(ac.Port)), name, reservedPassword, name)
@@ -98,4 +99,25 @@ func ready(t *testing.T, ctx context.Context, cfg *pgxpool.Config, logger *slog.
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil))
 	return rec.Code
+}
+
+func cleanupCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 30*time.Second)
+}
+
+// adminExec fails setup with the statement's error only: the SQL may contain a password.
+func adminExec(t *testing.T, admin *pgx.Conn, sql string) {
+	t.Helper()
+	if _, err := admin.Exec(context.Background(), sql); err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+}
+
+func adminCleanup(t *testing.T, admin *pgx.Conn, sql string) {
+	t.Helper()
+	ctx, cancel := cleanupCtx()
+	defer cancel()
+	if _, err := admin.Exec(ctx, sql); err != nil {
+		t.Errorf("cleanup %q: %v", sql, err)
+	}
 }
