@@ -38,7 +38,7 @@ export default function Login({ loaderData }: Route.ComponentProps) {
       <h1 className="text-2xl font-semibold">Panel de BrambiLab</h1>
       {loggedOut && <p className="mt-4">Sesión cerrada.</p>}
       {message && (
-        <p role="alert" className="mt-4 text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-4 text-danger">
           {message}
         </p>
       )}
@@ -46,18 +46,18 @@ export default function Login({ loaderData }: Route.ComponentProps) {
         // A full document navigation: the OAuth flow leaves the site and must not be client-routed.
         <a
           href={startUrl}
-          className="mt-8 inline-block rounded bg-gray-900 px-4 py-2 text-white dark:bg-gray-100 dark:text-gray-900"
+          className="mt-8 inline-flex min-h-10 items-center rounded-md bg-accent px-4 font-medium text-accent-contrast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Iniciar sesión con GitHub
         </a>
       )}
       {availability === "not_configured" && (
-        <p className="mt-8 text-gray-600 dark:text-gray-400">
+        <p className="mt-8 text-text-muted">
           El acceso con GitHub no está configurado en este entorno.
         </p>
       )}
       {availability === "unavailable" && (
-        <p role="alert" className="mt-8 text-gray-600 dark:text-gray-400">
+        <p role="alert" className="mt-8 text-text-muted">
           El servicio de acceso no responde. Inténtalo de nuevo en unos minutos.
         </p>
       )}

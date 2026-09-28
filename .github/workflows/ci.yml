@@ -84,6 +84,23 @@ jobs:
           test "$published" = "fakegithub proxy " || { echo "published: $published"; exit 1; }
       - name: Owner login e2e (fake GitHub)
         run: ./e2e/auth.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: platform/web/package-lock.json
+      - name: Panel e2e in Chromium (Playwright)
+        working-directory: platform/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          BASE_URL=http://localhost:8000 npm run e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: platform/web/test-results/
+          retention-days: 7
       - name: Secrets never reach logs
         run: |
           grep -q "POSTGRES_PASSWORD='change-me@local/#1'" .env

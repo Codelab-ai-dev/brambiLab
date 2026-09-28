@@ -23,6 +23,8 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
 ## Entregas web
+2026-09-27 · WEB-003 en tres PR apilados: #15 (modelo y API), #16 (editor y Markdown) y el panel con e2e. Handoffs: [API](../docs/handoffs/2026-09-27-web-003-api.md), [editor](../docs/handoffs/2026-09-27-web-003-editor.md), [panel](../docs/handoffs/2026-09-27-web-003-panel.md).
+
 2026-09-27 · WEB-002: login del propietario con GitHub, sesiones, CSRF, proxy de entrada y e2e con GitHub simulado. [Handoff](../docs/handoffs/2026-09-27-web-002.md).
 
 2026-09-27 · WEB-001 seguimiento: credenciales PostgreSQL mediante variables `PG*` y actualización del seguimiento tras la revisión de Codex. [Handoff](../docs/handoffs/2026-09-27-web-001-followup.md).
