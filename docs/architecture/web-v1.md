@@ -118,7 +118,7 @@ El formato canónico es un esquema JSON propio (`body_schema_version: 1`), no el
 - **Bloques:** `paragraph`, `heading` (niveles 2 a 4; el título va aparte), `bulletList`, `orderedList` (`start`), `listItem`, `blockquote`, `codeBlock` (`language`, texto sin marcas), `horizontalRule`, `table`/`tableRow`/`tableHeader`/`tableCell` (tablas simples: cada celda es un párrafo, sin fusiones) y `youtube` (`videoId` de 11 caracteres validado, `start` opcional).
 - **En línea:** `text` con las marcas `bold`, `italic`, `code` y `link` (`href`), y `hardBreak`.
 - **Enlaces:** se aceptan `http`, `https`, `mailto`, rutas relativas `/…` y anclas `#…`. Se rechazan `javascript:`, `data:`, `vbscript:` y cualquier otro esquema. No hay HTML ni iframes.
-- **Medios preparados para WEB-004:** `image` (`assetId`, `alt`, `caption`), `video` (`assetId`, `posterAssetId`, `caption`) y `download` (`assetId`, `label`). Están versionados y probados con fixtures, pero la API los rechaza (`media_not_available`) hasta que existan los assets. No se generan IDs ficticios.
+- **Medios preparados para WEB-004:** `image` (`assetId`, `alt`, `caption`), `video` (`assetId`, `posterAssetId`, `caption`) y `download` (`assetId`, `label`). Desde WEB-004, la API sólo los acepta si el asset existe, está `ready` y es del tipo correcto (el póster y la portada, imágenes). Si no, responde 422 con el motivo. No se generan IDs ficticios.
 - **Límites:** petición de 1 MiB como máximo, profundidad 32, 20 000 nodos y 200 000 caracteres de texto. Título de 200 caracteres, slug de 120 (`a-z0-9-`), resumen de 500, SEO de 70 y 160, y 20 etiquetas.
 
 **Editor y Markdown (WEB-003, parte 2).**

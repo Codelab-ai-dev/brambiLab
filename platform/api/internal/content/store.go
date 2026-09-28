@@ -274,6 +274,9 @@ func (s Store) CreateTranslation(ctx context.Context, contentID, locale, copyFro
 			if src == nil {
 				return errNothingToCopy
 			}
+			if err := checkAssets(ctx, tx, src.Snapshot); err != nil {
+				return err
+			}
 			if err := insertRevision(ctx, tx, tID, 1, "copy", nil, &copyFrom, src.Snapshot, plainOf(src), hashOf(ctx, tx, contentID, copyFrom, src.Version), ""); err != nil {
 				return err
 			}
@@ -391,6 +394,9 @@ func (s Store) SaveRevision(ctx context.Context, in SaveInput) (*Revision, bool,
 		if err := checkTerms(ctx, tx, in.Snapshot); err != nil {
 			return err
 		}
+		if err := checkAssets(ctx, tx, in.Snapshot); err != nil {
+			return err
+		}
 		version = t.latest + 1
 		if err := insertRevision(ctx, tx, t.id, version, in.Kind, nil, nil, in.Snapshot, in.PlainText, hash, in.IdempotencyKey); err != nil {
 			return err
@@ -435,6 +441,9 @@ func (s Store) RestoreRevision(ctx context.Context, contentID, locale string, fr
 		if bytes.Equal(latestHash, srcHash) {
 			version = t.latest
 			return nil
+		}
+		if err := checkAssets(ctx, tx, src.Snapshot); err != nil {
+			return err
 		}
 		version = t.latest + 1
 		if err := insertRevision(ctx, tx, t.id, version, "restore", &from, nil, src.Snapshot, plainOf(src), srcHash, ""); err != nil {
@@ -488,6 +497,55 @@ func checkTerms(ctx context.Context, q querier, s Snapshot) error {
 	return nil
 }
 
+// checkAssets verifies every referenced asset exists, is ready and has the right kind. FOR KEY
+// SHARE locks the rows until commit, so a concurrent delete waits and then fails on the FK.
+func checkAssets(ctx context.Context, q querier, s Snapshot) error {
+	refs := s.AssetRefs()
+	if len(refs) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(refs))
+	for _, r := range refs {
+		ids = append(ids, r.ID)
+	}
+	rows, err := q.Query(ctx, `SELECT id::text, kind, status FROM assets WHERE id = ANY($1::uuid[]) FOR KEY SHARE`, ids)
+	if err != nil {
+		return err
+	}
+	type info struct{ kind, status string }
+	found := map[string]info{}
+	for rows.Next() {
+		var id string
+		var i info
+		if err := rows.Scan(&id, &i.kind, &i.status); err != nil {
+			rows.Close()
+			return err
+		}
+		found[id] = i
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	want := map[string]string{"image": "image", "poster": "image", "cover": "image", "video": "video"}
+	for _, r := range refs {
+		field := "body"
+		if r.Usage == "cover" {
+			field = "cover_asset_id"
+		}
+		i, ok := found[r.ID]
+		switch {
+		case !ok:
+			return FieldErrors{field: fmt.Sprintf("el archivo %s no existe en la biblioteca", r.ID)}
+		case i.status != "ready":
+			return FieldErrors{field: fmt.Sprintf("el archivo %s todavía no está listo", r.ID)}
+		case want[r.Usage] != "" && i.kind != want[r.Usage]:
+			return FieldErrors{field: fmt.Sprintf("el archivo %s no es un %s", r.ID, map[string]string{"image": "archivo de imagen", "video": "vídeo"}[want[r.Usage]])}
+		}
+	}
+	return nil
+}
+
 func insertRevision(ctx context.Context, tx pgx.Tx, translationID string, version int, kind string,
 	restoredFrom *int, copiedFrom *string, s Snapshot, plain string, hash []byte, idemKey string) error {
 	body, err := CanonicalJSON(s.Body)
@@ -506,11 +564,17 @@ func insertRevision(ctx context.Context, tx pgx.Tx, translationID string, versio
 	var revID string
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO revisions (translation_id, version, kind, restored_from_version, copied_from_locale, title, slug, summary,
-			body_json, body_schema_version, plain_text, seo, project_fields, category_id, snapshot_hash, idempotency_key)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`,
+			body_json, body_schema_version, plain_text, seo, project_fields, category_id, snapshot_hash, idempotency_key, cover_asset_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
 		translationID, version, kind, restoredFrom, copiedFrom, s.Title, s.Slug, s.Summary,
-		body, SchemaVersion, plain, seo, project, s.CategoryID, hash, key).Scan(&revID); err != nil {
+		body, SchemaVersion, plain, seo, project, s.CategoryID, hash, key, s.CoverAssetID).Scan(&revID); err != nil {
 		return err
+	}
+	// References in the same transaction as the revision: they block deleting these assets.
+	for _, ref := range s.AssetRefs() {
+		if _, err := tx.Exec(ctx, `INSERT INTO revision_assets (revision_id, asset_id, usage) VALUES ($1, $2, $3)`, revID, ref.ID, ref.Usage); err != nil {
+			return err
+		}
 	}
 	for _, tag := range s.TagIDs {
 		if _, err := tx.Exec(ctx, `INSERT INTO revision_tags (revision_id, tag_id) VALUES ($1, $2)`, revID, tag); err != nil {
@@ -538,12 +602,12 @@ func revisionAt(ctx context.Context, q querier, contentID, locale string, versio
 	var body, seo, project []byte
 	err := q.QueryRow(ctx, `
 		SELECT r.version, r.kind, r.created_at, r.body_schema_version, r.restored_from_version, r.copied_from_locale,
-			r.title, r.slug, r.summary, r.body_json, r.seo, r.project_fields, r.category_id,
+			r.title, r.slug, r.summary, r.body_json, r.seo, r.project_fields, r.category_id, r.cover_asset_id,
 			COALESCE((SELECT array_agg(tag_id::text ORDER BY tag_id) FROM revision_tags WHERE revision_id = r.id), '{}')
 		FROM revisions r JOIN translations t ON t.id = r.translation_id
 		WHERE t.content_id = $1 AND t.locale = $2 AND r.version = $3`, contentID, locale, version).
 		Scan(&r.Version, &r.Kind, &r.CreatedAt, &r.BodySchemaVersion, &r.RestoredFromVersion, &r.CopiedFromLocale,
-			&r.Title, &r.Slug, &r.Summary, &body, &seo, &project, &r.CategoryID, &r.TagIDs)
+			&r.Title, &r.Slug, &r.Summary, &body, &seo, &project, &r.CategoryID, &r.CoverAssetID, &r.TagIDs)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
