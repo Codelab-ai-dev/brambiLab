@@ -129,7 +129,8 @@ test("publish with real media, anonymous access, unsaved buffer and withdrawal",
   await expect(panel.locator("[data-status]")).toHaveAttribute("data-status", "withdrawn");
   expect(dialogs.at(-1)).toContain("¿Retirar la publicación en Español?");
   expect((await anon.get(route)).status()).toBe(404);
-  for (const headers of [{}, { Range: "bytes=0-10" }, { "If-None-Match": etag }]) {
+  const variants: Record<string, string>[] = [{}, { Range: "bytes=0-10" }, { "If-None-Match": etag }];
+  for (const headers of variants) {
     const r = await anon.get(`/media/${assetId}`, { headers });
     expect(r.status(), JSON.stringify(headers)).toBe(404);
   }
