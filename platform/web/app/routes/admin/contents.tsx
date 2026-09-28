@@ -81,6 +81,7 @@ export default function Contents({ loaderData }: Route.ComponentProps) {
                       {c.translations.map((t) => (
                         <li key={t.locale} className="rounded bg-surface-muted px-2 py-0.5 font-mono text-xs uppercase">
                           {t.locale} · {t.latest_version ? `v${t.latest_version}` : "vacío"}
+                          {t.published && <span className="ml-1 font-sans normal-case text-success">· publicada</span>}
                         </li>
                       ))}
                     </ul>
