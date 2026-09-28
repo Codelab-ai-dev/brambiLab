@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -39,7 +40,7 @@ func Start(t *testing.T, pool *pgxpool.Pool, mount func(a *auth.Handler, logger 
 
 	api := httptest.NewUnstartedServer(nil)
 	origin := "http://" + api.Listener.Addr().String()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := slog.New(slog.NewTextHandler(logSink(), nil))
 	a := auth.NewHandler(auth.Config{
 		PublicOrigin: origin, AdminUserID: OwnerID, ClientID: "test-client", ClientSecret: "test-secret",
 		SessionTTL:   time.Hour,
@@ -142,4 +143,12 @@ func (s *Server) do(c *http.Client, csrf bool, method, path string, body any, he
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
 	return Response{Status: resp.StatusCode, Header: resp.Header, Body: raw}
+}
+
+// logSink discards server logs unless AUTHTEST_LOGS=1 (debugging failing tests).
+func logSink() io.Writer {
+	if os.Getenv("AUTHTEST_LOGS") == "1" {
+		return os.Stderr
+	}
+	return io.Discard
 }

@@ -15,6 +15,12 @@
 		defer
 	}
 
+	# Uploads are streamed to Go, which enforces per-type limits (web-v1.md §12.1).
+	@upload path /api/v1/admin/assets
+	request_body @upload {
+		max_size 256MB
+	}
+
 	@api path /api/v1/* /media/*
 	handle @api {
 		reverse_proxy api:8080
