@@ -40,6 +40,7 @@ docker compose -f compose.yaml -f compose.e2e.yaml up --build -d --wait
 ./e2e/auth.sh
 docker compose -f compose.yaml -f compose.e2e.yaml down -v
 ```
+Si ya tienes el stack local en `:8000`, usa un proyecto y un puerto aparte para no probar contra él: `-p bl-e2e`, con `PUBLIC_HOST_PORT=8200` y `PUBLIC_ORIGIN=http://localhost:8200` en un env-file propio, y `BASE=http://localhost:8200 ./e2e/auth.sh`.
 Todo este conjunto corre también en [CI](../.github/workflows/ci.yml).
 
 ## Acceso del propietario (WEB-002)

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.2.0
+  version: 0.2.1
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
     WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
@@ -49,6 +49,23 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/HealthStatus" }
+  /auth/status:
+    get:
+      operationId: getLoginStatus
+      summary: Whether owner login is available in this environment. No session needed.
+      description: Exposes a single boolean, never which setting is missing. Response is no-store.
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description: Login availability.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [login_enabled]
+                properties:
+                  login_enabled: { type: boolean }
   /auth/github/start:
     get:
       operationId: startGitHubLogin

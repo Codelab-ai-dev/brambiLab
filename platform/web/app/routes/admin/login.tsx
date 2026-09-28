@@ -1,6 +1,7 @@
 import { redirect } from "react-router";
 import type { Route } from "./+types/login";
-import { getOwner, privateHeaders } from "~/lib/api.server";
+import { privateHeaders } from "~/lib/api.server";
+import { loginState } from "~/lib/login.server";
 
 export function headers() {
   return privateHeaders;
@@ -17,25 +18,21 @@ const messages: Record<string, string> = {
 };
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const state = await loginState(request);
+  if (state.kind === "redirect") throw redirect(state.to);
+
   const url = new URL(request.url);
-  // Go validates return_to again; this only keeps the link tidy.
-  const rawReturnTo = url.searchParams.get("return_to") ?? "/admin";
-  const returnTo = rawReturnTo.startsWith("/admin") ? rawReturnTo : "/admin";
-
-  const result = await getOwner(request);
-  if (result.status === "authenticated") throw redirect(returnTo);
-
   const error = url.searchParams.get("error");
   return {
-    configured: result.status !== "not_configured",
-    startUrl: `/api/v1/auth/github/start?return_to=${encodeURIComponent(returnTo)}`,
+    availability: state.availability,
+    startUrl: `/api/v1/auth/github/start?return_to=${encodeURIComponent(state.returnTo)}`,
     message: error ? (messages[error] ?? messages.failed) : null,
     loggedOut: url.searchParams.has("logged_out"),
   };
 }
 
 export default function Login({ loaderData }: Route.ComponentProps) {
-  const { configured, startUrl, message, loggedOut } = loaderData;
+  const { availability, startUrl, message, loggedOut } = loaderData;
   return (
     <main className="mx-auto max-w-md px-4 py-16">
       <h1 className="text-2xl font-semibold">Panel de BrambiLab</h1>
@@ -45,7 +42,7 @@ export default function Login({ loaderData }: Route.ComponentProps) {
           {message}
         </p>
       )}
-      {configured ? (
+      {availability === "enabled" && (
         // A full document navigation: the OAuth flow leaves the site and must not be client-routed.
         <a
           href={startUrl}
@@ -53,9 +50,15 @@ export default function Login({ loaderData }: Route.ComponentProps) {
         >
           Iniciar sesión con GitHub
         </a>
-      ) : (
+      )}
+      {availability === "not_configured" && (
         <p className="mt-8 text-gray-600 dark:text-gray-400">
           El acceso con GitHub no está configurado en este entorno.
+        </p>
+      )}
+      {availability === "unavailable" && (
+        <p role="alert" className="mt-8 text-gray-600 dark:text-gray-400">
+          El servicio de acceso no responde. Inténtalo de nuevo en unos minutos.
         </p>
       )}
     </main>

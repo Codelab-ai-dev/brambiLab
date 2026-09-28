@@ -26,6 +26,9 @@ expect "API through proxy" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/
 expect "/admin without session redirects to login" \
   "$(status_and_location "$BASE/admin")" "302 $BASE/admin/login?return_to=%2Fadmin"
 expect "/auth/me without session" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v1/auth/me")" 401
+expect "login availability" "$(curl -s "$BASE/api/v1/auth/status")" '{"login_enabled":true}'
+curl -s -o "$work/login.html" "$BASE/admin/login"
+grep -q 'Iniciar sesión con GitHub' "$work/login.html" && ok "anonymous visitor sees the GitHub button" || fail "no login button while configured"
 curl -s -D "$work/login.h" -o /dev/null "$BASE/admin/login"
 grep -qi '^cache-control: no-store' "$work/login.h" && ok "login page is no-store" || fail "login page cacheable"
 

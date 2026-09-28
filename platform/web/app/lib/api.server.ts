@@ -49,6 +49,28 @@ export async function getOwner(request: Request): Promise<OwnerResult> {
   return { status: "authenticated", owner: (await response.json()) as Owner };
 }
 
+export type LoginAvailability = "enabled" | "not_configured" | "unavailable";
+
+/**
+ * Whether owner login is offered, independent of any session. Sends no cookies. A network error
+ * or unexpected answer is "unavailable", never mistaken for "not_configured".
+ */
+export async function getLoginAvailability(): Promise<LoginAvailability> {
+  try {
+    const response = await fetch(new URL("/api/v1/auth/status", internalApiUrl), {
+      headers: { Accept: "application/json" },
+      redirect: "error",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return "unavailable";
+    const body = (await response.json()) as { login_enabled?: unknown };
+    if (typeof body.login_enabled !== "boolean") return "unavailable";
+    return body.login_enabled ? "enabled" : "not_configured";
+  } catch {
+    return "unavailable";
+  }
+}
+
 export const privateHeaders = {
   "Cache-Control": "no-store, private",
   "X-Robots-Tag": "noindex, nofollow",
