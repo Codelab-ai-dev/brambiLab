@@ -7,7 +7,7 @@ import type { SaveOutcome } from "~/content/autosave";
 export type ApiError = { code: string; message: string; fields?: Record<string, string>; current_version?: number; state?: EditorialState };
 export type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; error: ApiError };
 
-export async function apiSend<T>(method: "POST" | "PATCH", path: string, csrf: string, body?: unknown, headers: Record<string, string> = {}): Promise<ApiResult<T>> {
+export async function apiSend<T>(method: "POST" | "PATCH" | "PUT", path: string, csrf: string, body?: unknown, headers: Record<string, string> = {}): Promise<ApiResult<T>> {
   const response = await fetch(path, {
     method,
     credentials: "same-origin",

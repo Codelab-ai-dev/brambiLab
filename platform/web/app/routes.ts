@@ -44,6 +44,7 @@ export default [
     route("taxonomia", "routes/admin/taxonomy.tsx"),
     route("medios", "routes/admin/media.tsx"),
     route("medios/:id", "routes/admin/media-detail.tsx"),
+    route("sitio", "routes/admin/site.tsx"),
   ]),
   ...site,
 ] satisfies RouteConfig;
