@@ -17,9 +17,9 @@ export default function LocaleLayout({ loaderData }: Route.ComponentProps) {
   const other: Locale = locale === "es" ? "en" : "es";
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-border">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <a href={`/${locale}`} aria-label="BrambiLab" className="rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+      <header className="bl-bench-bar border-b border-[var(--bench-edge)]/40">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <a href={`/${locale}`} aria-label="BrambiLab" className="rounded text-[var(--bench-text)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--bench-signal)]">
             <Wordmark />
           </a>
           <a
@@ -27,7 +27,7 @@ export default function LocaleLayout({ loaderData }: Route.ComponentProps) {
             hrefLang={other}
             lang={other}
             aria-label={t(locale, "site.switchLocaleLabel")}
-            className="rounded px-2 py-1 font-mono text-xs uppercase tracking-widest text-text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+            className="rounded border border-[var(--bench-edge)] px-2 py-1 font-mono text-xs tracking-widest text-[var(--bench-muted)] uppercase hover:border-[var(--bench-signal)] hover:text-[var(--bench-text)] focus-visible:outline-2 focus-visible:outline-[var(--bench-signal)]"
           >
             {other}
           </a>
@@ -37,7 +37,7 @@ export default function LocaleLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </div>
       <footer className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
             © 2026 Gustavo González · <a href={`${repository}/blob/main/LICENSE.md`} className="underline underline-offset-2 hover:text-text">{t(locale, "site.footer.licenses")}</a>
           </p>

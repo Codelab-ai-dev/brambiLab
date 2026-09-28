@@ -78,6 +78,89 @@ body {
   background-position: -1px -1px;
 }
 
+/*
+ * "Live test bench" (public home hero and header). Always dark, like an instrument on the bench,
+ * in both colour schemes. Contrast checked: text 15.5:1, secondary 7.6:1, amber 9.3:1,
+ * mono labels 5.5:1 on --bench-bg.
+ */
+.bl-bench,
+.bl-bench-bar {
+  --bench-bg: #0e1012;
+  --bench-panel: #15181b;
+  --bench-edge: #6b727b;
+  --bench-trace: #3a3f45;
+  --bench-grid: rgb(236 231 220 / 0.035);
+  --bench-grid-strong: rgb(236 231 220 / 0.08);
+  --bench-text: #ece7dc;
+  --bench-muted: #a9a396;
+  --bench-label: #8f8a7e;
+  --bench-signal: #f2a541;
+  background-color: var(--bench-bg);
+  color: var(--bench-text);
+  color-scheme: dark;
+}
+.bl-bench {
+  --mx: 50%;
+  --my: 30%;
+  --spot: 0;
+  background-image:
+    radial-gradient(420px circle at var(--mx) var(--my), rgb(242 165 65 / calc(0.1 * var(--spot))), transparent 70%),
+    linear-gradient(var(--bench-grid-strong) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bench-grid-strong) 1px, transparent 1px),
+    linear-gradient(var(--bench-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bench-grid) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px, 12px 12px, 12px 12px;
+  background-position: 0 0, -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+}
+.bl-bench::after {
+  /* Fade into the paper sections below. */
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--bench-signal), transparent);
+  opacity: 0.5;
+}
+.bl-bench ::selection {
+  background: rgb(242 165 65 / 0.35);
+}
+.bl-pulse {
+  stroke-dasharray: 6 94;
+  stroke-dashoffset: 0;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bl-pulse {
+    opacity: 1;
+    animation: bl-pulse 3.2s linear infinite;
+  }
+  .bl-led {
+    animation: bl-led 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.55s);
+  }
+  .bl-chip {
+    animation: bl-chip 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.55s);
+  }
+}
+
+@keyframes bl-pulse {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+@keyframes bl-led {
+  0%, 100% { opacity: 0.35; box-shadow: none; }
+  12% { opacity: 1; box-shadow: 0 0 10px 2px rgb(242 165 65 / 0.6); }
+  30% { opacity: 0.6; box-shadow: none; }
+}
+@keyframes bl-chip {
+  0%, 100% { border-color: var(--bench-edge); }
+  12% { border-color: var(--bench-signal); }
+  30% { border-color: var(--bench-edge); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
