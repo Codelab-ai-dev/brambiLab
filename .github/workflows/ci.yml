@@ -75,6 +75,12 @@ jobs:
           curl -fsS localhost:3000/healthz
           curl -fsS localhost:3000/es | grep -q '<html lang="es"'
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:3000/)" = 302
+      - name: Password with reserved characters never reaches logs
+        run: |
+          grep -q "POSTGRES_PASSWORD='change-me@local/#1'" .env
+          if docker compose logs 2>&1 | grep -qF 'change-me@local'; then
+            echo "database password found in logs"; exit 1
+          fi
       - if: failure()
         run: docker compose logs
       - if: always()
