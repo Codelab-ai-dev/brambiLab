@@ -18,6 +18,8 @@ __pycache__/
 *.mov
 *.avi
 *.mkv
+# Tiny test fixtures (tens of KB) are the exception.
+!platform/api/internal/media/testdata/*.mp4
 # Firmware and Android build outputs
 .pio/
 .gradle/
