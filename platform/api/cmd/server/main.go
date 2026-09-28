@@ -20,6 +20,7 @@ import (
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/auth"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/config"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/contact"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/content"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/db"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
@@ -97,6 +98,18 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		authHandler.RequireOwner, auth.Actor, authHandler.IsOwner)
 	go mediaHandler.RunCleanup(ctx, 30*time.Minute, 2*time.Hour)
 
+	// Contact (WEB-007): disabled unless fully configured; the reason is logged, never the key.
+	contactCfg := contact.LoadConfig(os.Getenv)
+	contactStore := contact.NewStore(pool, contactCfg)
+	contactHandler := contact.NewHandler(contactStore, contactCfg, logger)
+	if contactCfg.Enabled {
+		go contact.NewWorker(contactStore, contact.NewResend(contactCfg.APIURL, contactCfg.APIKey), logger).Run(ctx, contact.WorkerTick)
+	} else {
+		logger.Warn("contact form disabled", "reasons", contactCfg.Problems)
+		// Retention still applies to messages stored while it was enabled.
+		go contactStore.RunPurge(ctx, time.Hour, logger)
+	}
+
 	siteStore := site.NewStore(pool)
 	publisher := publishing.NewService(pool)
 	go publisher.Run(ctx, publishing.DefaultTick, logger)
@@ -111,6 +124,8 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			publishing.NewHandler(publisher, logger, authHandler.RequireOwner, auth.Actor),
 			site.NewHandler(siteStore, logger, authHandler.RequireOwner, auth.Actor),
 			public.NewHandler(pool, siteStore, logger),
+			contactHandler,
+			contact.NewAdminHandler(contactStore, contactHandler, authHandler.RequireOwner, auth.Actor),
 		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,

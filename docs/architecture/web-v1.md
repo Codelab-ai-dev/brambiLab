@@ -373,6 +373,59 @@ Reintentos limitados con backoff e idempotency key estable. Panel muestra pendie
 Evitar guardar el texto completo en logs. Retención propuesta de mensajes: 30 días; informar uso del formulario en aviso de privacidad.
 Antes de habilitar: dominio remitente, destinatario y API key configurados; sin configuración, formulario deshabilitado con enlaces alternativos. No enviar correos reales como parte de esta especificación.
 
+### 13.1 Implementación WEB-007 (#34)
+**Habilitación.**
+- Variables sólo del servicio Go: `CONTACT_ENABLED` (desactivado por defecto), `RESEND_API_KEY`, `CONTACT_FROM` (dirección de un dominio verificado en Resend, con nombre opcional) y `CONTACT_TO` (destinatario fijo). `RESEND_API_URL` sólo se cambia en pruebas.
+- Se validan al arrancar. Si `CONTACT_ENABLED` no es `true`, o falta o es inválida cualquiera de las otras, el contacto queda desactivado: `POST /contact` responde 503 `contact_unavailable`, no se aceptan mensajes y el ejecutor no envía.
+- Lo público es sólo `GET /public/contact` → `{available}`. La clave, el destinatario y los errores del proveedor nunca salen del servidor. El correo público del sitio (WEB-006) es independiente de `CONTACT_TO`.
+- La verificación del dominio es un paso operativo antes de activarlo en producción; no se consulta al proveedor por visita.
+
+**Recepción** (`POST /api/v1/contact`, JSON o `application/x-www-form-urlencoded`; otro tipo → 415; cuerpo de 32 KiB como máximo).
+- **Campos:** `name`, `email`, `message`, `locale` (`es`/`en`), `key` (idempotencia, 16-128 caracteres `[A-Za-z0-9_-]`) y el trampa `bl_hp`. Cualquier otro campo → 422. No hay `to`, `cc`, `bcc`, cabeceras, HTML ni adjuntos.
+- **Normalización:**
+  - `name`: se recortan los espacios, 1-120 caracteres, sin saltos de línea ni caracteres de control.
+  - `email`: una dirección simple de hasta 254 caracteres, sin nombre ni saltos.
+  - `message`: 10-5000 caracteres; `\r\n` pasa a `\n` y se conservan los saltos y tabuladores; otros controles → 422.
+  - UTF-8 inválido → 422.
+- **Transacción:** en una sola, se inserta el mensaje y su trabajo, y se incrementa el contador global. Sólo después se responde 202 `{status:"received"}`, sin eco de datos. Un fallo de base de datos da 500, nunca un éxito.
+- **Idempotencia:** la misma `key` con el mismo contenido (hash) devuelve el mismo acuse sin crear otro trabajo; con otro contenido, 409 `idempotency_conflict`. Mensajes distintos con el mismo texto no se deduplican.
+- **Formulario HTML sin JS:** hace POST directo a Go, que responde 303 a la página de contacto con `?estado=recibido` o `?estado=<error>`, nunca con datos personales en la URL. El navegador valida longitudes y formato antes de enviar. Si el servidor rechaza, sin JS se pierden los valores; con JS el formulario envía JSON y los conserva.
+
+**Antispam.**
+- **Trampa:** campo `bl_hp` fuera del teclado y del lector de pantalla, sin `autocomplete`. Si llega relleno, se responde el mismo acuse sin guardar nada. Es la única excepción a «202 sólo tras persistir».
+- **Cuotas en PostgreSQL** (sobreviven a reinicios):
+  - 5 solicitudes por cliente cada 15 min, contadas en todo intento;
+  - 100 aceptaciones globales por hora;
+  - 429 con `Retry-After`.
+  - Son valores iniciales configurables (`CONTACT_RATE_PER_CLIENT`, `CONTACT_RATE_GLOBAL`), no una capacidad medida.
+- **Clave del cliente:** HMAC-SHA256 de su IP con un secreto aleatorio guardado en la base, por ventana. La IP no se guarda en claro y los contadores se purgan a las 24 h.
+- **IP efectiva:** se toma la primera dirección no confiable empezando por la derecha de `X-Forwarded-For`, contando sólo saltos confiables (`TRUSTED_PROXIES`, por defecto rangos privados y loopback, que es la red Docker de Coolify → Caddy → Go). Caddy confía en su salto previo sólo si es privado (Traefik de Coolify) y en otro caso reescribe la cabecera. Un visitante no puede elegir su IP efectiva.
+- **Origen:** `Origin` (o `Referer`) igual a `PUBLIC_ORIGIN`, como toda mutación; si faltan ambos, 403. No usa la sesión ni el CSRF del propietario. CORS cerrado y sin CAPTCHA.
+
+**Envío** (paquete `internal/contact`, ejecutor propio cada 10 s, independiente del de publicaciones).
+- Al recibir se congela el payload con plantilla v1: `from`, `to`, `reply_to` = el visitante, asunto fijo con el id y texto plano (sin HTML). Cambiar las variables después no altera los trabajos existentes.
+- `Idempotency-Key: contact/{uuid}`, estable, sin datos personales.
+- **Estados:**
+  - `pending` y `retry_wait`;
+  - `processing`, con lease de 60 s y token; la llamada HTTP (timeout 15 s) va fuera de la transacción y sólo el token vigente puede cerrar;
+  - `accepted_by_provider`, con `provider_email_id`: aceptado por Resend, no «entregado»;
+  - `failed`;
+  - `unknown`.
+- **Resultados inciertos** (timeout, red, 5xx, respuesta inválida o lease vencido por caída): se reintentan con la misma clave y el mismo payload sólo dentro de 23 h desde el primer intento (Resend guarda la clave 24 h). Fuera de esa ventana, o si se agotan los intentos tras uno incierto, el trabajo pasa a `unknown` y requiere revisión manual; no hay exactly-once.
+- **Reintentos:** transitorios ante red, timeout, 429 (respetando `Retry-After`), 5xx, `concurrent_idempotent_requests` y `resource_locked`. Backoff de 30 s × 2ⁿ con jitter, tope de 10 min y 5 intentos.
+- **Fallos permanentes:** otros 4xx (clave, permisos, dominio no verificado, `invalid_idempotent_request`…) → `failed`, sin bucle y sin cambiar la clave.
+- Se guardan intentos saneados (resultado, código HTTP, `name` del error y `request_id`), nunca el cuerpo ni los datos personales.
+- Desactivar el contacto detiene la recepción y el ejecutor; los trabajos pendientes quedan en su estado, visibles en el panel, y siguen al reactivarlo.
+
+**Panel.**
+- `GET /admin/contact/messages` (paginado, filtro por estado), detalle y `POST …/{id}/retry` con `expected_version`.
+  - Un `failed` sin resultado incierto vuelve a la cola con la misma clave, dentro de la ventana, y un presupuesto nuevo de intentos.
+  - Un `unknown`, o un `failed` fuera de la ventana, exige `confirm_possible_duplicate: true`: usa una clave nueva (`contact/{uuid}/r{n}`), se audita y avisa de un posible duplicado.
+  - Un `accepted_by_provider` nunca se reenvía (409).
+- `RequireOwner`, CSRF, `no-store` y `noindex`. No hay acción de responder al visitante.
+
+**Retención.** 30 días (`CONTACT_RETENTION_DAYS`). La purga borra el mensaje, su trabajo, los intentos y la clave de idempotencia, salvo los trabajos con un lease vigente, que se purgan en la pasada siguiente. La auditoría sólo guarda ids. No borra correos en buzones, en Resend ni en backups: su retención se documenta antes del lanzamiento (WEB-008).
+
 ## 14. Docker y Coolify
 Cuatro servicios runtime: proxy, web, api y postgres, más la tarea migrate. Build multietapa, usuario no-root donde corresponda, imágenes versionadas y dependencias fijadas; sin montar código fuente en producción.
 Volúmenes postgres_data y media_data persistentes. Red interna para DB/API; exposición pública sólo por proxy. Healthchecks y reintentos de conexión; readiness comprueba dependencias sin filtrar credenciales.

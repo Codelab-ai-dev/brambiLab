@@ -4,6 +4,12 @@
 {
 	admin off
 	auto_https off
+	servers {
+		# Keep X-Forwarded-For only from private hops (Coolify's proxy on the Docker network) and
+		# append the peer; from any other peer the incoming header is replaced. Go then takes the
+		# rightmost untrusted address, so visitors cannot choose their IP (web-v1.md §13.1).
+		trusted_proxies static private_ranges
+	}
 }
 
 :8000 {
@@ -19,6 +25,12 @@
 	@upload path /api/v1/admin/assets
 	request_body @upload {
 		max_size 256MB
+	}
+
+	# Contact form: Go limits the body to 32 KiB; refuse anything much larger at the edge.
+	@contact path /api/v1/contact
+	request_body @contact {
+		max_size 64KB
 	}
 
 	@api path /api/v1/* /media/*

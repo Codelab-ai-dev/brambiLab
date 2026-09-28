@@ -16,8 +16,25 @@ services:
       - "127.0.0.1:9999:9999"
     networks: [public]
 
+  # Resend double (internal/fakeresend): the API sends here, never to Resend. Its test controls
+  # (/_emails, /_script) are published on localhost only for the e2e.
+  fakeresend:
+    build:
+      context: ./api
+      target: fakeresend
+    environment:
+      FAKE_RESEND_API_KEY: re_e2e_fake
+    ports:
+      - "127.0.0.1:9998:9998"
+    networks: [internal, public]
+
   api:
     environment:
+      CONTACT_ENABLED: "true"
+      RESEND_API_KEY: re_e2e_fake
+      RESEND_API_URL: http://fakeresend:9998
+      CONTACT_FROM: BrambiLab <contacto@example.test>
+      CONTACT_TO: owner@example.test
       ADMIN_GITHUB_USER_ID: "1001"
       GITHUB_CLIENT_ID: e2e-client
       GITHUB_CLIENT_SECRET: e2e-secret
@@ -26,4 +43,6 @@ services:
       GITHUB_USER_URL: http://fakegithub:9999/user
     depends_on:
       fakegithub:
+        condition: service_started
+      fakeresend:
         condition: service_started

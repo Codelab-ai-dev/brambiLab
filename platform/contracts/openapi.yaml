@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.6.0
+  version: 0.7.0
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
     WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
@@ -9,6 +9,7 @@ info:
     immutable revisions. WEB-004: media library and authorized delivery under /media.
     WEB-005: publication, durable scheduling and withdrawal per locale; minimal public reader.
     WEB-006: public listings, search, taxonomy, home, site settings and sitemap data.
+    WEB-007: contact form (disabled unless configured), durable Resend queue and private follow-up.
     Each later task adds its routes here first.
     Unsafe methods require an Origin (or Referer) equal to PUBLIC_ORIGIN; otherwise
     403 origin_rejected.
@@ -845,6 +846,135 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/Invalid" }
+  /contact:
+    post:
+      operationId: sendContactMessage
+      summary: Stores a contact message and its send job; 202 means received for processing, not delivered.
+      description: |
+        JSON or an HTML form post (application/x-www-form-urlencoded). A form gets a 303 to the localized contact
+        page with only ?estado=recibido|invalido|limite|no-disponible|conflicto|error. Origin must equal PUBLIC_ORIGIN.
+        Honeypot bl_hp filled: the same 202, nothing stored. Limits per client (HMAC of the effective IP) and global,
+        kept in PostgreSQL; 429 with Retry-After. 503 contact_unavailable while disabled or not configured.
+      tags: [contact]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactRequest" }
+          application/x-www-form-urlencoded:
+            schema: { $ref: "#/components/schemas/ContactRequest" }
+      responses:
+        "202":
+          description: Received for processing (also for a replay of the same key and content, and for the honeypot).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: received }
+        "303": { description: Form post; Location is the contact page with ?estado. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: "idempotency_conflict: the key was used for different content.", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "415": { description: Only JSON or form posts., content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "429":
+          description: rate_limited.
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+        "503": { description: contact_unavailable (disabled or not configured)., content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /public/contact:
+    get:
+      operationId: getContactAvailability
+      summary: Whether the contact form accepts messages. Never exposes configuration.
+      tags: [contact]
+      security: []
+      responses:
+        "200":
+          description: Availability.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available]
+                properties:
+                  available: { type: boolean }
+  /admin/contact/messages:
+    get:
+      operationId: listContactMessages
+      summary: Contact messages, newest first, optionally by job status.
+      tags: [contact]
+      security: [{ session: [] }]
+      parameters:
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/ContactStatus" } }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+      responses:
+        "200":
+          description: Page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page, page_size, total]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/ContactSummary" } }
+                  page: { type: integer }
+                  page_size: { type: integer }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contact/messages/{messageId}:
+    parameters:
+      - { name: messageId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getContactMessage
+      summary: Message (render as text), job state, sanitized attempts and retry mode.
+      tags: [contact]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Detail.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contact/messages/{messageId}/retry:
+    parameters:
+      - { name: messageId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: retryContactMessage
+      summary: Conscious retry. accepted_by_provider is never resent; unknown (or out of window) needs confirm_possible_duplicate and uses a new key.
+      tags: [contact]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expected_version]
+              additionalProperties: false
+              properties:
+                expected_version: { type: integer }
+                confirm_possible_duplicate: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Back in the queue.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: "version_conflict, not_retryable or confirmation_required.", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { $ref: "#/components/responses/Invalid" }
   /public/{locale}/contents:
     parameters:
       - { $ref: "#/components/parameters/LocalePath" }
@@ -1216,6 +1346,59 @@ components:
         page: { type: integer }
         page_size: { type: integer }
         total: { type: integer }
+    ContactStatus: { type: string, enum: [pending, processing, retry_wait, accepted_by_provider, failed, unknown] }
+    ContactRequest:
+      type: object
+      required: [name, email, message, locale, key]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120, description: "Trimmed; single line, no control characters." }
+        email: { type: string, maxLength: 254, description: "One plain address (no display name, no line breaks)." }
+        message: { type: string, minLength: 10, maxLength: 5000, description: "CRLF → LF; line breaks and tabs kept; other control characters rejected." }
+        locale: { $ref: "#/components/schemas/Locale" }
+        key: { type: string, pattern: "^[A-Za-z0-9_-]{16,128}$", description: Receipt idempotency key; reuse it only to retry the same message. }
+        bl_hp: { type: string, description: Honeypot; must stay empty. }
+    ContactSummary:
+      type: object
+      required: [id, received_at, locale, name, email, status, attempts]
+      properties:
+        id: { type: string, format: uuid }
+        received_at: { type: string, format: date-time }
+        locale: { $ref: "#/components/schemas/Locale" }
+        name: { type: string }
+        email: { type: string }
+        status: { $ref: "#/components/schemas/ContactStatus" }
+        attempts: { type: integer }
+    ContactDetail:
+      allOf:
+        - $ref: "#/components/schemas/ContactSummary"
+        - type: object
+          required: [message, version, max_attempts, uncertain, idempotency_key, retry, attempt_log]
+          properties:
+            message: { type: string, description: Plain text; render escaped. }
+            version: { type: integer }
+            max_attempts: { type: integer }
+            next_attempt_at: { type: [string, "null"], format: date-time }
+            first_attempt_at: { type: [string, "null"], format: date-time }
+            window_ends_at: { type: [string, "null"], format: date-time, description: End of the provider idempotency window (23 h). }
+            uncertain: { type: boolean }
+            provider_email_id: { type: [string, "null"], description: "Resend id: accepted by Resend, not proof of delivery." }
+            last_error: { type: [string, "null"] }
+            idempotency_key: { type: string }
+            retry: { type: string, enum: [none, same_key, new_key_confirm] }
+            attempt_log:
+              type: array
+              items:
+                type: object
+                required: [attempt, at, idempotency_key, outcome]
+                properties:
+                  attempt: { type: integer }
+                  at: { type: string, format: date-time }
+                  idempotency_key: { type: string }
+                  outcome: { type: string, enum: [accepted, transient, uncertain, permanent, lease_expired] }
+                  http_status: { type: [integer, "null"] }
+                  error_name: { type: [string, "null"] }
+                  provider_request_id: { type: [string, "null"] }
     PublicTerm:
       type: object
       required: [slug, label]
@@ -1711,6 +1894,8 @@ components:
           $ref: "#/components/schemas/EditorialState"
           description: Only on editorial_conflict, the current editorial state.
 tags:
+  - name: contact
+    description: Contact form and its private follow-up (WEB-007).
   - name: site
     description: Editorial site settings (WEB-006).
   - name: publishing
