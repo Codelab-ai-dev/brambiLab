@@ -180,6 +180,11 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
 - Retícula milimetrada decorativa sólo en portada y login.
 - Logotipo sólo tipográfico («BRAMBILAB_»); no hay logo gráfico hasta que existan assets aprobados.
 - Tokens semánticos en `platform/web/app/app.css`: contraste AA en texto y 3:1 en bordes de controles, comprobados par a par.
+- **Portada «banco de pruebas vivo»** (elegida por Gustavo el 2026-09-28): hero y cabecera pública siempre oscuros, como un instrumento, con las secciones de debajo en papel.
+  - Osciloscopio SVG cuya traza pasa de senoidal a cuadrada (analógico → digital).
+  - Las 5 áreas como chips conectados por pistas con un pulso; retícula que se ilumina bajo el cursor.
+  - Sin JavaScript o con `prefers-reduced-motion`, todo queda estático y completo. Lo decorativo es `aria-hidden`.
+  - Sólo contenido real del repositorio.
 
 ## 10. API REST inicial
 Prefijo /api/v1; JSON, paginación y errores {code,message,fields,request_id}. Contrato en OpenAPI.

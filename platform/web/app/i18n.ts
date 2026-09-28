@@ -14,6 +14,11 @@ const messages = {
     "site.underConstruction":
       "Sitio en construcción. Todavía no hay contenido publicado.",
     "site.switchLocale": "English",
+    "bench.status": "En construcción",
+    "bench.channels": "5 canales",
+    "bench.scope": "CH1 · analógico → digital",
+    "bench.modules": "Módulos del laboratorio",
+    "bench.cta": "Ver qué se publicará",
     "site.lab": "Laboratorio personal de Gustavo González para software, IA, microcontroladores, IoT y robótica.",
     "site.status": "En construcción · todavía no hay contenido publicado",
     "site.areas": "Áreas",
@@ -50,6 +55,11 @@ const messages = {
     "site.underConstruction":
       "Site under construction. No content has been published yet.",
     "site.switchLocale": "Español",
+    "bench.status": "Under construction",
+    "bench.channels": "5 channels",
+    "bench.scope": "CH1 · analog → digital",
+    "bench.modules": "Lab modules",
+    "bench.cta": "See what will be published",
     "site.lab": "Gustavo González's personal lab for software, AI, microcontrollers, IoT and robotics.",
     "site.status": "Under construction · nothing published yet",
     "site.areas": "Areas",
