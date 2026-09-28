@@ -227,3 +227,58 @@ func TestUpgradeFromMediaSchemaBackfillsPublications(t *testing.T) {
 		t.Fatalf("after upgrade: dated=%d routes=%d visible=%d editorial=%d", dated, routes, visible, editorial)
 	}
 }
+
+// Upgrading a WEB-005 database indexes the existing publications for search (backfill).
+func TestUpgradeFromPublishingSchemaIndexesPublications(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	admin, err := pgx.Connect(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Close(context.Background()) })
+	name := "bl_upgrade_site_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if _, err := admin.Exec(ctx, "CREATE DATABASE "+name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := admin.Exec(context.Background(), "DROP DATABASE "+name+" WITH (FORCE)"); err != nil {
+			t.Errorf("drop %s: %v", name, err)
+		}
+	})
+	conn, _ := pgx.ParseConfig(url)
+	conn.Database = name
+	if err := migrations.UpTo(ctx, conn, 5); err != nil {
+		t.Fatalf("migrate to WEB-005 schema: %v", err)
+	}
+	db, err := pgx.ConnectConfig(ctx, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close(ctx)
+	if _, err := db.Exec(ctx, `
+		WITH c AS (INSERT INTO contents (kind) VALUES ('article') RETURNING id),
+		     t AS (INSERT INTO translations (content_id, locale, latest_version) SELECT id, 'es', 2 FROM c RETURNING id)
+		INSERT INTO revisions (translation_id, version, kind, title, slug, body_json, body_schema_version, plain_text, snapshot_hash)
+		SELECT id, v, 'manual', 'Energía', 'energia', '{"type":"doc","content":[]}', 1, CASE v WHEN 1 THEN 'publicado' ELSE 'borrador' END, '\x01' FROM t, (VALUES (1), (2)) AS x (v);
+		UPDATE translations t SET published_revision_id = r.id, published_at = now(), first_published_at = now()
+		FROM revisions r WHERE r.translation_id = t.id AND r.version = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrations.Up(ctx, conn, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+		t.Fatalf("upgrade to public site schema: %v", err)
+	}
+	var published, draft, settings int
+	if err := db.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM search_documents WHERE search @@ websearch_to_tsquery('bl_es', 'energia publicado')),
+		(SELECT count(*) FROM search_documents WHERE search @@ websearch_to_tsquery('bl_es', 'borrador')),
+		(SELECT count(*) FROM site_settings)`).Scan(&published, &draft, &settings); err != nil {
+		t.Fatal(err)
+	}
+	if published != 1 || draft != 0 || settings != 1 {
+		t.Fatalf("after upgrade: published=%d draft=%d settings=%d", published, draft, settings)
+	}
+}

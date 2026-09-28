@@ -1,13 +1,14 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
     WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
     GitHub OAuth and sessions. WEB-003: private content, translations and
     immutable revisions. WEB-004: media library and authorized delivery under /media.
     WEB-005: publication, durable scheduling and withdrawal per locale; minimal public reader.
+    WEB-006: public listings, search, taxonomy, home, site settings and sitemap data.
     Each later task adds its routes here first.
     Unsafe methods require an Origin (or Referer) equal to PUBLIC_ORIGIN; otherwise
     403 origin_rejected.
@@ -844,6 +845,159 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/Invalid" }
+  /public/{locale}/contents:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: listPublicContents
+      summary: Visible translations as cards, newest first publication first (no bodies, no-store).
+      description: |
+        Filters combine with AND. Unknown but well-formed category/tag/project slugs match nothing (200, empty);
+        malformed or unknown parameters are 422. Order is first_published_at DESC, then content id DESC; offset
+        paging may shift an item when something is published or withdrawn between pages.
+      tags: [public]
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/KindFilter" }
+        - { $ref: "#/components/parameters/CategoryFilter" }
+        - { $ref: "#/components/parameters/TagFilter" }
+        - { name: project, in: query, description: Current public slug of a project (its logs)., schema: { type: string } }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PublicPageSize" }
+      responses:
+        "200":
+          description: Page of cards.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CardPage" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /public/{locale}/search:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: searchPublic
+      summary: Full-text search over published revisions of this locale (PostgreSQL, bl_es/bl_en with unaccent).
+      description: |
+        websearch_to_tsquery syntax. Empty text or text without searchable lexemes returns has_terms=false and no
+        items. Ranking ts_rank_cd DESC, then first_published_at DESC, content id DESC. Snippets are plain-text
+        segments; render them as text.
+      tags: [public]
+      security: []
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { $ref: "#/components/parameters/KindFilter" }
+        - { $ref: "#/components/parameters/CategoryFilter" }
+        - { $ref: "#/components/parameters/TagFilter" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PublicPageSize" }
+      responses:
+        "200":
+          description: Ranked cards with snippets.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchPage" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /public/{locale}/taxonomy:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: getPublicTaxonomy
+      summary: Categories and tags used by visible published revisions of this locale, with counts.
+      tags: [public]
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/KindFilter" }
+      responses:
+        "200":
+          description: Terms in use.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicTaxonomy" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /public/{locale}/site:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: getPublicSite
+      summary: Public site fields for this locale (presentation, bio, contact e-mail and links).
+      tags: [public]
+      security: []
+      responses:
+        "200":
+          description: Site fields.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSite" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /public/{locale}/home:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: getPublicHome
+      summary: Start page data. Featured projects appear only while visible in this locale.
+      tags: [public]
+      security: []
+      responses:
+        "200":
+          description: Home.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicHome" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /public/sitemap:
+    get:
+      operationId: getSitemapEntries
+      summary: Canonical visible pages (current slugs only, no aliases), 5000 per page.
+      tags: [public]
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+      responses:
+        "200":
+          description: Entries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SitemapPage" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/site:
+    get:
+      operationId: getSiteSettings
+      summary: Site settings with featured projects and their visibility per locale.
+      tags: [site]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteSettings" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    put:
+      operationId: saveSiteSettings
+      summary: Saves the public site settings immediately ("Guardar cambios públicos"). 409 version_conflict when stale.
+      tags: [site]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SiteUpdate" }
+      responses:
+        "200":
+          description: Saved settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteSettings" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /public/{locale}/projects/{slug}:
     parameters:
       - { $ref: "#/components/parameters/LocalePath" }
@@ -911,6 +1065,14 @@ components:
       { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
     Page:
       { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    KindFilter:
+      { name: kind, in: query, schema: { $ref: "#/components/schemas/ContentKind" } }
+    CategoryFilter:
+      { name: category, in: query, description: Category slug., schema: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" } }
+    TagFilter:
+      { name: tag, in: query, description: Tag slug., schema: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" } }
+    PublicPageSize:
+      { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 12 } }
     PageSize:
       { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
   securitySchemes:
@@ -1054,6 +1216,165 @@ components:
         page: { type: integer }
         page_size: { type: integer }
         total: { type: integer }
+    PublicTerm:
+      type: object
+      required: [slug, label]
+      properties:
+        slug: { type: string }
+        label: { type: string }
+        count: { type: integer, description: Only in taxonomy. }
+    PublicCover:
+      type: object
+      required: [asset_id, alt]
+      properties:
+        asset_id: { type: string, format: uuid }
+        width: { type: [integer, "null"] }
+        height: { type: [integer, "null"] }
+        alt: { type: string }
+    PublicCard:
+      type: object
+      required: [kind, slug, title, summary, published_at, first_published_at, category, tags, project, project_fields, cover]
+      properties:
+        kind: { $ref: "#/components/schemas/ContentKind" }
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        published_at: { type: string, format: date-time }
+        first_published_at: { type: string, format: date-time }
+        category: { oneOf: [{ $ref: "#/components/schemas/PublicTerm" }, { type: "null" }] }
+        tags: { type: array, items: { $ref: "#/components/schemas/PublicTerm" } }
+        project:
+          type: [object, "null"]
+          description: Parent project of a log.
+          properties:
+            slug: { type: string }
+            title: { type: string }
+        project_fields:
+          type: [object, "null"]
+          properties:
+            status: { type: string, enum: [idea, in_development, paused, completed] }
+            technologies: { type: array, items: { type: string } }
+        cover: { oneOf: [{ $ref: "#/components/schemas/PublicCover" }, { type: "null" }], description: Only while publicly servable. }
+        snippet:
+          type: array
+          description: Search only. Plain-text segments; hit marks matched terms.
+          items:
+            type: object
+            required: [text]
+            properties:
+              text: { type: string }
+              hit: { type: boolean }
+    CardPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/PublicCard" } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    SearchPage:
+      allOf:
+        - $ref: "#/components/schemas/CardPage"
+        - type: object
+          required: [query, has_terms]
+          properties:
+            query: { type: string, description: Normalized text. }
+            has_terms: { type: boolean, description: False when the text has no searchable lexemes. }
+    PublicTaxonomy:
+      type: object
+      required: [categories, tags]
+      properties:
+        categories: { type: array, items: { $ref: "#/components/schemas/PublicTerm" } }
+        tags: { type: array, items: { $ref: "#/components/schemas/PublicTerm" } }
+    SiteLink:
+      type: object
+      required: [kind, label, url]
+      additionalProperties: false
+      properties:
+        kind: { type: string, enum: [github, linkedin, website, other] }
+        label: { type: string, minLength: 1, maxLength: 60 }
+        url: { type: string, format: uri, pattern: "^https://", maxLength: 500 }
+    PublicSite:
+      type: object
+      required: [intro, bio, contact_email, links]
+      additionalProperties: false
+      properties:
+        intro: { type: string }
+        bio: { type: string }
+        contact_email: { type: string }
+        links: { type: array, items: { $ref: "#/components/schemas/SiteLink" } }
+    PublicHome:
+      type: object
+      required: [site, featured, latest_projects, latest_logs, latest_articles]
+      properties:
+        site: { $ref: "#/components/schemas/PublicSite" }
+        featured: { type: array, items: { $ref: "#/components/schemas/PublicCard" } }
+        latest_projects: { type: array, maxItems: 3, items: { $ref: "#/components/schemas/PublicCard" } }
+        latest_logs: { type: array, maxItems: 5, items: { $ref: "#/components/schemas/PublicCard" } }
+        latest_articles: { type: array, maxItems: 3, items: { $ref: "#/components/schemas/PublicCard" } }
+    SitemapPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [kind, locale, slug, project_slug, lastmod, alternates]
+            properties:
+              kind: { $ref: "#/components/schemas/ContentKind" }
+              locale: { $ref: "#/components/schemas/Locale" }
+              slug: { type: string }
+              project_slug: { type: [string, "null"] }
+              lastmod: { type: string, format: date-time }
+              alternates: { type: array, items: { $ref: "#/components/schemas/Locale" } }
+        page: { type: integer }
+        page_size: { type: integer, const: 5000 }
+        total: { type: integer }
+    LocalizedText:
+      type: object
+      required: [es, en]
+      properties:
+        es: { type: string }
+        en: { type: string }
+    SiteSettings:
+      type: object
+      required: [version, intro, bio, contact_email, links, featured_projects, updated_at]
+      properties:
+        version: { type: integer, minimum: 0 }
+        intro: { $ref: "#/components/schemas/LocalizedText" }
+        bio: { $ref: "#/components/schemas/LocalizedText" }
+        contact_email: { type: string }
+        links: { type: array, items: { $ref: "#/components/schemas/SiteLink" } }
+        featured_projects:
+          type: array
+          items:
+            type: object
+            required: [content_id, titles, visible]
+            properties:
+              content_id: { type: string, format: uuid }
+              titles: { type: object, description: Latest saved title per locale (null if none). }
+              visible: { type: object, description: "Whether it shows publicly, per locale." }
+        updated_at: { type: string, format: date-time }
+    SiteUpdate:
+      type: object
+      required: [expected_version, intro, bio, contact_email, links, featured_project_ids]
+      additionalProperties: false
+      properties:
+        expected_version: { type: integer, minimum: 0 }
+        intro:
+          type: object
+          properties:
+            es: { type: string, maxLength: 500 }
+            en: { type: string, maxLength: 500 }
+        bio:
+          type: object
+          properties:
+            es: { type: string, maxLength: 5000 }
+            en: { type: string, maxLength: 5000 }
+        contact_email: { type: string, description: Plain address or empty. }
+        links: { type: array, maxItems: 8, items: { $ref: "#/components/schemas/SiteLink" } }
+        featured_project_ids: { type: array, maxItems: 6, uniqueItems: true, items: { type: string, format: uuid } }
     PublicContent:
       type: object
       required: [kind, locale, slug, title, body, published_at]
@@ -1066,8 +1387,37 @@ components:
         body: { $ref: "#/components/schemas/Document" }
         seo: { type: object }
         project_fields: { $ref: "#/components/schemas/ProjectFields" }
-        cover_asset_id: { type: [string, "null"], format: uuid }
+        cover_asset_id: { type: [string, "null"], format: uuid, description: Only while the cover is publicly servable. }
+        cover: { oneOf: [{ $ref: "#/components/schemas/PublicCover" }, { type: "null" }] }
         published_at: { type: string, format: date-time }
+        first_published_at: { type: string, format: date-time }
+        category: { oneOf: [{ $ref: "#/components/schemas/PublicTerm" }, { type: "null" }] }
+        tags: { type: array, items: { $ref: "#/components/schemas/PublicTerm" } }
+        alternates:
+          type: array
+          description: The other visible translation of the same content, by its current slugs.
+          items:
+            type: object
+            required: [locale, kind, slug, project_slug]
+            properties:
+              locale: { $ref: "#/components/schemas/Locale" }
+              kind: { $ref: "#/components/schemas/ContentKind" }
+              slug: { type: string }
+              project_slug: { type: [string, "null"] }
+        assets:
+          type: object
+          description: Referenced files servable anonymously now, by asset id. Revoked files are absent.
+          additionalProperties:
+            type: object
+            required: [kind, mime, bytes, downloadable, name]
+            properties:
+              kind: { $ref: "#/components/schemas/AssetKind" }
+              mime: { type: string }
+              width: { type: [integer, "null"] }
+              height: { type: [integer, "null"] }
+              bytes: { type: integer }
+              downloadable: { type: boolean }
+              name: { type: string }
         project:
           type: [object, "null"]
           description: Parent project of a log.
@@ -1352,10 +1702,12 @@ components:
           $ref: "#/components/schemas/EditorialState"
           description: Only on editorial_conflict, the current editorial state.
 tags:
+  - name: site
+    description: Editorial site settings (WEB-006).
   - name: publishing
     description: Publication, scheduling and withdrawal per locale (WEB-005).
   - name: public
-    description: Minimal public reader of published, visible content (WEB-005; full site in WEB-006).
+    description: Public read side of published, visible content (WEB-005 reader, WEB-006 listings and search).
   - name: media
     description: Media library (WEB-004) and authorized delivery under /media.
   - name: content

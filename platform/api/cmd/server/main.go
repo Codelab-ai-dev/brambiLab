@@ -25,7 +25,9 @@ import (
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/media"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/public"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/publishing"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/site"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/migrations"
 )
 
@@ -95,6 +97,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		authHandler.RequireOwner, auth.Actor, authHandler.IsOwner)
 	go mediaHandler.RunCleanup(ctx, 30*time.Minute, 2*time.Hour)
 
+	siteStore := site.NewStore(pool)
 	publisher := publishing.NewService(pool)
 	go publisher.Run(ctx, publishing.DefaultTick, logger)
 
@@ -106,6 +109,8 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			content.NewHandler(content.NewStore(pool), logger, authHandler.RequireOwner, auth.Actor),
 			mediaHandler,
 			publishing.NewHandler(publisher, logger, authHandler.RequireOwner, auth.Actor),
+			site.NewHandler(siteStore, logger, authHandler.RequireOwner, auth.Actor),
+			public.NewHandler(pool, siteStore, logger),
 		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
