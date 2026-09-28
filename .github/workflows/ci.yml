@@ -78,10 +78,10 @@ jobs:
           curl -fsS localhost:8000/healthz
           curl -fsS localhost:8000/es | grep -q '<html lang="es"'
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8000/)" = 302
-      - name: Only the proxy (and the test-only fake GitHub) publish ports
+      - name: Only the proxy (and the test-only fake GitHub and Resend) publish ports
         run: |
           published=$(docker compose ps --format '{{.Service}} {{.Ports}}' | grep -E '[0-9]+->' | cut -d' ' -f1 | sort | tr '\n' ' ')
-          test "$published" = "fakegithub proxy " || { echo "published: $published"; exit 1; }
+          test "$published" = "fakegithub fakeresend proxy " || { echo "published: $published"; exit 1; }
       - name: Owner login e2e (fake GitHub)
         run: ./e2e/auth.sh
       - uses: actions/setup-node@v4
@@ -104,7 +104,7 @@ jobs:
       - name: Secrets never reach logs
         run: |
           grep -q "POSTGRES_PASSWORD='change-me@local/#1'" .env
-          for secret in 'change-me@local' 'e2e-secret' 'access_token' 'csrf_token' 'bl_session='; do
+          for secret in 'change-me@local' 'e2e-secret' 're_e2e_fake' 'access_token' 'csrf_token' 'bl_session='; do
             if docker compose logs 2>&1 | grep -qF "$secret"; then
               echo "found in logs: $secret"; exit 1
             fi

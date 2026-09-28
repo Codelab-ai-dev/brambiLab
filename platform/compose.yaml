@@ -52,6 +52,11 @@ services:
       ADMIN_GITHUB_USER_ID: ${ADMIN_GITHUB_USER_ID:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      # Contact form (WEB-007): disabled unless CONTACT_ENABLED=true and the three values are set.
+      CONTACT_ENABLED: ${CONTACT_ENABLED:-false}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      CONTACT_FROM: ${CONTACT_FROM:-}
+      CONTACT_TO: ${CONTACT_TO:-}
     volumes:
       - media_data:/data/media
     depends_on:

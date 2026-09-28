@@ -282,3 +282,58 @@ func TestUpgradeFromPublishingSchemaIndexesPublications(t *testing.T) {
 		t.Fatalf("after upgrade: published=%d draft=%d settings=%d", published, draft, settings)
 	}
 }
+
+// Upgrading a WEB-006 database to the contact schema keeps publications, search and sessions.
+func TestUpgradeFromPublicSiteSchemaKeepsData(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	admin, err := pgx.Connect(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Close(context.Background()) })
+	name := "bl_upgrade_contact_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if _, err := admin.Exec(ctx, "CREATE DATABASE "+name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := admin.Exec(context.Background(), "DROP DATABASE "+name+" WITH (FORCE)"); err != nil {
+			t.Errorf("drop %s: %v", name, err)
+		}
+	})
+	conn, _ := pgx.ParseConfig(url)
+	conn.Database = name
+	if err := migrations.UpTo(ctx, conn, 7); err != nil {
+		t.Fatalf("migrate to WEB-006 schema: %v", err)
+	}
+	db, err := pgx.ConnectConfig(ctx, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close(ctx)
+	if _, err := db.Exec(ctx, `
+		INSERT INTO sessions (token_hash, csrf_token, github_user_id, github_login, expires_at) VALUES ('\x03', 'c', 1, 'o', now() + interval '1 hour');
+		WITH c AS (INSERT INTO contents (kind) VALUES ('article') RETURNING id),
+		     t AS (INSERT INTO translations (content_id, locale, latest_version) SELECT id, 'es', 1 FROM c RETURNING id)
+		INSERT INTO revisions (translation_id, version, kind, title, slug, body_json, body_schema_version, plain_text, snapshot_hash)
+		SELECT id, 1, 'manual', 'Telemetría', 'telemetria', '{"type":"doc","content":[]}', 1, 'radio', '\x01' FROM t;
+		UPDATE translations t SET published_revision_id = r.id, published_at = now(), first_published_at = now() FROM revisions r WHERE r.translation_id = t.id`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrations.Up(ctx, conn, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+		t.Fatalf("upgrade to contact schema: %v", err)
+	}
+	var sessions, visible, found, contactTables int
+	if err := db.QueryRow(ctx, `SELECT (SELECT count(*) FROM sessions), (SELECT count(*) FROM visible_translations),
+		(SELECT count(*) FROM search_documents WHERE search @@ websearch_to_tsquery('bl_es', 'telemetria')),
+		(SELECT count(*) FROM information_schema.tables WHERE table_name IN ('contact_messages', 'contact_jobs', 'contact_attempts', 'contact_rate', 'app_secrets'))`).
+		Scan(&sessions, &visible, &found, &contactTables); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 1 || visible != 1 || found != 1 || contactTables != 5 {
+		t.Fatalf("after upgrade: sessions=%d visible=%d found=%d contact tables=%d", sessions, visible, found, contactTables)
+	}
+}

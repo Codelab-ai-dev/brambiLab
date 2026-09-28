@@ -14,7 +14,7 @@ Cerrar WEB-006:
   - correo y hasta 8 enlaces (filas vacías ignoradas); los errores del API aparecen en la fila que los causó;
   - hasta 6 destacados con orden y estado de publicación por idioma;
   - botón «Guardar cambios públicos» con aviso de efecto inmediato y `expected_version`; un conflicto se explica y no guarda nada.
-  - Funciona sin JavaScript en el cliente (formulario con `clientAction`, que llama a Go con CSRF).
+  - Requiere JavaScript: el formulario usa `clientAction`, que se ejecuta en el navegador y llama a Go con CSRF. No hay alternativa de servidor ni se probó sin JS. (Corregido el 2026-09-28 al iniciar WEB-007, #34; la versión anterior afirmaba por error que funcionaba sin JS.)
 - **`app/lib/admin-client.ts`:** `apiSend` admite `PUT`.
 - **Pruebas:** `e2e/site-flow.pw.ts`.
   - **Flujo del sitio:**

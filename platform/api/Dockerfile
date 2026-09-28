@@ -14,6 +14,12 @@ FROM gcr.io/distroless/static-debian12:nonroot AS fakegithub
 COPY --from=fakegithub-build /out/fakegithub /fakegithub
 ENTRYPOINT ["/fakegithub"]
 
+FROM build AS fakeresend-build
+RUN CGO_ENABLED=0 go build -trimpath -o /out/fakeresend ./cmd/fakeresend
+FROM gcr.io/distroless/static-debian12:nonroot AS fakeresend
+COPY --from=fakeresend-build /out/fakeresend /fakeresend
+ENTRYPOINT ["/fakeresend"]
+
 # Distroless: no shell or curl; the binary's own "healthcheck" command probes liveness.
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/server /server
