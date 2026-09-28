@@ -23,6 +23,7 @@ jobs:
           cache-dependency-path: platform/web/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
 
   api:
@@ -65,22 +66,32 @@ jobs:
     defaults:
       run:
         working-directory: platform
+    env:
+      COMPOSE_FILE: compose.yaml:compose.e2e.yaml
     steps:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
       - run: docker compose up --build -d --wait
-      - name: Smoke test
+      - name: Smoke test through the proxy
         run: |
-          curl -fsS localhost:8080/api/v1/health/ready
-          curl -fsS localhost:3000/healthz
-          curl -fsS localhost:3000/es | grep -q '<html lang="es"'
-          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:3000/)" = 302
-      - name: Password with reserved characters never reaches logs
+          curl -fsS localhost:8000/api/v1/health/ready
+          curl -fsS localhost:8000/healthz
+          curl -fsS localhost:8000/es | grep -q '<html lang="es"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8000/)" = 302
+      - name: Only the proxy (and the test-only fake GitHub) publish ports
+        run: |
+          published=$(docker compose ps --format '{{.Service}} {{.Ports}}' | grep -E '[0-9]+->' | cut -d' ' -f1 | sort | tr '\n' ' ')
+          test "$published" = "fakegithub proxy " || { echo "published: $published"; exit 1; }
+      - name: Owner login e2e (fake GitHub)
+        run: ./e2e/auth.sh
+      - name: Secrets never reach logs
         run: |
           grep -q "POSTGRES_PASSWORD='change-me@local/#1'" .env
-          if docker compose logs 2>&1 | grep -qF 'change-me@local'; then
-            echo "database password found in logs"; exit 1
-          fi
+          for secret in 'change-me@local' 'e2e-secret' 'access_token' 'csrf_token' 'bl_session='; do
+            if docker compose logs 2>&1 | grep -qF "$secret"; then
+              echo "found in logs: $secret"; exit 1
+            fi
+          done
       - if: failure()
         run: docker compose logs
       - if: always()

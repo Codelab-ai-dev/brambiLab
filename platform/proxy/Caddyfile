@@ -1,0 +1,17 @@
+# Single public entry point (web-v1.md §3). One origin for web and API, so cookies, OAuth
+# callback and CSRF checks behave the same locally and on the VPS. TLS is terminated in front
+# of this proxy (Coolify's proxy in production); here it listens on plain HTTP.
+{
+	admin off
+	auto_https off
+}
+
+:8000 {
+	@api path /api/v1/* /media/*
+	handle @api {
+		reverse_proxy api:8080
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

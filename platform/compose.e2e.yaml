@@ -1,0 +1,29 @@
+# Test-only override: replaces GitHub with a local OAuth double so the full login flow can be
+# checked through the real proxy, web SSR and API. Never use it for a deployment.
+#   docker compose -f compose.yaml -f compose.e2e.yaml up --build -d --wait && ./e2e/auth.sh
+services:
+  fakegithub:
+    build:
+      context: ./api
+      target: fakegithub
+    environment:
+      GITHUB_CLIENT_ID: e2e-client
+      GITHUB_CLIENT_SECRET: e2e-secret
+      FAKE_USER_ID: "1001"
+      FAKE_USER_LOGIN: e2e-owner
+    ports:
+      # The "browser" (curl) visits the authorize page directly, like it would visit github.com.
+      - "127.0.0.1:9999:9999"
+    networks: [public]
+
+  api:
+    environment:
+      ADMIN_GITHUB_USER_ID: "1001"
+      GITHUB_CLIENT_ID: e2e-client
+      GITHUB_CLIENT_SECRET: e2e-secret
+      GITHUB_AUTHORIZE_URL: http://localhost:9999/login/oauth/authorize
+      GITHUB_TOKEN_URL: http://fakegithub:9999/login/oauth/access_token
+      GITHUB_USER_URL: http://fakegithub:9999/user
+    depends_on:
+      fakegithub:
+        condition: service_started

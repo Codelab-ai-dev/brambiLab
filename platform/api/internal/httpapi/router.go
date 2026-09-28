@@ -12,7 +12,8 @@ type Module interface {
 	Register(mux *http.ServeMux)
 }
 
-func NewRouter(logger *slog.Logger, modules ...Module) http.Handler {
+// NewRouter mounts modules and rejects unsafe requests not coming from publicOrigin.
+func NewRouter(logger *slog.Logger, publicOrigin string, modules ...Module) http.Handler {
 	mux := http.NewServeMux()
 	for _, m := range modules {
 		m.Register(mux)
@@ -20,5 +21,5 @@ func NewRouter(logger *slog.Logger, modules ...Module) http.Handler {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, http.StatusNotFound, "not_found", "Resource not found")
 	})
-	return withRequestContext(logger, mux)
+	return withRequestContext(logger, sameOrigin(publicOrigin, mux))
 }
