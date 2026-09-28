@@ -261,14 +261,14 @@ function RovingToolbar({ label, children }: { label: string; children: ReactNode
     buttons.forEach((b, j) => (b.tabIndex = j === (current >= 0 ? current : 0) ? 0 : -1));
   };
   return (
-    <div ref={ref} role="toolbar" aria-label={label} onKeyDown={onKeyDown} onFocus={onFocus} className="flex flex-wrap items-center gap-1 p-2">
+    <div ref={ref} role="toolbar" aria-label={label} onKeyDown={onKeyDown} onFocus={onFocus} className="flex flex-wrap items-center gap-2 p-2">
       {children}
     </div>
   );
 }
 
 function Group({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-1 border-r border-border pr-2 last:border-r-0">{children}</div>;
+  return <div role="group" className="flex flex-wrap items-center gap-0.5 rounded-md bg-surface-muted p-0.5">{children}</div>;
 }
 
 type ToolButtonProps = {
@@ -297,7 +297,7 @@ function ToolButton({ label, short, onClick, pressed, expanded, disabled, descri
       disabled={disabled}
       onMouseDown={(e) => e.preventDefault() /* keep the editor selection */}
       onClick={onClick}
-      className={`min-h-9 min-w-9 rounded px-2 text-sm ${toneClass} ${className} hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent aria-pressed:bg-accent aria-pressed:text-accent-contrast disabled:cursor-not-allowed disabled:opacity-40`}
+      className={`min-h-9 min-w-9 rounded px-2 text-sm ${toneClass} ${className} hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent aria-pressed:bg-primary aria-pressed:text-primary-contrast disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {short}
     </button>
@@ -341,7 +341,7 @@ function InlineForm({ label, help, initial, submit, validate, onSubmit, onCancel
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={`${id}-help${error ? ` ${id}-error` : ""}`}
-          className="rounded border border-border bg-surface px-2 py-1 aria-invalid:border-danger"
+          className="min-h-9 rounded border border-border-strong bg-surface px-2 py-1 aria-invalid:border-2 aria-invalid:border-danger focus-visible:outline-2 focus-visible:outline-accent"
         />
         <p id={`${id}-help`} className="text-xs text-text-muted">
           {help}
@@ -352,7 +352,7 @@ function InlineForm({ label, help, initial, submit, validate, onSubmit, onCancel
           </p>
         )}
       </div>
-      <button type="submit" className="rounded bg-accent px-3 py-1 text-sm font-medium text-accent-contrast">
+      <button type="submit" className="min-h-9 rounded bg-primary px-3 py-1 text-sm font-medium text-primary-contrast">
         {submit}
       </button>
       {extra && (

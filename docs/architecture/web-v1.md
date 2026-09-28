@@ -174,6 +174,12 @@ Slugs editables por idioma; cambio publicado conserva redirect permanente evitan
 Diseño adaptable a móvil, navegación por teclado, contraste legible, alt de imágenes y formularios etiquetados.
 Homepage: presentación, proyectos destacados, últimos avances, artículos y contacto. Panel administra también bio, enlaces y selección de destacados.
 La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo definitivo ni sustituirlo por un render.
+**Dirección visual «cuaderno de laboratorio»** (elegida por Gustavo el 2026-09-27):
+- Fondo papel y texto tinta; ámbar como señal (enlaces, foco, estado activo) y tinta para las acciones principales. Modo oscuro en grafito con ámbar encendido.
+- IBM Plex Sans para leer e IBM Plex Mono para datos (fechas, versiones, identificadores), incluidas en el propio sitio (OFL).
+- Retícula milimetrada decorativa sólo en portada y login.
+- Logotipo sólo tipográfico («BRAMBILAB_»); no hay logo gráfico hasta que existan assets aprobados.
+- Tokens semánticos en `platform/web/app/app.css`: contraste AA en texto y 3:1 en bordes de controles, comprobados par a par.
 
 ## 10. API REST inicial
 Prefijo /api/v1; JSON, paginación y errores {code,message,fields,request_id}. Contrato en OpenAPI.

@@ -88,7 +88,7 @@ export default function History({ loaderData, actionData, params }: Route.Compon
                   {revisionKindLabels[r.kind]}
                   {r.restored_from_version && ` de v${r.restored_from_version}`}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-text-muted">{formatDate(r.created_at)}</td>
+                <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-text-muted">{formatDate(r.created_at)}</td>
                 <td className="px-4 py-3">{r.title}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center justify-end gap-3">

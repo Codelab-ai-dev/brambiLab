@@ -12,6 +12,7 @@ Este repositorio combina tres tipos de contenido y cada uno tiene su licencia. L
 ## Reglas
 - Los fragmentos de código dentro de la documentación también pueden usarse bajo Apache-2.0.
 - El material de terceros (modelos de inferencia, librerías, datasets, imágenes) conserva su licencia original. Debe registrarse origen, licencia y versión junto al archivo; ver [models/](projects/001-ai-rover/models/README.md).
+- Las fuentes IBM Plex Sans e IBM Plex Mono (paquetes `@fontsource/ibm-plex-*`) se distribuyen con el sitio bajo SIL Open Font License 1.1.
 - Si un archivo declara su propia licencia en la cabecera (`SPDX-License-Identifier`), esa prevalece sobre esta tabla.
 - CC BY 4.0 no cede derechos de imagen ni marcas. Las fotos con personas requieren su permiso; el nombre y logotipo BrambiLab no se licencian.
 - Ubicación de las fuentes de los diseños (CERN-OHL-W §4): https://github.com/Codelab-ai-dev/brambiLab

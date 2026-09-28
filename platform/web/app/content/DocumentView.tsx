@@ -147,7 +147,7 @@ function YouTubeEmbed({ videoId, start, locale }: { videoId: string; start?: num
       <button
         type="button"
         onClick={() => setActive(true)}
-        className="rounded-md bg-accent px-4 py-2 font-medium text-accent-contrast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="rounded-md bg-primary px-4 py-2 font-medium text-primary-contrast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {t(locale, "doc.youtube.play")}
       </button>
