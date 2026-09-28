@@ -17,6 +17,7 @@ var (
 	errNotFound            = errors.New("not found")
 	errArchived            = errors.New("content is archived")
 	errPublished           = errors.New("content has published translations")
+	errScheduled           = errors.New("content has scheduled publications")
 	errLocaleExists        = errors.New("translation already exists")
 	errNothingToCopy       = errors.New("source translation has no revision")
 	errIdempotencyMismatch = errors.New("idempotency key reused with a different snapshot")
@@ -204,6 +205,14 @@ func (s Store) SetArchived(ctx context.Context, id string, archived bool) (Conte
 			}
 			if published {
 				return errPublished
+			}
+			var scheduled bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM publication_jobs j JOIN translations t ON t.id = j.translation_id
+				WHERE t.content_id = $1 AND j.status = 'scheduled')`, id).Scan(&scheduled); err != nil {
+				return err
+			}
+			if scheduled {
+				return errScheduled
 			}
 			_, err := tx.Exec(ctx, `UPDATE contents SET archived_at = COALESCE(archived_at, now()) WHERE id = $1`, id)
 			if err != nil {

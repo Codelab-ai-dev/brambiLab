@@ -171,3 +171,59 @@ func TestUpgradeFromContentSchemaKeepsData(t *testing.T) {
 		t.Fatalf("after upgrade: sessions=%d revisions=%d title=%q cover=%v", sessions, revisions, title, cover)
 	}
 }
+
+// Upgrading a WEB-004 database with a pointer set before WEB-005 gives it a date and a route.
+func TestUpgradeFromMediaSchemaBackfillsPublications(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	admin, err := pgx.Connect(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Close(context.Background()) })
+	name := "bl_upgrade_publishing_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if _, err := admin.Exec(ctx, "CREATE DATABASE "+name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := admin.Exec(context.Background(), "DROP DATABASE "+name+" WITH (FORCE)"); err != nil {
+			t.Errorf("drop %s: %v", name, err)
+		}
+	})
+	conn, _ := pgx.ParseConfig(url)
+	conn.Database = name
+	if err := migrations.UpTo(ctx, conn, 4); err != nil {
+		t.Fatalf("migrate to WEB-004 schema: %v", err)
+	}
+	db, err := pgx.ConnectConfig(ctx, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close(ctx)
+	if _, err := db.Exec(ctx, `
+		WITH c AS (INSERT INTO contents (kind) VALUES ('article') RETURNING id),
+		     t AS (INSERT INTO translations (content_id, locale, latest_version) SELECT id, 'es', 1 FROM c RETURNING id),
+		     r AS (INSERT INTO revisions (translation_id, version, kind, title, slug, body_json, body_schema_version, plain_text, snapshot_hash)
+		           SELECT id, 1, 'manual', 'Nota', 'nota', '{"type":"doc","content":[]}', 1, '', '\x01' FROM t RETURNING id)
+		SELECT 1 FROM r;
+		UPDATE translations t SET published_revision_id = r.id FROM revisions r WHERE r.translation_id = t.id`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrations.Up(ctx, conn, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+		t.Fatalf("upgrade to publishing schema: %v", err)
+	}
+	var dated, routes, visible, editorial int
+	if err := db.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM translations WHERE published_at IS NOT NULL AND first_published_at IS NOT NULL),
+		(SELECT count(*) FROM public_routes WHERE locale = 'es' AND scope = 'article' AND slug = 'nota' AND is_current),
+		(SELECT count(*) FROM visible_translations),
+		(SELECT max(editorial_version) FROM translations)`).Scan(&dated, &routes, &visible, &editorial); err != nil {
+		t.Fatal(err)
+	}
+	if dated != 1 || routes != 1 || visible != 1 || editorial != 0 {
+		t.Fatalf("after upgrade: dated=%d routes=%d visible=%d editorial=%d", dated, routes, visible, editorial)
+	}
+}

@@ -94,9 +94,9 @@ func (e *env) save(t *testing.T, contentID string, expected int, snap map[string
 
 func (e *env) publish(t *testing.T, c contentRef, locale string, on bool) {
 	t.Helper()
-	sql := `UPDATE translations t SET published_revision_id = NULL WHERE t.content_id = $1 AND t.locale = $2`
+	sql := `UPDATE translations t SET published_revision_id = NULL, published_at = NULL WHERE t.content_id = $1 AND t.locale = $2`
 	if on {
-		sql = `UPDATE translations t SET published_revision_id = r.id FROM revisions r
+		sql = `UPDATE translations t SET published_revision_id = r.id, published_at = now() FROM revisions r
 			WHERE r.translation_id = t.id AND r.version = t.latest_version AND t.content_id = $1 AND t.locale = $2`
 	}
 	if _, err := e.pool.Exec(context.Background(), sql, c.id, locale); err != nil {
