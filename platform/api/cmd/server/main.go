@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/config"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/db"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/migrations"
@@ -48,10 +49,11 @@ func run(cmd string, logger *slog.Logger) error {
 	case "serve":
 		return serve(ctx, cfg, logger)
 	case "migrate":
-		if err := cfg.RequireDatabase(); err != nil {
+		dbCfg, err := db.Config(cfg.DatabaseURL)
+		if err != nil {
 			return err
 		}
-		return migrations.Up(ctx, cfg.DatabaseURL, logger)
+		return migrations.Up(ctx, dbCfg.ConnConfig, logger)
 	case "healthcheck":
 		return healthcheck(cfg)
 	default:
@@ -60,11 +62,12 @@ func run(cmd string, logger *slog.Logger) error {
 }
 
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
-	if err := cfg.RequireDatabase(); err != nil {
+	dbCfg, err := db.Config(cfg.DatabaseURL)
+	if err != nil {
 		return err
 	}
 	// The pool connects lazily, so the API starts and reports "not ready" while PostgreSQL is down.
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	pool, err := pgxpool.NewWithConfig(ctx, dbCfg)
 	if err != nil {
 		return fmt.Errorf("configure database pool: %w", err)
 	}

@@ -1,4 +1,5 @@
 // Package config reads runtime configuration from the environment (web-v1.md §14).
+// PostgreSQL settings are read by internal/db from the PG* variables.
 package config
 
 import (
@@ -8,7 +9,8 @@ import (
 )
 
 type Config struct {
-	Port        int
+	Port int
+	// DatabaseURL is optional; PG* variables are preferred (see internal/db).
 	DatabaseURL string
 }
 
@@ -22,12 +24,4 @@ func Load() (Config, error) {
 		cfg.Port = port
 	}
 	return cfg, nil
-}
-
-// RequireDatabase fails fast when a command needs PostgreSQL and none is configured.
-func (c Config) RequireDatabase() error {
-	if c.DatabaseURL == "" {
-		return errors.New("DATABASE_URL is required")
-	}
-	return nil
 }

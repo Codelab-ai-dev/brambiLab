@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/migrations"
 )
 
@@ -17,6 +19,10 @@ func TestUpIsIdempotentAndSafeConcurrently(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL not set")
+	}
+	conn, err := pgx.ParseConfig(url)
+	if err != nil {
+		t.Fatal(err)
 	}
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -27,7 +33,7 @@ func TestUpIsIdempotentAndSafeConcurrently(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			errs[i] = migrations.Up(ctx, url, logger)
+			errs[i] = migrations.Up(ctx, conn, logger)
 		}()
 	}
 	wg.Wait()
@@ -36,7 +42,7 @@ func TestUpIsIdempotentAndSafeConcurrently(t *testing.T) {
 			t.Fatalf("concurrent run %d: %v", i, err)
 		}
 	}
-	if err := migrations.Up(ctx, url, logger); err != nil {
+	if err := migrations.Up(ctx, conn, logger); err != nil {
 		t.Fatalf("second run: %v", err)
 	}
 

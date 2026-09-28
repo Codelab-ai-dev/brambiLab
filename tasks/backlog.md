@@ -41,7 +41,7 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 
 | ID | Tarea | Estado | Dependencia |
 |---|---|---|---|
-| WEB-001 | Scaffold SSR/API/DB/Docker y contrato base | review (rama `feat/WEB-001-scaffold`) | Especificación |
+| WEB-001 | Scaffold SSR/API/DB/Docker y contrato base | done (PR #5, merge `c8abe1c`, CI run 36364615971) | Especificación |
 | WEB-002 | GitHub OAuth de propietario y sesiones | backlog | WEB-001 |
 | WEB-003 | Contenido, revisiones, i18n y editor | backlog | WEB-002 |
 | WEB-004 | Archivos, descargas y videos preparados | backlog | WEB-003 |
@@ -49,5 +49,9 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 | WEB-006 | Portafolio/laboratorio, SSR, SEO y búsqueda | backlog | WEB-005 |
 | WEB-007 | Contacto con Resend | backlog | WEB-006 |
 | WEB-008 | Coolify, backups y validación de lanzamiento | backlog | WEB-007 |
+
+Seguimiento de la revisión de Codex a WEB-001 ([comentario](https://github.com/Codelab-ai-dev/brambiLab/pull/5#issuecomment-5861621351)):
+- Credenciales PostgreSQL con caracteres reservados: corregido en `fix/WEB-001-db-credentials` con variables `PG*` y prueba de integración.
+- Aceptación adicional de WEB-002: definir y verificar que `/api/v1/*` y `/media/*` llegan a Go bajo el mismo origen público con el enrutado de producción elegido, no sólo con el proxy de Vite. El SSR reenvía la cookie de sesión únicamente a la API interna de confianza; Go conserva autenticación y autorización. Login, callback y logout funcionan; el propietario es aceptado y cualquier otra cuenta rechazada; preview y admin exigen sesión; cookies, CSRF y respuestas privadas `no-store` probados.
 
 BL-001-001 conserva su progreso; no requiere terminarse antes de implementar la web.

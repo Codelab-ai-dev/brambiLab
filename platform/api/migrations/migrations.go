@@ -4,12 +4,12 @@ package migrations
 
 import (
 	"context"
-	"database/sql"
 	"embed"
 	"fmt"
 	"log/slog"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/lock"
 )
@@ -19,11 +19,8 @@ var files embed.FS
 
 // Up applies pending migrations. Concurrent callers wait for the lock instead of
 // applying the same migration twice.
-func Up(ctx context.Context, databaseURL string, logger *slog.Logger) error {
-	db, err := sql.Open("pgx", databaseURL)
-	if err != nil {
-		return fmt.Errorf("open database: %w", err)
-	}
+func Up(ctx context.Context, conn *pgx.ConnConfig, logger *slog.Logger) error {
+	db := stdlib.OpenDB(*conn)
 	defer db.Close()
 
 	locker, err := lock.NewPostgresSessionLocker()

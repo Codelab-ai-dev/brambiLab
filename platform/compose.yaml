@@ -27,8 +27,15 @@ services:
     build: ./api
     command: ["migrate"]
     restart: "no"
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    environment: &pg-client
+      # Standard libpq variables, read verbatim by pgx: no URL is built, so the password
+      # may contain URI-reserved characters without escaping.
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      PGSSLMODE: disable
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,7 +45,7 @@ services:
     build: ./api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      <<: *pg-client
       API_PORT: "8080"
     volumes:
       - media_data:/data/media

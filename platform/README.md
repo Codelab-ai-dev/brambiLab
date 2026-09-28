@@ -20,7 +20,8 @@ docker compose down         # conserva volúmenes; «down -v» los borra
 ```
 Desarrollo sin contenedores:
 ```bash
-cd platform/api && DATABASE_URL=postgres://… go run ./cmd/server migrate && DATABASE_URL=… go run ./cmd/server
+export PGHOST=localhost PGUSER=… PGPASSWORD=… PGDATABASE=… PGSSLMODE=disable
+cd platform/api && go run ./cmd/server migrate && go run ./cmd/server
 cd platform/web && npm install && npm run dev   # proxy de /api y /media hacia :8080
 ```
 
@@ -36,7 +37,7 @@ El mismo conjunto corre en [CI](../.github/workflows/ci.yml), junto con una prue
 ## Decisiones de implementación (WEB-001)
 Elecciones técnicas dentro del stack de ADR-006; se pueden revisar sin cambiar el ADR.
 - API: `net/http` estándar con patrones de método; sin framework HTTP.
-- PostgreSQL: pgx v5 con pool; conexión perezosa para que la API arranque y se reporte «no lista» mientras falte la base.
+- PostgreSQL: pgx v5 con pool; conexión perezosa para que la API arranque y se reporte «no lista» mientras falte la base. La conexión se configura con las variables estándar `PG*`, leídas tal cual, sin construir URLs; así la contraseña admite caracteres reservados. `DATABASE_URL` sigue aceptándose si ya está bien codificada, y sus errores nunca repiten la cadena.
 - Migraciones: goose v3 con SQL embebido, lock de sesión de PostgreSQL y servicio `migrate` de una sola ejecución antes de la API. Tabla base: `audit_events`.
 - Imágenes: API en distroless `nonroot` (uid 65532) con healthcheck propio; web con el usuario `node`. `/data/media` pertenece a `nonroot`.
 - PostgreSQL 18; su volumen se monta en `/var/lib/postgresql`, como requiere esa versión.
