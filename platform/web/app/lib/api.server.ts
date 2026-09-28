@@ -2,7 +2,7 @@
 // it forwards the owner's session cookie to the trusted internal API and renders the answer
 // (web-v1.md §3, §11).
 
-const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://localhost:8080";
+export const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://localhost:8080";
 
 // The API names the cookie with the __Host- prefix on https and without it on localhost.
 const sessionCookieNames = new Set(["__Host-bl_session", "bl_session"]);

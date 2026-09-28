@@ -35,7 +35,7 @@ grep -qi '^cache-control: no-store' "$work/login.h" && ok "login page is no-stor
 # --- Owner login ------------------------------------------------------------------------
 owner="$work/owner.jar"
 expect "owner lands on /admin" "$(login "$owner")" "$BASE/admin"
-grep -q 'e2e-owner</strong>' "$work/page.html" && ok "SSR admin page shows the owner" || fail "admin page without owner"
+grep -q 'e2e-owner</span>' "$work/page.html" && ok "SSR admin page shows the owner" || fail "admin page without owner"
 grep -q $'^#HttpOnly_localhost\tFALSE\t/\tFALSE\t[0-9]*\tbl_session\t' "$owner" \
   && ok "session cookie is HttpOnly, host-only, Path=/" || fail "session cookie attributes: $(grep bl_session "$owner")"
 
