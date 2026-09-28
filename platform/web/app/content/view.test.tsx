@@ -74,3 +74,15 @@ describe("schema helpers mirror the Go validator", () => {
     for (const bad of ["https://evil.example/watch?v=dQw4w9WgXcQ", "https://youtube.com/watch?v=short", "<script>", ""]) expect(parseYouTube(bad), bad).toBeNull();
   });
 });
+
+describe("displayTitle", () => {
+  it("prefers the Spanish title in the Spanish admin, then English", async () => {
+    const { displayTitle } = await import("./api-types");
+    const c = (titles: Record<string, string | null>) =>
+      ({ id: "x", kind: "project", project_id: null, created_at: "", archived_at: null,
+        translations: Object.entries(titles).map(([locale, title]) => ({ locale, title, latest_version: 1, published: false, updated_at: null })) }) as never;
+    expect(displayTitle(c({ en: "Test rover", es: "Rover de prueba" }), "—")).toBe("Rover de prueba");
+    expect(displayTitle(c({ en: "Test rover", es: null }), "—")).toBe("Test rover");
+    expect(displayTitle(c({ es: null }), "Sin título")).toBe("Sin título");
+  });
+});

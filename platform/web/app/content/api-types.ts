@@ -93,6 +93,12 @@ export const revisionKindLabels: Record<RevisionKind, string> = {
   copy: "Copia de otro idioma",
 };
 
+/** Display title for the Spanish admin UI: the Spanish title first, then English, then a placeholder. */
+export function displayTitle(c: Content, fallback: string): string {
+  const title = (l: Locale) => c.translations.find((t) => t.locale === l && t.title)?.title;
+  return title("es") ?? title("en") ?? fallback;
+}
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("es-MX", { timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short" });

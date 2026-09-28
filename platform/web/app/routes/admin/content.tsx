@@ -1,7 +1,7 @@
 import { Form, Link, useNavigation, useRouteLoaderData } from "react-router";
 import type { Route } from "./+types/content";
 import { Button, EmptyState, LinkButton, Notice, PageHeader } from "~/components/admin/ui";
-import { formatDate, kindLabels, localeLabels, type Content, type Locale, type Page } from "~/content/api-types";
+import { displayTitle, formatDate, kindLabels, localeLabels, type Content, type Locale, type Page } from "~/content/api-types";
 import { adminGet } from "~/lib/admin-api.server";
 import { apiSend, describe } from "~/lib/admin-client";
 import { privateHeaders } from "~/lib/api.server";
@@ -16,7 +16,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 function titleOf(c: Content) {
-  return c.translations.find((t) => t.title)?.title ?? `${kindLabels[c.kind].one} sin título`;
+  return displayTitle(c, `${kindLabels[c.kind].one} sin título`);
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {

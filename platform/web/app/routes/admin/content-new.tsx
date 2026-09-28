@@ -1,7 +1,7 @@
 import { Form, redirect, useNavigation, useRouteLoaderData } from "react-router";
 import type { Route } from "./+types/content-new";
 import { Button, Field, Notice, PageHeader, inputClass } from "~/components/admin/ui";
-import { kindLabels, localeLabels, type Content, type ContentKind, type Page } from "~/content/api-types";
+import { displayTitle, kindLabels, localeLabels, type Content, type ContentKind, type Page } from "~/content/api-types";
 import { adminGet } from "~/lib/admin-api.server";
 import { apiSend, describe } from "~/lib/admin-client";
 import { privateHeaders } from "~/lib/api.server";
@@ -68,7 +68,7 @@ export default function NewContent({ loaderData, actionData }: Route.ComponentPr
                   </option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.translations.find((t) => t.title)?.title ?? `Proyecto sin título (${p.id.slice(0, 8)})`}
+                      {displayTitle(p, `Proyecto sin título (${p.id.slice(0, 8)})`)}
                     </option>
                   ))}
                 </select>

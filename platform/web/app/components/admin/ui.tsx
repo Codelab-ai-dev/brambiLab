@@ -3,7 +3,7 @@ import { useId, type ComponentProps, type ReactNode } from "react";
 import { Link } from "react-router";
 
 const tones = {
-  primary: "bg-accent text-accent-contrast hover:opacity-90",
+  primary: "bg-primary text-primary-contrast hover:opacity-90",
   secondary: "border border-border bg-surface text-text hover:bg-surface-muted",
   danger: "border border-danger bg-surface text-danger hover:bg-surface-muted",
   ghost: "hover:bg-surface-muted",
@@ -53,7 +53,7 @@ export function Field({ label, help, error, children }: FieldProps) {
 }
 
 export const inputClass =
-  "min-h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm aria-invalid:border-danger focus-visible:outline-2 focus-visible:outline-accent";
+  "min-h-10 w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm aria-invalid:border-danger aria-invalid:border-2 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 export function Notice({ tone = "info", title, children }: { tone?: "info" | "warning" | "danger" | "success"; title?: string; children: ReactNode }) {
   const color = { info: "border-border", warning: "border-warning", danger: "border-danger", success: "border-success" }[tone];

@@ -390,7 +390,7 @@ function SaveStatus({ state, readOnly }: { state: AutosaveState; readOnly: boole
         break;
     }
   return (
-    <p role="status" aria-live="polite" className={`text-sm ${color}`} data-save-status={readOnly ? "readonly" : state.status}>
+    <p role="status" aria-live="polite" className={`font-mono text-xs ${color}`} data-save-status={readOnly ? "readonly" : state.status}>
       {text}
     </p>
   );

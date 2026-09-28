@@ -2,6 +2,7 @@ import { redirect } from "react-router";
 import type { Route } from "./+types/login";
 import { privateHeaders } from "~/lib/api.server";
 import { loginState } from "~/lib/login.server";
+import { Wordmark } from "~/components/site/Wordmark";
 
 export function headers() {
   return privateHeaders;
@@ -34,33 +35,37 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function Login({ loaderData }: Route.ComponentProps) {
   const { availability, startUrl, message, loggedOut } = loaderData;
   return (
-    <main className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-2xl font-semibold">Panel de BrambiLab</h1>
-      {loggedOut && <p className="mt-4">Sesión cerrada.</p>}
-      {message && (
-        <p role="alert" className="mt-4 text-danger">
-          {message}
-        </p>
-      )}
-      {availability === "enabled" && (
-        // A full document navigation: the OAuth flow leaves the site and must not be client-routed.
-        <a
-          href={startUrl}
-          className="mt-8 inline-flex min-h-10 items-center rounded-md bg-accent px-4 font-medium text-accent-contrast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          Iniciar sesión con GitHub
-        </a>
-      )}
-      {availability === "not_configured" && (
-        <p className="mt-8 text-text-muted">
-          El acceso con GitHub no está configurado en este entorno.
-        </p>
-      )}
-      {availability === "unavailable" && (
-        <p role="alert" className="mt-8 text-text-muted">
-          El servicio de acceso no responde. Inténtalo de nuevo en unos minutos.
-        </p>
-      )}
+    <main className="bl-grid flex min-h-screen items-start justify-center px-4 py-16 sm:items-center">
+      <div className="w-full max-w-sm rounded-md border border-border bg-surface p-8 shadow-sm">
+        <Wordmark />
+        <h1 className="mt-6 text-2xl font-semibold">Panel privado</h1>
+        <p className="mt-2 text-sm text-text-muted">Acceso exclusivo del propietario mediante GitHub.</p>
+        {loggedOut && (
+          <p role="status" className="mt-4 text-sm">
+            Sesión cerrada.
+          </p>
+        )}
+        {message && (
+          <p role="alert" className="mt-4 text-sm text-danger">
+            {message}
+          </p>
+        )}
+        {availability === "enabled" && (
+          // A full document navigation: the OAuth flow leaves the site and must not be client-routed.
+          <a
+            href={startUrl}
+            className="mt-6 inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary px-4 font-medium text-primary-contrast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Iniciar sesión con GitHub
+          </a>
+        )}
+        {availability === "not_configured" && <p className="mt-6 text-sm text-text-muted">El acceso con GitHub no está configurado en este entorno.</p>}
+        {availability === "unavailable" && (
+          <p role="alert" className="mt-6 text-sm text-text-muted">
+            El servicio de acceso no responde. Inténtalo de nuevo en unos minutos.
+          </p>
+        )}
+      </div>
     </main>
   );
 }

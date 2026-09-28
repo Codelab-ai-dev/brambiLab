@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/contents";
 import { EmptyState, LinkButton, PageHeader } from "~/components/admin/ui";
-import { formatDate, kindLabels, type Content, type ContentKind, type Page } from "~/content/api-types";
+import { displayTitle, formatDate, kindLabels, type Content, type ContentKind, type Page } from "~/content/api-types";
 import { adminGet } from "~/lib/admin-api.server";
 import { privateHeaders } from "~/lib/api.server";
 
@@ -25,7 +25,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 function titleOf(c: Content): string {
-  return c.translations.find((t) => t.title)?.title ?? "Sin título todavía";
+  return displayTitle(c, "Sin título todavía");
 }
 
 export default function Contents({ loaderData }: Route.ComponentProps) {
@@ -85,7 +85,7 @@ export default function Contents({ loaderData }: Route.ComponentProps) {
                       ))}
                     </ul>
                   </td>
-                  <td className="px-4 py-3 text-text-muted">{formatDate(c.translations.map((t) => t.updated_at).filter(Boolean).sort().pop() ?? c.created_at)}</td>
+                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-text-muted">{formatDate(c.translations.map((t) => t.updated_at).filter(Boolean).sort().pop() ?? c.created_at)}</td>
                 </tr>
               ))}
             </tbody>
