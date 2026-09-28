@@ -1,9 +1,15 @@
 # BrambiLab Web v1
-Estado: especificada, sin implementación en esta entrega.
+Estado: scaffold de WEB-001. SSR con React Router 8, TypeScript y Tailwind 4. Sin contenido publicado, panel ni autenticación todavía.
 - [Especificación técnica](../../docs/architecture/web-v1.md)
 - [ADR-006](../../docs/architecture/ADR-006-web-stack.md)
-- [Backlog](../../tasks/backlog.md)
+- [Plataforma: arranque y verificación](../README.md)
 
-React + TypeScript + Tailwind, SSR Node.js. API de negocio Go en platform/api/; PostgreSQL; Docker/Coolify. SSR mediante React Router framework propuesto; editor y versiones se fijan al implementar.
-Contenido editorial administrado en PostgreSQL, archivos en volumen local migrable a S3. No consumir Markdown de Git como CMS automático.
-Primera tarea: WEB-001. No hay comandos de compilación ni servicios configurados todavía.
+| Ruta | Comportamiento |
+|---|---|
+| `/` | 302 a `/es` |
+| `/es`, `/en` | Página provisional, `noindex` |
+| otro `/:lang` | 404 |
+| `/healthz` | Liveness del proceso SSR |
+
+Comandos: `npm run dev` (proxy de `/api` y `/media` a `API_PROXY_TARGET`, por defecto `http://localhost:8080`), `npm run typecheck`, `npm run build`, `npm run start`.
+Contenido editorial en PostgreSQL mediante la API Go; la web no lee Markdown de Git ni accede a la base de datos.

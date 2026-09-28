@@ -1,0 +1,71 @@
+# BrambiLab web v1 runtime: web (SSR), api (Go), postgres (web-v1.md §14).
+# Local use: cp .env.example .env && docker compose up --build
+# In Coolify, the proxy routes /api/v1/* and /media/* to api and the rest to web; secrets live in Coolify.
+name: brambilab
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      # PostgreSQL 18 images keep data in a versioned subdirectory of /var/lib/postgresql.
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+    # No published port: PostgreSQL is only reachable from the internal network.
+
+  # Release task: applies migrations once, under an advisory lock, before the API starts.
+  migrate:
+    build: ./api
+    command: ["migrate"]
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      API_PORT: "8080"
+    volumes:
+      - media_data:/data/media
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8080}:8080"
+    networks: [internal, public]
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_URL: http://api:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
+    networks: [public]
+
+volumes:
+  postgres_data:
+  media_data:
+
+networks:
+  internal:
+    internal: true
+  public:

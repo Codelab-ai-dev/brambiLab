@@ -3,9 +3,9 @@ Actualizado: 2026-09-27
 
 Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
-Prioridad actual: revisar FND-003 y comenzar WEB-001 según [web-v1.md](../docs/architecture/web-v1.md). Web priorizada por Gustavo sin esperar a completar BL-001. Arquitectura en rama docs/web-v1-architecture; implementación no iniciada.
+Prioridad actual: WEB-001 en revisión (rama `feat/WEB-001-scaffold`); siguiente WEB-002. Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
 
-En curso independiente: BL-001-001 (inventario) en la rama `docs/BL-001-001-inventory`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
+En curso independiente: BL-001-001 (inventario), preparación ya unida en `main`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
 Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar, lee [AGENTS.md](../AGENTS.md).
 
 ## Información necesaria para BL-001-001
@@ -22,5 +22,7 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
-## Entrega de arquitectura web
+## Entregas web
+2026-09-27 · WEB-001: scaffold SSR/Go/PostgreSQL/Compose, OpenAPI base, migraciones y CI. [Handoff](../docs/handoffs/2026-09-27-web-001.md).
+
 2026-09-27: requisitos de la entrevista plasmados en especificación y ADR-006; roadmap y alcance alineados. [Handoff](../docs/handoffs/2026-09-27-web-v1.md). Destino externo de backup pendiente antes de lanzar.
