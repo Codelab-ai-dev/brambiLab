@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
     WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
     GitHub OAuth and sessions. WEB-003: private content, translations and
-    immutable revisions. Each later task adds its routes here first.
+    immutable revisions. WEB-004: media library and authorized delivery under /media.
+    Each later task adds its routes here first.
     Unsafe methods require an Origin (or Referer) equal to PUBLIC_ORIGIN; otherwise
     403 origin_rejected.
   license:
@@ -506,6 +507,164 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/Invalid" }
+  /admin/assets:
+    get:
+      operationId: listAssets
+      summary: Media library, newest first.
+      tags: [media]
+      security: [{ session: [] }]
+      parameters:
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/AssetKind" } }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+      responses:
+        "200":
+          description: Page of assets.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetPage" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    post:
+      operationId: uploadAsset
+      summary: Uploads one file as the raw request body (no multipart). New assets are private.
+      description: |
+        Content-Length is required. Type is detected from the bytes (signature and structure),
+        never from Content-Type. Allowlist and limits in web-v1.md §12.1: images (JPEG, PNG, WebP)
+        20 MiB; MP4 250 MiB; resources (PDF, ZIP, STL) 100 MiB. Image metadata (EXIF, XMP, IPTC,
+        text chunks) is removed and orientation applied before storing.
+      tags: [media]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - name: filename
+          in: query
+          required: true
+          description: Original file name (display only; never used for storage paths).
+          schema: { type: string, minLength: 1, maxLength: 255 }
+        - name: Content-Length
+          in: header
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "201":
+          description: Stored and ready.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "411": { $ref: "#/components/responses/MediaError" }
+        "413": { $ref: "#/components/responses/MediaError" }
+        "415": { $ref: "#/components/responses/MediaError" }
+        "422": { $ref: "#/components/responses/MediaError" }
+        "429": { $ref: "#/components/responses/MediaError" }
+        "507": { $ref: "#/components/responses/MediaError" }
+  /admin/assets/{assetId}:
+    parameters: [{ $ref: "#/components/parameters/AssetID" }]
+    get:
+      operationId: getAsset
+      summary: Asset details with the revisions that reference it.
+      tags: [media]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Asset.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: updateAsset
+      summary: Edits library alt/caption defaults and permissions. Never changes bytes or past revisions.
+      tags: [media]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssetUpdate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    delete:
+      operationId: deleteAsset
+      summary: Deletes an asset no retained revision references (409 asset_in_use otherwise).
+      tags: [media]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /media/{assetId}:
+    servers: [{ url: / }]
+    parameters: [{ $ref: "#/components/parameters/AssetID" }]
+    get:
+      operationId: getMedia
+      summary: Inline image or video. Supports Range (206/416). Resources are only served by /download.
+      description: |
+        Owner session: any ready asset (private, no-store). Anonymous: only ready + public_enabled
+        assets referenced by a published revision of visible content (Cache-Control: no-cache + ETag).
+        Anything else is an identical 404 without metadata, also for HEAD and Range.
+      tags: [media]
+      security: [{}, { session: [] }]
+      parameters:
+        - { name: Range, in: header, schema: { type: string, example: "bytes=0-1023" } }
+      responses:
+        "200": { description: "Full content.", content: { "*/*": { schema: { type: string, format: binary } } } }
+        "206": { description: "Partial content (Content-Range).", content: { "*/*": { schema: { type: string, format: binary } } } }
+        "304": { description: "Not modified (ETag)." }
+        "404": { description: "Unknown, private or not inline-servable." }
+        "416": { description: "Range not satisfiable or malformed." }
+    head:
+      operationId: headMedia
+      summary: Same authorization and headers as GET, without body.
+      tags: [media]
+      security: [{}, { session: [] }]
+      responses:
+        "200": { description: "Headers only." }
+        "404": { description: "Unknown or private." }
+  /media/{assetId}/download:
+    servers: [{ url: / }]
+    parameters: [{ $ref: "#/components/parameters/AssetID" }]
+    get:
+      operationId: downloadMedia
+      summary: Attachment download. Anonymous access also requires downloadable.
+      tags: [media]
+      security: [{}, { session: [] }]
+      parameters:
+        - { name: Range, in: header, schema: { type: string } }
+      responses:
+        "200": { description: "Attachment.", content: { "*/*": { schema: { type: string, format: binary } } } }
+        "206": { description: "Partial content.", content: { "*/*": { schema: { type: string, format: binary } } } }
+        "304": { description: "Not modified." }
+        "404": { description: "Unknown, private or not downloadable." }
+        "416": { description: "Range not satisfiable." }
+    head:
+      operationId: headDownload
+      summary: Same authorization and headers as GET download, without body.
+      tags: [media]
+      security: [{}, { session: [] }]
+      responses:
+        "200": { description: "Headers only." }
+        "404": { description: "Unknown, private or not downloadable." }
 components:
   parameters:
     CSRF:
@@ -516,6 +675,8 @@ components:
       schema: { type: string }
     ContentID:
       { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    AssetID:
+      { name: assetId, in: path, required: true, schema: { type: string, format: uuid } }
     TermID:
       { name: termId, in: path, required: true, schema: { type: string, format: uuid } }
     LocalePath:
@@ -553,6 +714,13 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    MediaError:
+      description: |
+        length_required (411), too_large (413), unsupported_type (415), invalid_media (422, e.g.
+        dimensions or a rotated WebP), upload_busy (429, Retry-After), insufficient_storage (507).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     TooLarge:
       description: Request body above 1 MiB.
       content:
@@ -575,6 +743,72 @@ components:
         type: string
         pattern: "^[A-Za-z0-9._-]{1,64}$"
   schemas:
+    AssetKind: { type: string, enum: [image, video, resource] }
+    AssetText:
+      type: object
+      additionalProperties: false
+      properties:
+        alt: { type: string, maxLength: 300 }
+        caption: { type: string, maxLength: 500 }
+    Asset:
+      type: object
+      required: [id, kind, status, original_name, mime, bytes, sha256, public_enabled, downloadable, created_at, texts]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/AssetKind" }
+        status: { type: string, enum: [pending, ready, failed] }
+        original_name: { type: string }
+        mime: { type: string }
+        bytes: { type: integer, format: int64 }
+        sha256: { type: string }
+        width: { type: [integer, "null"] }
+        height: { type: [integer, "null"] }
+        public_enabled: { type: boolean }
+        downloadable: { type: boolean }
+        created_at: { type: string, format: date-time }
+        texts:
+          type: object
+          description: Library defaults per locale; documents keep their own alt/caption.
+          properties:
+            es: { $ref: "#/components/schemas/AssetText" }
+            en: { $ref: "#/components/schemas/AssetText" }
+    AssetDetail:
+      allOf:
+        - $ref: "#/components/schemas/Asset"
+        - type: object
+          required: [references]
+          properties:
+            references:
+              type: array
+              items:
+                type: object
+                required: [content_id, locale, version, usage]
+                properties:
+                  content_id: { type: string, format: uuid }
+                  locale: { $ref: "#/components/schemas/Locale" }
+                  version: { type: integer }
+                  usage: { type: string, enum: [image, video, poster, download, cover] }
+                  published: { type: boolean }
+    AssetPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Asset" } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    AssetUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        public_enabled: { type: boolean }
+        downloadable: { type: boolean }
+        texts:
+          type: object
+          additionalProperties: false
+          properties:
+            es: { $ref: "#/components/schemas/AssetText" }
+            en: { $ref: "#/components/schemas/AssetText" }
     ContentKind: { type: string, enum: [project, article, log] }
     Locale: { type: string, enum: [es, en] }
     RevisionKind: { type: string, enum: [manual, auto, restore, copy] }
@@ -662,6 +896,7 @@ components:
             description: { type: string, maxLength: 160 }
         project_fields: { $ref: "#/components/schemas/ProjectFields" }
         category_id: { type: [string, "null"], format: uuid }
+        cover_asset_id: { type: [string, "null"], format: uuid, description: Ready image used as cover (WEB-004). }
         tag_ids: { type: array, maxItems: 20, uniqueItems: true, items: { type: string, format: uuid } }
     Revision:
       allOf:
@@ -783,6 +1018,8 @@ components:
           type: integer
           description: Only on version_conflict.
 tags:
+  - name: media
+    description: Media library (WEB-004) and authorized delivery under /media.
   - name: content
     description: Private contents, translations and revisions (web-v1.md §6–7).
   - name: taxonomy

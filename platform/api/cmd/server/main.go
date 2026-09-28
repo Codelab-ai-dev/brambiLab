@@ -24,6 +24,7 @@ import (
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/db"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/media"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/migrations"
 )
 
@@ -85,12 +86,21 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	authHandler := auth.NewHandler(authCfg, pool, logger)
 	go authHandler.RunCleanup(ctx, time.Hour)
 
+	storage, err := media.NewLocal(cfg.MediaRoot)
+	if err != nil {
+		return err
+	}
+	mediaHandler := media.NewHandler(media.NewStore(pool), storage, cfg.MediaLimits, logger,
+		authHandler.RequireOwner, auth.Actor, authHandler.IsOwner)
+	go mediaHandler.RunCleanup(ctx, 30*time.Minute, 2*time.Hour)
+
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
 		Handler: httpapi.NewRouter(logger, authCfg.PublicOrigin,
 			health.Handler{DB: pool, Logger: logger},
 			authHandler,
 			content.NewHandler(content.NewStore(pool), logger, authHandler.RequireOwner, auth.Actor),
+			mediaHandler,
 		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,

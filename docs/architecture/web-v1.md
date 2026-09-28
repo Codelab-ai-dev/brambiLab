@@ -216,6 +216,53 @@ Imágenes: quitar EXIF antes de hacerlas públicas y controlar dimensiones; SVG/
 Migración futura: copiar bytes a S3, verificar hash/tamaño, cambiar provider/key por lotes y conservar volumen anterior hasta validar. No cambiar URLs /media/{id}; adaptador decide stream o entrega autorizada. Ningún bucket público para borradores.
 Límite de disco y alertas por ocupación; seleccionar umbral al verificar capacidad real.
 
+### 12.1 Decisiones de implementación (WEB-004, #20)
+**Formatos admitidos.** Se validan por su firma y estructura, nunca por el `Content-Type` del cliente; la extensión sólo orienta.
+
+| Tipo | Formatos | Límite | Entrega |
+|---|---|---|---|
+| Imagen | JPEG, PNG, WebP | 20 MiB, 16 384 px por lado, 50 MP | en línea (`/media/{id}`) |
+| Vídeo | MP4 (ISO BMFF: `ftyp` + `moov`) | 250 MiB | en línea con Range/206 |
+| Recurso | PDF, ZIP, STL (ASCII o binario) | 100 MiB | sólo `attachment` (`/media/{id}/download`) |
+
+- **No admitidos**, con un mensaje claro: SVG (puede ejecutar código), GIF, HEIC/HEIF (no hay decodificador en Go; hay que exportar a JPEG), AVIF, ejecutables y cualquier otro formato.
+- Los ZIP no se descomprimen ni se inspeccionan. Validar el contenedor MP4 no demuestra que los códecs sean compatibles. Perfil recomendado: H.264 (High o Main) + AAC, `faststart` (moov antes de mdat), 1080p como máximo.
+
+**Imágenes.**
+- **JPEG:** se eliminan APP1 (EXIF, XMP), APP13 (IPTC) y COM sin recomprimir, conservando el perfil ICC. Si la orientación EXIF no es 1, se rota de verdad, se recodifica con calidad 92 y se reinserta el ICC.
+- **PNG:** se eliminan `eXIf`, `tEXt`, `zTXt`, `iTXt` y `tIME`.
+- **WebP:** se eliminan los chunks `EXIF` y `XMP ` y se corrigen las banderas de VP8X. Una WebP con orientación distinta de 1 se rechaza, porque no hay codificador WebP en Go.
+- Antes de decodificar se comprueban las dimensiones (`DecodeConfig`), como protección frente a bombas de descompresión.
+- El hash y el tamaño guardados son los de los bytes finales. El ancho y el alto se guardan para reservar espacio al renderizar.
+
+**Subida.**
+- `POST /api/v1/admin/assets?filename=…` con el archivo como cuerpo de la petición, sin multipart. `Content-Length` es obligatorio (si falta, 411).
+- **Antes de leer:**
+  - se comprueban el límite (413) y el espacio libre del volumen, dejando un margen de 512 MiB (si no alcanza, 507);
+  - sólo se admite una subida grande (más de 20 MiB) a la vez; si hay otra en curso, 429 con `Retry-After`.
+- **Proceso:**
+  1. se lee en streaming a `/data/media/tmp` con el límite aplicado;
+  2. se valida y se procesa;
+  3. se mueve con un rename atómico a una key opaca `ab/cd/<32 hex>`.
+- **Estados:** la fila empieza como `pending` y sólo pasa a `ready` si el archivo final existe y su tamaño coincide. Cualquier error la deja en `failed` y borra lo escrito. Un disco lleno durante la escritura también da 507.
+- **Limpieza:** un proceso borra los temporales sin actividad durante más de 2 horas (salvo las subidas activas) y marca como `failed`, borrando sus bytes, las filas `pending` de más de 2 horas.
+- Caddy limita el cuerpo de `/api/v1/admin/assets` a 256 MiB.
+
+**Modelo.**
+- `assets`: `storage_backend`, `object_key` opaca, nombre original saneado, MIME, bytes, SHA-256, dimensiones, `status`, `public_enabled` y `downloadable`. Las subidas nuevas son privadas y no descargables.
+- `asset_translations`: alt y caption en es/en como **valores por defecto de la biblioteca**. Los nodos del documento guardan su propio alt y caption en el snapshot, así que editar la biblioteca nunca cambia revisiones anteriores.
+- `revision_assets (revision_id, asset_id, usage)`, con usage `image`, `video`, `poster`, `download` o `cover`, se inserta en la misma transacción que la revisión. `ON DELETE RESTRICT`, así que un asset referenciado por cualquier revisión retenida no se puede borrar. El guardado bloquea las filas de los assets con `FOR KEY SHARE`, lo que serializa el guardado frente a un borrado concurrente.
+- Los bytes son inmutables: reemplazar un archivo crea un ID nuevo.
+- El snapshot incorpora `cover_asset_id` (imagen `ready`, opcional).
+
+**Entrega y autorización** (`GET`/`HEAD` en `/media/{id}` y `/media/{id}/download`, comprobadas en cada petición):
+- **Propietario con sesión:** cualquier asset `ready`, con `Cache-Control: private, no-store`.
+- **Anónimo:** sólo si el asset está `ready` y `public_enabled`, y hay al menos una referencia desde una revisión **publicada** de un contenido no archivado. Si es una bitácora, además su proyecto tiene que estar publicado en el mismo idioma. La descarga exige también `downloadable`. En cualquier otro caso, 404 idéntico y sin metadatos, también en HEAD y Range.
+- Los recursos (PDF, ZIP, STL) nunca se sirven en línea: `/media/{id}` responde 404 y sólo existe `/download`.
+- **Cabeceras:** `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`, `Content-Disposition` con `filename*` UTF-8 saneado y MIME validado.
+- **Rangos:** `http.ServeContent` resuelve HEAD, 206, `Content-Range`, `Accept-Ranges`, 416 para rangos no satisfacibles y malformados, y rangos múltiples como `multipart/byteranges`. La memoria queda acotada porque se lee del archivo.
+- **Caché:** los medios públicos llevan `Cache-Control: no-cache` + ETag (SHA-256), así que se revalidan en cada petición y dejan de entregarse en cuanto se retiran o revocan. Sin caché pública duradera ni CDN.
+
 ## 13. Contacto y Resend
 Enlaces configurables a correo, LinkedIn y GitHub. Formulario nombre, correo y mensaje, sin adjuntos.
 Go valida tamaños/formato, aplica honeypot y rate limit; guarda job antes de responder 202. Remitente desde dominio verificado en Resend; correo del visitante sólo Reply-To; destinatario fijo configurable, nunca arbitrario.

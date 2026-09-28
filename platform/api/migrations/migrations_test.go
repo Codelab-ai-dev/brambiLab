@@ -117,3 +117,57 @@ func TestUpgradeFromAuthSchemaKeepsSessions(t *testing.T) {
 		t.Fatalf("after upgrade: sessions=%d content tables=%d", sessions, contentTables)
 	}
 }
+
+// Upgrading a WEB-003 database (content, revisions, sessions) to the media schema keeps everything.
+func TestUpgradeFromContentSchemaKeepsData(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	admin, err := pgx.Connect(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Close(context.Background()) })
+	name := "bl_upgrade_media_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if _, err := admin.Exec(ctx, "CREATE DATABASE "+name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := admin.Exec(context.Background(), "DROP DATABASE "+name+" WITH (FORCE)"); err != nil {
+			t.Errorf("drop %s: %v", name, err)
+		}
+	})
+	conn, _ := pgx.ParseConfig(url)
+	conn.Database = name
+	if err := migrations.UpTo(ctx, conn, 3); err != nil {
+		t.Fatalf("migrate to WEB-003 schema: %v", err)
+	}
+	db, err := pgx.ConnectConfig(ctx, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close(ctx)
+	if _, err := db.Exec(ctx, `
+		INSERT INTO sessions (token_hash, csrf_token, github_user_id, github_login, expires_at) VALUES ('\x02', 'c', 1, 'o', now() + interval '1 hour');
+		WITH c AS (INSERT INTO contents (kind) VALUES ('project') RETURNING id),
+		     t AS (INSERT INTO translations (content_id, locale, latest_version) SELECT id, 'es', 1 FROM c RETURNING id)
+		INSERT INTO revisions (translation_id, version, kind, title, slug, body_json, body_schema_version, plain_text, snapshot_hash)
+		SELECT id, 1, 'manual', 'Rover', 'rover', '{"type":"doc","content":[]}', 1, '', '\x01' FROM t`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrations.Up(ctx, conn, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+		t.Fatalf("upgrade to media schema: %v", err)
+	}
+	var sessions, revisions int
+	var title string
+	var cover *string
+	if err := db.QueryRow(ctx, `SELECT (SELECT count(*) FROM sessions), (SELECT count(*) FROM revisions), (SELECT title FROM revisions), (SELECT cover_asset_id::text FROM revisions)`).
+		Scan(&sessions, &revisions, &title, &cover); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 1 || revisions != 1 || title != "Rover" || cover != nil {
+		t.Fatalf("after upgrade: sessions=%d revisions=%d title=%q cover=%v", sessions, revisions, title, cover)
+	}
+}

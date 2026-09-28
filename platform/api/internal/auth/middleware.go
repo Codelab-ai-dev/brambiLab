@@ -32,6 +32,20 @@ func Actor(r *http.Request) string {
 	return "github:" + strconv.FormatInt(SessionFrom(r.Context()).GitHubUserID, 10)
 }
 
+// IsOwner reports whether the request carries a live owner session, without writing a response.
+// Used where anonymous access is also possible (media delivery); authorization stays in Go.
+func (h *Handler) IsOwner(r *http.Request) bool {
+	if !h.cfg.Enabled() {
+		return false
+	}
+	c, err := r.Cookie(h.name(sessionCookieName))
+	if err != nil || c.Value == "" {
+		return false
+	}
+	_, err = h.store.activeSession(r.Context(), c.Value, h.cfg.AdminUserID)
+	return err == nil
+}
+
 // SessionCookieName is the cookie the web SSR must forward to the internal API.
 func (h *Handler) SessionCookieName() string { return h.name(sessionCookieName) }
 
