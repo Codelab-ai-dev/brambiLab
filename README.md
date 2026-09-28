@@ -20,6 +20,7 @@ Clona el repositorio y ábrelo con Claude Code; los pasos están en [START_HERE.
 - `projects/`: fuente canónica de cada proyecto, su código y documentación.
 - `docs/`: workflow, plantillas, experimentos, investigación y decisiones transversales.
 - `tasks/`: seguimiento inicial hasta migrar las tareas a GitHub Issues.
-- `platform/web/`: espacio reservado para la futura web.
+- `platform/web/`: frontend de la web priorizada; [especificación técnica v1](docs/architecture/web-v1.md).
+- Contenido editorial futuro: PostgreSQL y medios persistentes, administrados desde el panel; Git conserva código y documentación de ingeniería.
 
 Idioma inicial: español; identificadores, rutas y nombres de código en inglés. Licencias: código Apache-2.0, documentación CC BY 4.0 y diseños CERN-OHL-W-2.0. Detalle por ruta en [LICENSE.md](LICENSE.md).

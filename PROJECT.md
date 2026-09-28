@@ -11,8 +11,10 @@ Desarrolladores y makers que quieran reproducir el trabajo; equipos técnicos, r
 - BL-001: inventario, documentación del estado inicial y primer incremento de control.
 - Evidencias: fotos, mediciones, logs y resultados con limitaciones explícitas.
 
+- Web y panel privado priorizados desde el inicio: [especificación web v1](docs/architecture/web-v1.md).
+
 ## Fuera de v1
-Web, CMS, cuentas de usuarios, pagos, automatización social, MCP propio, ROS, navegación autónoma y operación de flotas. Se pueden investigar sin convertirlos en requisitos del primer incremento.
+Registro público de usuarios, pagos, automatización social, MCP propio, ROS, navegación autónoma y operación de flotas. Se pueden investigar sin convertirlos en requisitos del primer incremento.
 
 ## Roles
 Gustavo dirige prioridades y valida pruebas físicas. ChatGPT/Codex ayuda a especificar, investigar, implementar o revisar según el encargo. Claude Code trabaja sobre el repositorio y ejecuta las verificaciones disponibles. La distribución es flexible; el estado escrito prevalece sobre recuerdos de conversación.

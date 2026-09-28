@@ -3,7 +3,9 @@ Actualizado: 2026-09-27
 
 Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
-En curso: BL-001-001 (inventario) en la rama `docs/BL-001-001-inventory`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
+Prioridad actual: revisar FND-003 y comenzar WEB-001 según [web-v1.md](../docs/architecture/web-v1.md). Web priorizada por Gustavo sin esperar a completar BL-001. Arquitectura en rama docs/web-v1-architecture; implementación no iniciada.
+
+En curso independiente: BL-001-001 (inventario) en la rama `docs/BL-001-001-inventory`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
 Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar, lee [AGENTS.md](../AGENTS.md).
 
 ## Información necesaria para BL-001-001
@@ -19,3 +21,6 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 2026-09-27 · BL-001-001 (preparación): hardware.md y bom.md alineados y ampliados con los elementos que faltaban; convención de nombres y limpieza EXIF para fotos; `.gitignore` para multimedia y builds; prueba de corte físico propuesta en validation.md; enlaces de los índices de docs/. Verificado: enlaces Markdown relativos. Sin pruebas físicas.
 
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
+
+## Entrega de arquitectura web
+2026-09-27: requisitos de la entrevista plasmados en especificación y ADR-006; roadmap y alcance alineados. [Handoff](../docs/handoffs/2026-09-27-web-v1.md). Destino externo de backup pendiente antes de lanzar.
