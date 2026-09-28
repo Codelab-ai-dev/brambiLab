@@ -318,3 +318,107 @@ func TestAuthNotConfigured(t *testing.T) {
 		t.Fatalf("start without owner configured = %d, want 503", resp.StatusCode)
 	}
 }
+
+// pendingCallback starts a login and returns the state cookie and GitHub's callback URL
+// without following it.
+func (e *env) pendingCallback() (*http.Cookie, string) {
+	e.t.Helper()
+	noRedirect := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := noRedirect.Get(e.origin + "/api/v1/auth/github/start")
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	resp.Body.Close()
+	cookie := resp.Cookies()[0]
+	resp, err = noRedirect.Get(resp.Header.Get("Location"))
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	resp.Body.Close()
+	return cookie, resp.Header.Get("Location")
+}
+
+func (e *env) callback(rawURL string, cookie *http.Cookie) string {
+	e.t.Helper()
+	noRedirect := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	req, _ := http.NewRequest(http.MethodGet, rawURL, nil)
+	if cookie != nil {
+		req.AddCookie(cookie)
+	}
+	r, err := noRedirect.Do(req)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	r.Body.Close()
+	return r.Header.Get("Location")
+}
+
+func TestExpiredStateIsRejected(t *testing.T) {
+	e := start(t, testdb.New(t), ownerID)
+	cookie, callback := e.pendingCallback()
+	if _, err := e.pool.Exec(context.Background(), `UPDATE oauth_states SET expires_at = now() - interval '1 second'`); err != nil {
+		t.Fatal(err)
+	}
+	if loc := e.callback(callback, cookie); loc != e.origin+"/admin/login?error=failed" {
+		t.Fatalf("expired state → %q", loc)
+	}
+	if n := e.count(`SELECT count(*) FROM sessions`); n != 0 {
+		t.Fatalf("sessions after expired state = %d", n)
+	}
+}
+
+func TestForgedStateIsRejectedEvenWithMatchingCookie(t *testing.T) {
+	e := start(t, testdb.New(t), ownerID)
+	_, callback := e.pendingCallback()
+	u, _ := url.Parse(callback)
+	q := u.Query()
+	q.Set("state", "forged-state")
+	u.RawQuery = q.Encode()
+	// The attacker controls both the parameter and a matching cookie, but the state was never issued.
+	if loc := e.callback(u.String(), &http.Cookie{Name: "bl_oauth_state", Value: "forged-state"}); loc != e.origin+"/admin/login?error=failed" {
+		t.Fatalf("forged state → %q", loc)
+	}
+}
+
+func TestTamperedSessionTokenIsRejected(t *testing.T) {
+	e := start(t, testdb.New(t), ownerID)
+	c := e.browser()
+	e.login(c, "/admin")
+	ck := e.sessionCookie(c)
+	last := ck.Value[len(ck.Value)-1]
+	flipped := byte('A')
+	if last == 'A' {
+		flipped = 'B'
+	}
+	for _, value := range []string{ck.Value[:len(ck.Value)-1] + string(flipped), ck.Value + "x", "", "not-a-token"} {
+		req, _ := http.NewRequest(http.MethodGet, e.origin+"/api/v1/auth/me", nil)
+		req.AddCookie(&http.Cookie{Name: ck.Name, Value: value})
+		r, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Body.Close()
+		if r.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("tampered token %q → %d, want 401", value, r.StatusCode)
+		}
+	}
+	// The genuine session keeps working.
+	if status, _, _ := e.me(c); status != http.StatusOK {
+		t.Fatalf("genuine session → %d", status)
+	}
+}
+
+func TestPKCEVerifierMustMatchChallenge(t *testing.T) {
+	e := start(t, testdb.New(t), ownerID)
+	cookie, callback := e.pendingCallback()
+	// Swap the stored verifier: GitHub (the fake) must refuse the exchange, so no session.
+	if _, err := e.pool.Exec(context.Background(), `UPDATE oauth_states SET code_verifier = 'not-the-original-verifier'`); err != nil {
+		t.Fatal(err)
+	}
+	if loc := e.callback(callback, cookie); loc != e.origin+"/admin/login?error=failed" {
+		t.Fatalf("mismatched PKCE verifier → %q", loc)
+	}
+	if n := e.count(`SELECT count(*) FROM sessions`); n != 0 {
+		t.Fatalf("sessions after PKCE failure = %d", n)
+	}
+}

@@ -3,7 +3,7 @@ Actualizado: 2026-09-27
 
 Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
-Prioridad actual: WEB-002 en revisión (rama `feat/WEB-002-owner-auth`); siguiente WEB-003. Mismo origen mediante el proxy Caddy (decisión de Gustavo, 2026-09-27). Falta la prueba de login real con la OAuth App de Gustavo. WEB-001 terminada (PR #5 y #6). Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
+Prioridad actual: WEB-002 en revisión: [Issue #7](https://github.com/Codelab-ai-dev/brambiLab/issues/7), PR #9 (rama `feat/WEB-002-owner-auth`). Siguiente WEB-003. Seguimiento de WEB-001: [Issue #8](https://github.com/Codelab-ai-dev/brambiLab/issues/8), PR #10. Mismo origen mediante el proxy Caddy (decisión de Gustavo, 2026-09-27). Falta la prueba de login real con la OAuth App de Gustavo. WEB-001 terminada (PR #5 y #6). Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
 
 En curso independiente: BL-001-001 (inventario), preparación ya unida en `main`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
 Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar, lee [AGENTS.md](../AGENTS.md).
