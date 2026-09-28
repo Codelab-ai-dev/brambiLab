@@ -23,7 +23,7 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
 ## Entregas web
-2026-09-28 · WEB-005 PR 1 (modelo, API, rutas y lector público). [Handoff](../docs/handoffs/2026-09-28-web-005-api.md). Siguen el scheduler (PR 2) y el panel con e2e (PR 3).
+2026-09-28 · WEB-005: PR 1 #27 (modelo, API, rutas y lector público; [handoff](../docs/handoffs/2026-09-28-web-005-api.md)) unido; PR 2 (ejecución programada; [handoff](../docs/handoffs/2026-09-28-web-005-scheduler.md)). Sigue el panel con e2e (PR 3).
 
 2026-09-28 · WEB-004 en tres PR: #21, #22 y el panel. Handoffs: [almacenamiento](../docs/handoffs/2026-09-28-web-004-storage.md), [entrega](../docs/handoffs/2026-09-28-web-004-delivery.md), [panel](../docs/handoffs/2026-09-28-web-004-panel.md).
 

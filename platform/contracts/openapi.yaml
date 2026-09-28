@@ -822,7 +822,7 @@ paths:
       - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
     post:
       operationId: retryPublicationJob
-      summary: Explicitly retries a failed job (same frozen revision), revalidating now.
+      summary: Explicitly retries a failed job (same frozen revision), revalidating now; it runs on the next scheduler pass with a fresh budget of attempts.
       tags: [publishing]
       security: [{ session: [] }]
       parameters:
@@ -931,7 +931,7 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     Conflict:
-      description: version_conflict (with current_version), editorial_conflict (with state), published_content, scheduled_content, has_published_logs, schedule_exists, no_active_schedule, not_published, locale_exists or slug_taken.
+      description: version_conflict (with current_version), editorial_conflict (with state), published_content, scheduled_content, has_published_logs, schedule_exists, no_active_schedule, not_published, job_not_failed, locale_exists or slug_taken.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }

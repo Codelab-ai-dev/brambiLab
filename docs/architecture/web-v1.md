@@ -203,7 +203,9 @@ Un alias responde 301 con `Location` hacia la ruta vigente. El sitio público co
   - Un segundo ejecutor espera y encuentra el trabajo resuelto.
 - **Errores transitorios** (base de datos): backoff de 30 s × 2ⁿ, con un tope de 10 min y 5 intentos, y después `failed`.
 - **Errores de validación:** `failed` terminal con la causa legible.
-- Reintentar es explícito y revalida, conservando la revisión elegida.
+- Primero los proyectos y después las bitácoras de la misma hora. Si una bitácora vence cuando su proyecto aún tiene una programación pendiente (por ejemplo, en backoff), espera a ese trabajo sin gastar intentos. Si el proyecto ya no tiene programación ni publicación, la bitácora falla como terminal.
+- Reintentar es explícito y revalida, conservando la revisión elegida. El trabajo vuelve a la cola para la siguiente pasada con un presupuesto nuevo de intentos, y el registro de intentos continúa su numeración.
+- Al arrancar, la primera pasada es inmediata: recupera lo que venció con el proceso caído.
 - **Objetivo:** ejecutar en menos de 60 s tras la hora con la API y la base sanas. El reloj es inyectable en las pruebas.
 
 **Cancelar y retirar.**

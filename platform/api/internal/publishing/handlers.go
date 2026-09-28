@@ -44,6 +44,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	route("POST "+p+"/cancel", h.simple(h.svc.Cancel))
 	route("POST "+p+"/withdraw", h.simple(h.svc.Withdraw))
 	route("GET "+p+"/jobs", h.listJobs)
+	route("POST "+p+"/jobs/{jobId}/retry", h.retry)
 
 	mux.HandleFunc("GET /api/v1/public/{locale}/projects/{slug}", h.publicProject)
 	mux.HandleFunc("GET /api/v1/public/{locale}/articles/{slug}", h.publicArticle)
@@ -194,6 +195,15 @@ func (h *Handler) schedule(w http.ResponseWriter, r *http.Request) {
 	h.respond(w, r, "schedule", res, err)
 }
 
+func (h *Handler) retry(w http.ResponseWriter, r *http.Request) {
+	jobID := r.PathValue("jobId")
+	if !idPattern.MatchString(jobID) {
+		httpapi.WriteError(w, r, http.StatusNotFound, "not_found", "Resource not found")
+		return
+	}
+	h.simple(func(ctx context.Context, req Request) (Result, error) { return h.svc.Retry(ctx, req, jobID) })(w, r)
+}
+
 // simple handles the actions whose body is only expected_editorial_version.
 func (h *Handler) simple(op func(context.Context, Request) (Result, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -280,6 +290,8 @@ func (h *Handler) serviceError(w http.ResponseWriter, r *http.Request, op string
 		httpapi.WriteError(w, r, http.StatusConflict, "schedule_exists", "A publication is already scheduled; replace it explicitly")
 	case errors.Is(err, errNoActiveJob):
 		httpapi.WriteError(w, r, http.StatusConflict, "no_active_schedule", "There is no scheduled publication to cancel")
+	case errors.Is(err, errJobNotFailed):
+		httpapi.WriteError(w, r, http.StatusConflict, "job_not_failed", "Only failed jobs can be retried")
 	case errors.Is(err, errNothingToWithdraw):
 		httpapi.WriteError(w, r, http.StatusConflict, "not_published", "This translation is not published or scheduled")
 	default:
