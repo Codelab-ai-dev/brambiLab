@@ -31,6 +31,23 @@ Aceptación: comparar Wi-Fi, BLE y USB cuando sean compatibles con los modelos r
 Estado: done (2026-09-27, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 Aceptación: Gustavo elige términos para código, documentación y diseños; revisar derechos de recursos de terceros; registrar la decisión antes de etiquetar contenido como open source.
 
-## FND-003 — Especificar web v2
-Estado: backlog. Depende: BL-001-004.
-Aceptación: mapa de páginas, modelo de contenido y requisitos derivados del primer proyecto; ADR de stack; sin implementar un CMS por anticipado.
+## FND-003 — Especificar web v1
+Estado: review (2026-09-27). Sin dependencia del rover; prioridad cambiada por Gustavo.
+Entregables: [especificación](../docs/architecture/web-v1.md) y [ADR-006](../docs/architecture/ADR-006-web-stack.md).
+Aceptación: requisitos acordados, modelo de datos, API, publicación, despliegue y validación documentados. Implementación no iniciada.
+
+## Implementación web prioritaria
+Criterios completos en la sección 16 de la especificación. Los IDs siguientes son tareas documentales, no Issues remotos creados.
+
+| ID | Tarea | Estado | Dependencia |
+|---|---|---|---|
+| WEB-001 | Scaffold SSR/API/DB/Docker y contrato base | ready | Especificación |
+| WEB-002 | GitHub OAuth de propietario y sesiones | backlog | WEB-001 |
+| WEB-003 | Contenido, revisiones, i18n y editor | backlog | WEB-002 |
+| WEB-004 | Archivos, descargas y videos preparados | backlog | WEB-003 |
+| WEB-005 | Publicación manual/programada y retirada | backlog | WEB-004 |
+| WEB-006 | Portafolio/laboratorio, SSR, SEO y búsqueda | backlog | WEB-005 |
+| WEB-007 | Contacto con Resend | backlog | WEB-006 |
+| WEB-008 | Coolify, backups y validación de lanzamiento | backlog | WEB-007 |
+
+BL-001-001 conserva su progreso; no requiere terminarse antes de implementar la web.
