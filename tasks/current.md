@@ -1,9 +1,9 @@
 # Punto de reanudación
-Actualizado: 2026-09-27
+Actualizado: 2026-09-28
 
 Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
-Prioridad actual: WEB-005 (publicación manual/programada y retirada), sin iniciar. WEB-004 terminada: [Issue #20](https://github.com/Codelab-ai-dev/brambiLab/issues/20) cerrado, PR #21 (almacenamiento/API), #22 (entrega autorizada) y #23 (panel, editor y e2e) unidos en `main`. Portada pública rediseñada («banco de pruebas vivo», PR #24). WEB-003 terminada: [Issue #12](https://github.com/Codelab-ai-dev/brambiLab/issues/12), PR #15 (modelo/API), #16 (editor/Markdown) y #17 (panel/e2e), integrados en `main` con el PR de integración desde `feat/WEB-003-editor` (#16 y #17 se habían unido en ramas intermedias). WEB-001 y WEB-002 terminadas (#7, #11, #13). Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
+Prioridad actual: WEB-005 en curso: estado en [Issue #26](https://github.com/Codelab-ai-dev/brambiLab/issues/26), rama `feat/WEB-005-publishing`, en tres PR con base `main` (modelo/API/transacciones; scheduler; panel/e2e). WEB-004 terminada: [Issue #20](https://github.com/Codelab-ai-dev/brambiLab/issues/20) cerrado, PR #21 (almacenamiento/API), #22 (entrega autorizada) y #23 (panel, editor y e2e) unidos en `main`. Portada pública rediseñada («banco de pruebas vivo», PR #24). WEB-003 terminada: [Issue #12](https://github.com/Codelab-ai-dev/brambiLab/issues/12), PR #15 (modelo/API), #16 (editor/Markdown) y #17 (panel/e2e), integrados en `main` con el PR de integración desde `feat/WEB-003-editor` (#16 y #17 se habían unido en ramas intermedias). WEB-001 y WEB-002 terminadas (#7, #11, #13). Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
 
 En curso independiente: BL-001-001 (inventario), preparación ya unida en `main`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
 Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar, lee [AGENTS.md](../AGENTS.md).
@@ -23,6 +23,8 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
 ## Entregas web
+2026-09-28 · WEB-005 PR 1 (modelo, API, rutas y lector público). [Handoff](../docs/handoffs/2026-09-28-web-005-api.md). Siguen el scheduler (PR 2) y el panel con e2e (PR 3).
+
 2026-09-28 · WEB-004 en tres PR: #21, #22 y el panel. Handoffs: [almacenamiento](../docs/handoffs/2026-09-28-web-004-storage.md), [entrega](../docs/handoffs/2026-09-28-web-004-delivery.md), [panel](../docs/handoffs/2026-09-28-web-004-panel.md).
 
 2026-09-27 · WEB-003 en tres PR apilados: #15 (modelo y API), #16 (editor y Markdown) y el panel con e2e. Handoffs: [API](../docs/handoffs/2026-09-27-web-003-api.md), [editor](../docs/handoffs/2026-09-27-web-003-editor.md), [panel](../docs/handoffs/2026-09-27-web-003-panel.md).

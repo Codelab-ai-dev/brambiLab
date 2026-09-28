@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.4.0
+  version: 0.5.0
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
     WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
     GitHub OAuth and sessions. WEB-003: private content, translations and
     immutable revisions. WEB-004: media library and authorized delivery under /media.
+    WEB-005: publication, durable scheduling and withdrawal per locale; minimal public reader.
     Each later task adds its routes here first.
     Unsafe methods require an Origin (or Referer) equal to PUBLIC_ORIGIN; otherwise
     403 origin_rejected.
@@ -665,6 +666,224 @@ paths:
       responses:
         "200": { description: "Headers only." }
         "404": { description: "Unknown, private or not downloadable." }
+  /admin/contents/{id}/translations/{locale}/publication:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: getEditorialState
+      summary: Editorial state (unpublished/published/withdrawn), public route and active job.
+      tags: [publishing]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: State.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialState" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contents/{id}/translations/{locale}/publication/publish:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    post:
+      operationId: publishRevision
+      summary: Publishes one saved revision now; cancels any pending schedule of this translation.
+      tags: [publishing]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublishRequest" }
+      responses:
+        "200":
+          description: New editorial state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialState" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}/translations/{locale}/publication/schedule:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    post:
+      operationId: scheduleRevision
+      summary: Schedules one saved revision (frozen) for a local date-time in America/Mexico_City.
+      tags: [publishing]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScheduleRequest" }
+      responses:
+        "200":
+          description: New editorial state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialState" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}/translations/{locale}/publication/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    post:
+      operationId: cancelSchedule
+      summary: Cancels the active scheduled job. Does not withdraw a publication.
+      tags: [publishing]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExpectedEditorialVersion" }
+      responses:
+        "200":
+          description: New editorial state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialState" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}/translations/{locale}/publication/withdraw:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    post:
+      operationId: withdrawTranslation
+      summary: Removes the public pointer and cancels active jobs. 409 for a project with published logs in this locale.
+      tags: [publishing]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExpectedEditorialVersion" }
+      responses:
+        "200":
+          description: New editorial state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialState" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}/translations/{locale}/publication/jobs:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: listPublicationJobs
+      summary: Job history with attempts, newest first.
+      tags: [publishing]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+      responses:
+        "200":
+          description: Page of jobs.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobPage" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contents/{id}/translations/{locale}/publication/jobs/{jobId}/retry:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+      - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: retryPublicationJob
+      summary: Explicitly retries a failed job (same frozen revision), revalidating now.
+      tags: [publishing]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExpectedEditorialVersion" }
+      responses:
+        "200":
+          description: New editorial state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialState" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /public/{locale}/projects/{slug}:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+      - { $ref: "#/components/parameters/Slug" }
+    get:
+      operationId: getPublicProject
+      summary: Published project (no-store). Aliases answer 301 to the current route.
+      tags: [public]
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/PublicContent" }
+        "301": { $ref: "#/components/responses/PublicRedirect" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /public/{locale}/articles/{slug}:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+      - { $ref: "#/components/parameters/Slug" }
+    get:
+      operationId: getPublicArticle
+      summary: Published article (no-store). Aliases answer 301.
+      tags: [public]
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/PublicContent" }
+        "301": { $ref: "#/components/responses/PublicRedirect" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /public/{locale}/projects/{projectSlug}/logs/{slug}:
+    parameters:
+      - { $ref: "#/components/parameters/LocalePath" }
+      - { name: projectSlug, in: path, required: true, schema: { type: string } }
+      - { $ref: "#/components/parameters/Slug" }
+    get:
+      operationId: getPublicLog
+      summary: Published log of a published project (no-store). Project or log aliases answer 301.
+      tags: [public]
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/PublicContent" }
+        "301": { $ref: "#/components/responses/PublicRedirect" }
+        "404": { $ref: "#/components/responses/NotFound" }
 components:
   parameters:
     CSRF:
@@ -675,6 +894,13 @@ components:
       schema: { type: string }
     ContentID:
       { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: Retrying with the same key and body returns the original result; another body gives 422.
+      schema: { type: string, pattern: "^[A-Za-z0-9_-]{8,128}$" }
+    Slug:
+      { name: slug, in: path, required: true, schema: { type: string } }
     AssetID:
       { name: assetId, in: path, required: true, schema: { type: string, format: uuid } }
     TermID:
@@ -705,15 +931,24 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     Conflict:
-      description: version_conflict (with current_version), published_content, locale_exists or slug_taken.
+      description: version_conflict (with current_version), editorial_conflict (with state), published_content, scheduled_content, has_published_logs, schedule_exists, no_active_schedule, not_published, locale_exists or slug_taken.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     Invalid:
-      description: validation_failed (per-field messages in fields) or media_not_available.
+      description: validation_failed (per-field messages in fields), media_not_available, publish_blocked (one entry per blocking field or asset) or idempotency_key_reused.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    PublicContent:
+      description: Published snapshot.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/PublicContent" }
+    PublicRedirect:
+      description: Alias of a moved slug; Location holds the current API route.
+      headers:
+        Location: { schema: { type: string } }
     MediaError:
       description: |
         length_required (411), too_large (413), unsupported_type (415), invalid_media (422, e.g.
@@ -743,6 +978,102 @@ components:
         type: string
         pattern: "^[A-Za-z0-9._-]{1,64}$"
   schemas:
+    EditorialStatus: { type: string, enum: [unpublished, published, withdrawn] }
+    JobStatus: { type: string, enum: [scheduled, succeeded, failed, cancelled] }
+    PublicationJob:
+      type: object
+      required: [id, revision_version, run_at, status, attempts, max_attempts, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        revision_version: { type: integer }
+        run_at: { type: string, format: date-time }
+        run_at_local: { type: string, description: "Same instant in America/Mexico_City, e.g. 2026-10-01T09:30." }
+        status: { $ref: "#/components/schemas/JobStatus" }
+        attempts: { type: integer }
+        max_attempts: { type: integer }
+        next_attempt_at: { type: [string, "null"], format: date-time }
+        last_error: { type: [string, "null"] }
+        error_kind: { type: [string, "null"], enum: [transient, terminal, null] }
+        cancel_reason: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        attempt_log:
+          type: array
+          items:
+            type: object
+            properties:
+              attempt: { type: integer }
+              at: { type: string, format: date-time }
+              outcome: { type: string, enum: [succeeded, transient_error, terminal_error] }
+              error: { type: [string, "null"] }
+    EditorialState:
+      type: object
+      required: [status, editorial_version, latest_version, active_job]
+      properties:
+        status: { $ref: "#/components/schemas/EditorialStatus" }
+        editorial_version: { type: integer, minimum: 0 }
+        latest_version: { type: integer, description: Latest saved draft revision. }
+        published_version: { type: [integer, "null"] }
+        published_at: { type: [string, "null"], format: date-time }
+        first_published_at: { type: [string, "null"], format: date-time }
+        withdrawn_at: { type: [string, "null"], format: date-time }
+        route: { type: [string, "null"], description: Current public API path while published. }
+        active_job:
+          oneOf:
+            - $ref: "#/components/schemas/PublicationJob"
+            - type: "null"
+        time_zone: { type: string, const: America/Mexico_City }
+    ExpectedEditorialVersion:
+      type: object
+      required: [expected_editorial_version]
+      additionalProperties: false
+      properties:
+        expected_editorial_version: { type: integer, minimum: 0 }
+    PublishRequest:
+      type: object
+      required: [revision_version, expected_editorial_version]
+      additionalProperties: false
+      properties:
+        revision_version: { type: integer, minimum: 1 }
+        expected_editorial_version: { type: integer, minimum: 0 }
+    ScheduleRequest:
+      type: object
+      required: [revision_version, run_at_local, time_zone, expected_editorial_version]
+      additionalProperties: false
+      properties:
+        revision_version: { type: integer, minimum: 1 }
+        run_at_local: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$", example: "2026-10-01T09:30" }
+        time_zone: { type: string, const: America/Mexico_City }
+        replace: { type: boolean, default: false, description: Replace the active schedule explicitly. }
+        expected_editorial_version: { type: integer, minimum: 0 }
+    JobPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/PublicationJob" } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    PublicContent:
+      type: object
+      required: [kind, locale, slug, title, body, published_at]
+      properties:
+        kind: { $ref: "#/components/schemas/ContentKind" }
+        locale: { $ref: "#/components/schemas/Locale" }
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        body: { $ref: "#/components/schemas/Document" }
+        seo: { type: object }
+        project_fields: { $ref: "#/components/schemas/ProjectFields" }
+        cover_asset_id: { type: [string, "null"], format: uuid }
+        published_at: { type: string, format: date-time }
+        project:
+          type: [object, "null"]
+          description: Parent project of a log.
+          properties:
+            slug: { type: string }
+            title: { type: string }
     AssetKind: { type: string, enum: [image, video, resource] }
     AssetText:
       type: object
@@ -1016,8 +1347,15 @@ components:
           type: string
         current_version:
           type: integer
-          description: Only on version_conflict.
+          description: On version_conflict (latest_version) and editorial_conflict (editorial_version).
+        state:
+          $ref: "#/components/schemas/EditorialState"
+          description: Only on editorial_conflict, the current editorial state.
 tags:
+  - name: publishing
+    description: Publication, scheduling and withdrawal per locale (WEB-005).
+  - name: public
+    description: Minimal public reader of published, visible content (WEB-005; full site in WEB-006).
   - name: media
     description: Media library (WEB-004) and authorized delivery under /media.
   - name: content

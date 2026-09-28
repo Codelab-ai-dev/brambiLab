@@ -490,7 +490,9 @@ func (h *Handler) storeError(w http.ResponseWriter, r *http.Request, op string, 
 	case errors.Is(err, errNotFound):
 		httpapi.WriteError(w, r, http.StatusNotFound, "not_found", "Resource not found")
 	case errors.Is(err, errPublished):
-		httpapi.WriteError(w, r, http.StatusConflict, "published_content", "Published content must be withdrawn first (WEB-005)")
+		httpapi.WriteError(w, r, http.StatusConflict, "published_content", "Published content must be withdrawn first")
+	case errors.Is(err, errScheduled):
+		httpapi.WriteError(w, r, http.StatusConflict, "scheduled_content", "Cancel the scheduled publications first")
 	case errors.Is(err, errArchived):
 		httpapi.WriteError(w, r, http.StatusConflict, "content_archived", "Archived content is read-only; unarchive it first")
 	case errors.Is(err, errLocaleExists):

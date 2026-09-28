@@ -276,7 +276,7 @@ func TestRestoreAndSaveNeverTouchSnapshotsOrPublication(t *testing.T) {
 	save(t, s, c.ID, "es", 1, snapshot("Dos", "segunda"))
 
 	// Fixture: version 1 is "published" (WEB-005 will own this; there is no endpoint for it).
-	if _, err := pool.Exec(ctx, `UPDATE translations t SET published_revision_id = r.id FROM revisions r
+	if _, err := pool.Exec(ctx, `UPDATE translations t SET published_revision_id = r.id, published_at = now() FROM revisions r
 		WHERE r.translation_id = t.id AND r.version = 1 AND t.content_id = $1`, c.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func TestArchiveRules(t *testing.T) {
 	}
 	s.Do("POST", "/api/v1/admin/contents/"+c.ID+"/unarchive", nil)
 
-	if _, err := pool.Exec(context.Background(), `UPDATE translations t SET published_revision_id = r.id FROM revisions r
+	if _, err := pool.Exec(context.Background(), `UPDATE translations t SET published_revision_id = r.id, published_at = now() FROM revisions r
 		WHERE r.translation_id = t.id AND t.content_id = $1`, c.ID); err != nil {
 		t.Fatal(err)
 	}

@@ -25,6 +25,7 @@ import (
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/media"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/publishing"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/migrations"
 )
 
@@ -101,6 +102,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			authHandler,
 			content.NewHandler(content.NewStore(pool), logger, authHandler.RequireOwner, auth.Actor),
 			mediaHandler,
+			publishing.NewHandler(publishing.NewService(pool), logger, authHandler.RequireOwner, auth.Actor),
 		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,

@@ -96,19 +96,14 @@ func contentDisposition(kind, name string) string {
 	return kind + `; filename="` + ascii + `"; filename*=UTF-8''` + url.PathEscape(name)
 }
 
-// PubliclyVisible: at least one reference from a published revision of non-archived content;
-// a log also needs its project published in the same locale.
+// PubliclyVisible: at least one reference from a revision that is published and visible, using
+// the shared rule of the visible_translations view (web-v1.md §8.1).
 func (s Store) PubliclyVisible(ctx context.Context, id string) (bool, error) {
 	var ok bool
 	err := s.pool.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM revision_assets ra
-			JOIN translations t ON t.published_revision_id = ra.revision_id
-			JOIN contents c ON c.id = t.content_id
-			WHERE ra.asset_id = $1 AND c.archived_at IS NULL
-			  AND (c.kind <> 'log' OR EXISTS (
-			        SELECT 1 FROM translations pt JOIN contents pc ON pc.id = pt.content_id
-			        WHERE pt.content_id = c.project_id AND pt.locale = t.locale
-			          AND pt.published_revision_id IS NOT NULL AND pc.archived_at IS NULL)))`, id).Scan(&ok)
+			JOIN visible_translations v ON v.revision_id = ra.revision_id
+			WHERE ra.asset_id = $1)`, id).Scan(&ok)
 	return ok, err
 }

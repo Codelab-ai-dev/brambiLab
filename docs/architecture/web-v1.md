@@ -156,6 +156,64 @@ Por traducción: sin publicar, publicada, retirada. El borrador/revisión nueva 
 Objetivo inicial: ejecutar dentro de 60 segundos del horario mientras servicio/DB estén saludables; mostrar retrasos/fallos en panel.
 Primera versión sin caché compartida de HTML/contenido: no-store para evitar borradores expuestos y publicación obsoleta. Assets estáticos versionados sí pueden cachearse. Optimizar con invalidación más adelante.
 
+### 8.1 Implementación WEB-005 (#26)
+**Estado por traducción.**
+- *Sin publicar*, *publicada* (`published_revision_id`) o *retirada* (`withdrawn_at` sin puntero).
+- `editorial_version` es distinto de `latest_version` y avanza con publicar, programar, reemplazar, cancelar, retirar, reintentar y cada resultado de un trabajo. Todas esas acciones exigen `expected_editorial_version` y responden 409 `editorial_conflict` con el estado actual. Guardar un borrador no lo toca.
+- Todas aceptan `Idempotency-Key`: la misma clave con el mismo cuerpo devuelve la respuesta original; con otro cuerpo, 422. Se guardan en `editorial_requests`, en la misma transacción.
+
+**Publicar** una revisión guardada elegida explícitamente, en una transacción. Se valida:
+- el contenido y la traducción existen y no están archivados;
+- la revisión es de esa traducción, y el título y el slug son válidos;
+- los medios referenciados están `ready` y `public_enabled`, y las descargas además `downloadable`;
+- la portada y el póster son imágenes;
+- una bitácora tiene su proyecto publicado, no archivado y en el mismo idioma.
+
+Los permisos de los medios no se activan solos: el error 422 `publish_blocked` enumera los archivos afectados. Publicar actualiza el puntero, las fechas, la ruta y la auditoría, **y cancela cualquier programación pendiente** de esa traducción. Repetir una publicación idéntica no cambia nada. Si algo falla, la publicación anterior queda intacta.
+
+**Rutas** (`public_routes`, que hace de *slug_history*):
+- **Unicidad** `(locale, scope, slug)` con restricción de base de datos. El ámbito es `project` o `article` por idioma, o `log:<content_id del proyecto>`.
+- **Guardar un borrador no reserva ruta.** Publicar la marca como vigente, y los slugs anteriores del mismo contenido quedan como alias reservados que otro contenido no puede usar.
+- **Un alias resuelve a la ruta vigente de su contenido** en un solo salto: sin cadenas ni bucles.
+- Las bitácoras dependen de la identidad del proyecto, no de su slug, así que un cambio de slug del proyecto no rompe sus rutas.
+- Una traducción retirada conserva sus rutas reservadas, pero no responde ni redirige: 404.
+
+**Visibilidad única.** La vista `visible_translations` (publicada, contenido no archivado y, si es bitácora, proyecto publicado y no archivado en el mismo idioma) la usan los medios, el lector público y los futuros listados, buscador y sitemap.
+
+**Lector público mínimo**, con `no-store`, sólo con revisiones publicadas visibles:
+- `GET /api/v1/public/{locale}/projects/{slug}`;
+- `GET /api/v1/public/{locale}/articles/{slug}`;
+- `GET /api/v1/public/{locale}/projects/{projectSlug}/logs/{slug}`.
+
+Un alias responde 301 con `Location` hacia la ruta vigente. El sitio público completo es WEB-006.
+
+**Programar.**
+- La fecha y hora se introducen en America/Mexico_City y el servidor las convierte a UTC con la zona IANA (`time/tzdata` embebido). Se rechaza una fecha pasada.
+- La revisión queda **congelada**; se valida al programar y otra vez al ejecutar.
+- Si una bitácora se programa y su proyecto aún no está publicado, se acepta si el proyecto tiene una programación que vence antes o a la misma hora.
+- Un solo trabajo activo por traducción (índice único parcial). Reemplazarlo es explícito (`replace: true`).
+- Cada intento queda en `publication_job_attempts`.
+
+**Ejecución** (en el proceso Go, sin Redis ni worker separado):
+- Cada 15 s se toman como máximo 10 trabajos vencidos.
+- Cada uno se ejecuta en **una transacción**, en este orden de bloqueo: traducción del proyecto padre (`FOR SHARE`) → traducción (`FOR UPDATE`) → trabajo (`FOR UPDATE`) → validación → publicación → trabajo `succeeded`.
+- No existe estado `running`: los bloqueos de fila hacen de lease.
+  - Si el proceso cae antes del commit, todo se deshace y el trabajo se recupera.
+  - Si cae después, el trabajo consta como hecho y no se repite.
+  - Un segundo ejecutor espera y encuentra el trabajo resuelto.
+- **Errores transitorios** (base de datos): backoff de 30 s × 2ⁿ, con un tope de 10 min y 5 intentos, y después `failed`.
+- **Errores de validación:** `failed` terminal con la causa legible.
+- Reintentar es explícito y revalida, conservando la revisión elegida.
+- **Objetivo:** ejecutar en menos de 60 s tras la hora con la API y la base sanas. El reloj es inyectable en las pruebas.
+
+**Cancelar y retirar.**
+- Cancelar no retira lo que ya está publicado.
+- Retirar quita el puntero y cancela los trabajos activos en la misma transacción, conservando revisiones y archivos.
+- Un proyecto con bitácoras publicadas en ese idioma no se puede retirar (409 con la lista). No hay cascada y el otro idioma no se toca.
+- Archivar se rechaza mientras haya publicación o programación activa.
+- Todas las operaciones siguen el mismo orden de bloqueo, así que un trabajo que ya empezó termina antes o encuentra la cancelación: **no hay resurrección**.
+- Los medios dejan de servirse de forma anónima cuando desaparece su última referencia publicada y visible. La autorización se comprueba antes de cualquier 304, HEAD o Range.
+
 ## 9. Rutas, idiomas, SEO y navegación
 | Español | Inglés |
 |---|---|
