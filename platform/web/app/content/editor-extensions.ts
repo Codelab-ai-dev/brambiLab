@@ -27,23 +27,25 @@ function atomBlock(name: string, attrs: string[], label: (a: Record<string, unkn
     },
     renderHTML({ node, HTMLAttributes }) {
       const data = Object.fromEntries(attrs.map((a) => [`data-${a.toLowerCase()}`, node.attrs[a] ?? ""]));
-      return [
-        "div",
-        mergeAttributes(HTMLAttributes, data, {
-          "data-bl-node": name,
-          class: "my-4 rounded border border-dashed border-border bg-surface-muted p-3 text-sm text-text-muted",
-          contenteditable: "false",
-        }),
-        label(node.attrs),
-      ];
+      const frame = mergeAttributes(HTMLAttributes, data, {
+        "data-bl-node": name,
+        class: "my-4 flex items-center gap-3 rounded border border-dashed border-border-strong bg-surface-muted p-2 text-sm text-text-muted",
+        contenteditable: "false",
+      });
+      // Owner-only preview through /media (the session cookie authorizes it).
+      const thumbId = name === "image" ? node.attrs.assetId : name === "video" ? node.attrs.posterAssetId : null;
+      if (thumbId) {
+        return ["div", frame, ["img", { src: `/media/${thumbId}`, alt: "", class: "h-16 w-24 rounded object-cover", draggable: "false" }], ["span", {}, label(node.attrs)]];
+      }
+      return ["div", frame, ["span", {}, label(node.attrs)]];
     },
   });
 }
 
 export const YouTube = atomBlock("youtube", ["videoId", "start"], (a) => `YouTube · ${a.videoId}${a.start ? ` · desde ${a.start} s` : ""}`);
-// Versioned for WEB-004; the editor cannot insert them yet (no assets), but can display them.
-export const Image = atomBlock("image", ["assetId", "alt", "caption"], (a) => `Imagen · ${a.alt || "sin texto alternativo"}`);
-export const Video = atomBlock("video", ["assetId", "posterAssetId", "caption"], (a) => `Vídeo · ${a.caption || a.assetId}`);
+// Media nodes reference library assets by id (WEB-004); Go checks each asset on save.
+export const Image = atomBlock("image", ["assetId", "alt", "caption"], (a) => `Imagen · ${a.alt || "sin texto alternativo"}${a.caption ? ` · ${a.caption}` : ""}`);
+export const Video = atomBlock("video", ["assetId", "posterAssetId", "caption"], (a) => `Vídeo · ${a.caption || "sin pie"}${a.posterAssetId ? "" : " · sin póster"}`);
 export const Download = atomBlock("download", ["assetId", "label"], (a) => `Descarga · ${a.label}`);
 
 export const editorExtensions: Extensions = [

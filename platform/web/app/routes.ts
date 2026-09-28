@@ -18,6 +18,8 @@ export default [
     route("contenidos/:id/:locale/historial", "routes/admin/history.tsx"),
     route("contenidos/:id/:locale/v/:version", "routes/admin/preview.tsx"),
     route("taxonomia", "routes/admin/taxonomy.tsx"),
+    route("medios", "routes/admin/media.tsx"),
+    route("medios/:id", "routes/admin/media-detail.tsx"),
   ]),
   route(":lang", "routes/locale-layout.tsx", [index("routes/home.tsx")]),
 ] satisfies RouteConfig;

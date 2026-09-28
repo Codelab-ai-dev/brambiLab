@@ -3,7 +3,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useBlocker } from "react-router";
+import { AssetPicker, AssetThumb } from "~/components/admin/AssetPicker";
 import { Button, Field, LinkButton, Notice, inputClass } from "~/components/admin/ui";
+import { uploadFile, precheck } from "~/lib/upload";
 import { saveRevision, newIdempotencyKey } from "~/lib/admin-client";
 import {
   formatDate,
@@ -16,12 +18,14 @@ import {
   type Locale,
   type ProjectFields,
   type ProjectStatus,
+  type Asset,
+  type AssetKind,
   type Snapshot,
   type Term,
   type Translation,
 } from "./api-types";
 import { Autosaver, type AutosaveState } from "./autosave";
-import { ContentEditor } from "./ContentEditor";
+import { ContentEditor, type MediaBridge } from "./ContentEditor";
 import { DocumentView } from "./DocumentView";
 import { docToMarkdown, markdownToDoc, type ImportResult } from "./markdown";
 import type { Doc } from "./schema";
@@ -51,6 +55,46 @@ export function EditorScreen({ content, translation, categories, tags, csrf }: P
   const [slugTouched, setSlugTouched] = useState(initial.slug !== "");
   const [importOpen, setImportOpen] = useState(false);
   const saver = useRef<Autosaver<Snapshot> | null>(null);
+
+  // Library picker as a promise, so the editor can await the owner's choice.
+  const [picker, setPicker] = useState<{ kind: AssetKind; title: string; resolve: (a: Asset | null) => void } | null>(null);
+  const pick = (kind: AssetKind, title: string) => new Promise<Asset | null>((resolve) => setPicker({ kind, title, resolve }));
+  const closePicker = (a: Asset | null) => {
+    picker?.resolve(a);
+    setPicker(null);
+  };
+  // Pasted/dropped images: progress and errors are reported here; the editor content is untouched on failure.
+  const [pasteNotice, setPasteNotice] = useState<{ tone: "info" | "danger"; text: string } | null>(null);
+  const media: MediaBridge = {
+    locale,
+    pick,
+    upload: async (file) => {
+      const problem = precheck(file, "image");
+      if (problem) {
+        setPasteNotice({ tone: "danger", text: `${file.name || "Imagen pegada"}: ${problem}` });
+        return null;
+      }
+      const handle = uploadFile(file, csrf, (sent, total) =>
+        setPasteNotice({ tone: "info", text: `Subiendo ${file.name || "imagen pegada"}… ${Math.round((sent / Math.max(1, total)) * 100)} %` }),
+      );
+      const result = await handle.promise;
+      if (!result.ok) {
+        setPasteNotice({ tone: "danger", text: `${file.name || "Imagen pegada"}: ${result.message} El texto del editor no cambió.` });
+        return null;
+      }
+      setPasteNotice(null);
+      return result.asset;
+    },
+  };
+  const [cover, setCover] = useState<Pick<Asset, "id" | "kind" | "original_name" | "width" | "height"> | null>(null);
+  useEffect(() => {
+    const id = snapshotRef.current.cover_asset_id;
+    if (!id) return;
+    fetch(`/api/v1/admin/assets/${id}`, { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((a: Asset | null) => a && setCover(a))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (readOnly) return;
@@ -222,7 +266,9 @@ export function EditorScreen({ content, translation, categories, tags, csrf }: P
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section aria-label="Cuerpo" className="flex min-w-0 flex-col gap-2">
+          {pasteNotice && <Notice tone={pasteNotice.tone}>{pasteNotice.text}</Notice>}
           <ContentEditor
+            media={readOnly ? undefined : media}
             key={editorKey}
             initialDoc={editorDoc}
             readOnly={readOnly}
@@ -237,6 +283,33 @@ export function EditorScreen({ content, translation, categories, tags, csrf }: P
         </section>
 
         <aside aria-label="Datos del contenido" className="flex flex-col gap-5">
+          <fieldset className="flex flex-col gap-2" disabled={readOnly}>
+            <legend className="text-sm font-medium">Portada</legend>
+            {snapshot.cover_asset_id && cover ? (
+              <AssetThumb asset={cover} className="aspect-video w-full rounded-md border border-border" />
+            ) : (
+              <p className="text-xs text-text-muted">Sin portada. Se usará en listados y al compartir.</p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  const a = await pick("image", "Elegir portada");
+                  if (a) {
+                    setCover(a);
+                    change({ cover_asset_id: a.id });
+                  }
+                }}
+              >
+                {snapshot.cover_asset_id ? "Cambiar portada" : "Elegir portada"}
+              </Button>
+              {snapshot.cover_asset_id && (
+                <Button tone="ghost" className="text-danger" onClick={() => change({ cover_asset_id: null })}>
+                  Quitar
+                </Button>
+              )}
+            </div>
+            {fields.cover_asset_id && <p className="text-xs text-danger">{fields.cover_asset_id}</p>}
+          </fieldset>
           <Field label="Resumen" help="Hasta 500 caracteres. Aparece en listados." error={fields.summary}>
             {({ id, describedBy, invalid }) => (
               <textarea
@@ -347,6 +420,8 @@ export function EditorScreen({ content, translation, categories, tags, csrf }: P
           )}
         </aside>
       </div>
+
+      {picker && <AssetPicker kind={picker.kind} title={picker.title} csrf={csrf} onPick={(a) => closePicker(a)} onClose={() => closePicker(null)} />}
 
       {importOpen && (
         <ImportDialog

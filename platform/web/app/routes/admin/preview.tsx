@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/preview";
-import { formatDate, localeLabels, revisionKindLabels, statusLabels, type Content, type Revision, type Term } from "~/content/api-types";
-import { DocumentView } from "~/content/DocumentView";
+import { formatDate, localeLabels, revisionKindLabels, statusLabels, type Asset, type Content, type Revision, type Term } from "~/content/api-types";
+import { DocumentView, type AssetMeta } from "~/content/DocumentView";
+import type { Block } from "~/content/schema";
 import { adminGet } from "~/lib/admin-api.server";
 import { privateHeaders } from "~/lib/api.server";
 
@@ -25,7 +26,24 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     adminGet<{ items: Term[] }>(request, "/api/v1/admin/tags"),
   ]);
   const locale: "es" | "en" = params.locale;
+  // Metadata of every referenced asset (dimensions reserve space; sizes label downloads).
+  const ids = new Set<string>(revision.cover_asset_id ? [revision.cover_asset_id] : []);
+  const walk = (blocks: Block[]) =>
+    blocks.forEach((b) => {
+      if (b.type === "image" || b.type === "download") ids.add(b.attrs.assetId);
+      if (b.type === "video") {
+        ids.add(b.attrs.assetId);
+        if (b.attrs.posterAssetId) ids.add(b.attrs.posterAssetId);
+      }
+      if ("content" in b && Array.isArray(b.content)) b.content.forEach((c) => "content" in c && Array.isArray(c.content) && walk(c.content as Block[]));
+      if (b.type === "blockquote") walk(b.content);
+    });
+  walk(revision.body.content);
+  const found = await Promise.all([...ids].map((id) => adminGet<Asset>(request, `/api/v1/admin/assets/${id}`).catch(() => null)));
+  const assets: Record<string, AssetMeta> = {};
+  for (const a of found) if (a) assets[a.id] = { width: a.width, height: a.height, bytes: a.bytes };
   return {
+    assets,
     content,
     revision,
     locale,
@@ -35,7 +53,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function Preview({ loaderData, params }: Route.ComponentProps) {
-  const { content, revision, locale, category, tags } = loaderData;
+  const { content, revision, locale, category, tags, assets } = loaderData;
   const pf = revision.project_fields;
   return (
     <div className="py-6">
@@ -49,6 +67,15 @@ export default function Preview({ loaderData, params }: Route.ComponentProps) {
         </span>
       </div>
       <article lang={locale} className="mx-auto max-w-3xl">
+        {revision.cover_asset_id && (
+          <img
+            src={`/media/${revision.cover_asset_id}`}
+            alt=""
+            width={assets[revision.cover_asset_id]?.width ?? undefined}
+            height={assets[revision.cover_asset_id]?.height ?? undefined}
+            className="mb-8 aspect-[2/1] w-full rounded-md object-cover"
+          />
+        )}
         <header className="mb-8">
           {category && <p className="text-sm font-medium text-accent">{category}</p>}
           <h1 className="mt-1 text-3xl font-semibold break-words">{revision.title}</h1>
@@ -81,7 +108,7 @@ export default function Preview({ loaderData, params }: Route.ComponentProps) {
             {pf.results && (<><dt className="font-medium">Resultados</dt><dd>{pf.results}</dd></>)}
           </dl>
         )}
-        <DocumentView doc={revision.body} locale={locale} />
+        <DocumentView doc={revision.body} locale={locale} assets={assets} />
       </article>
     </div>
   );
