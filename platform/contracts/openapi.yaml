@@ -1,11 +1,13 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
-    WEB-001 covers operation endpoints and the shared error shape; each later
-    task adds its routes here before implementing them.
+    WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
+    GitHub OAuth and sessions. Each later task adds its routes here first.
+    Unsafe methods require an Origin (or Referer) equal to PUBLIC_ORIGIN; otherwise
+    403 origin_rejected.
   license:
     name: Apache-2.0
     identifier: Apache-2.0
@@ -47,7 +49,97 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/HealthStatus" }
+  /auth/github/start:
+    get:
+      operationId: startGitHubLogin
+      summary: Redirect to GitHub (Authorization Code + PKCE S256, no scopes).
+      tags: [auth]
+      security: []
+      parameters:
+        - name: return_to
+          in: query
+          description: Path under /admin to return to after login; anything else becomes /admin.
+          schema: { type: string, default: /admin }
+      responses:
+        "302":
+          description: To GitHub's authorize page. Sets a short-lived HttpOnly state cookie.
+        "503": { $ref: "#/components/responses/AuthNotConfigured" }
+  /auth/github/callback:
+    get:
+      operationId: gitHubCallback
+      summary: Completes login. Only ADMIN_GITHUB_USER_ID gets a session.
+      tags: [auth]
+      security: []
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+        - { name: error, in: query, schema: { type: string } }
+      responses:
+        "302":
+          description: |
+            Owner: to return_to with the session cookie. Otherwise to
+            /admin/login?error=forbidden|denied|failed without a session.
+        "503": { $ref: "#/components/responses/AuthNotConfigured" }
+  /auth/me:
+    get:
+      operationId: getCurrentOwner
+      summary: Current owner session and its CSRF token.
+      tags: [auth]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Authenticated owner. Response is no-store.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "503": { $ref: "#/components/responses/AuthNotConfigured" }
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revokes the session server-side and clears the cookie.
+      tags: [auth]
+      security: [{ session: [] }]
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          description: Session CSRF token (or the csrf_token form field).
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                csrf_token: { type: string }
+      responses:
+        "204": { description: Logged out (fetch). }
+        "303": { description: Logged out (HTML form); redirects to /admin/login?logged_out=1. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403":
+          description: origin_rejected or csrf_failed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: __Host-bl_session
+      description: Opaque session cookie (HttpOnly, Secure, SameSite=Lax, Path=/). Named bl_session on http://localhost.
+  responses:
+    Unauthenticated:
+      description: No live owner session.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    AuthNotConfigured:
+      description: Owner login is not configured in this environment.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   headers:
     RequestID:
       description: Request correlation ID, echoed from a valid upstream value or generated.
@@ -67,6 +159,14 @@ components:
           additionalProperties:
             type: string
             enum: [up, down]
+    Me:
+      type: object
+      required: [github_user_id, github_login, expires_at, csrf_token]
+      properties:
+        github_user_id: { type: integer, format: int64 }
+        github_login: { type: string }
+        expires_at: { type: string, format: date-time }
+        csrf_token: { type: string }
     Error:
       type: object
       description: Body of every non-2xx response except health probes.
@@ -84,5 +184,7 @@ components:
         request_id:
           type: string
 tags:
+  - name: auth
+    description: Owner-only GitHub login and sessions (web-v1.md §11).
   - name: operation
     description: Probes for Docker, Coolify and monitoring.

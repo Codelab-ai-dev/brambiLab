@@ -18,6 +18,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/auth"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/config"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/db"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
@@ -62,6 +63,13 @@ func run(cmd string, logger *slog.Logger) error {
 }
 
 func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
+	authCfg, err := auth.LoadConfig(os.Getenv)
+	if err != nil {
+		return err
+	}
+	if !authCfg.Enabled() {
+		logger.Warn("owner login disabled: set ADMIN_GITHUB_USER_ID, GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET")
+	}
 	dbCfg, err := db.Config(cfg.DatabaseURL)
 	if err != nil {
 		return err
@@ -73,9 +81,15 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	defer pool.Close()
 
+	authHandler := auth.NewHandler(authCfg, pool, logger)
+	go authHandler.RunCleanup(ctx, time.Hour)
+
 	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.NewRouter(logger, health.Handler{DB: pool, Logger: logger}),
+		Addr: fmt.Sprintf(":%d", cfg.Port),
+		Handler: httpapi.NewRouter(logger, authCfg.PublicOrigin,
+			health.Handler{DB: pool, Logger: logger},
+			authHandler,
+		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}

@@ -1,6 +1,6 @@
 # BrambiLab web v1 runtime: web (SSR), api (Go), postgres (web-v1.md §14).
-# Local use: cp .env.example .env && docker compose up --build
-# In Coolify, the proxy routes /api/v1/* and /media/* to api and the rest to web; secrets live in Coolify.
+# Local use: cp .env.example .env && docker compose up --build, then open http://localhost:8000
+# The proxy service is the only public entry; secrets live in Coolify.
 name: brambilab
 
 services:
@@ -47,13 +47,17 @@ services:
     environment:
       <<: *pg-client
       API_PORT: "8080"
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8000}
+      # Owner login stays disabled (auth endpoints answer 503) until these are set.
+      ADMIN_GITHUB_USER_ID: ${ADMIN_GITHUB_USER_ID:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     volumes:
       - media_data:/data/media
     depends_on:
       migrate:
         condition: service_completed_successfully
-    ports:
-      - "127.0.0.1:${API_HOST_PORT:-8080}:8080"
+    # No published port: only the proxy and the web SSR reach the API.
     networks: [internal, public]
 
   web:
@@ -64,8 +68,18 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    networks: [public]
+
+  # Single public entry: /api/v1/* and /media/* go to api, the rest to web (proxy/Caddyfile).
+  # In Coolify, attach the domain to this service only.
+  proxy:
+    build: ./proxy
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
     ports:
-      - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${PUBLIC_HOST_PORT:-8000}:8000"
     networks: [public]
 
 volumes:

@@ -33,7 +33,8 @@ Propuesta de implementación: React Router en modo framework con SSR para evitar
 
 ```mermaid
 flowchart TD
-  U["Visitante o administrador"] --> P["Proxy HTTPS de Coolify"]
+  U["Visitante o administrador"] --> C["Proxy HTTPS de Coolify (TLS)"]
+  C --> P["Proxy de entrada · Caddy"]
   P --> W["React SSR · Node.js"]
   P --> A["API · Go"]
   W --> A
@@ -46,13 +47,13 @@ flowchart TD
 - api: monolito modular Go: auth, content, publishing, media, search, contact. Único dueño de PostgreSQL, autorización y validación.
 - postgres: datos editoriales, revisiones, sesiones y trabajos durables.
 - Scheduler y envío pendiente: bucles en el proceso Go inicial, con trabajos en PostgreSQL, ejecución acotada y locks transaccionales. No Redis ni contenedor worker obligatorio en v1. Extraer worker si la carga lo justifica.
-- Proxy de Coolify termina TLS: /api/v1/* y /media/* a Go; resto a web. PostgreSQL sin puerto público. SSR usa dirección privada http://api:8080.
+- Proxy de Coolify termina TLS y entrega todo el dominio al servicio proxy (Caddy, platform/proxy), única entrada pública: /api/v1/* y /media/* a Go; resto a web. Decisión de Gustavo del 2026-09-27 en WEB-002, frente al enrutado por ruta en Coolify, para que el mismo origen sea idéntico en local, en CI y en el VPS. PostgreSQL, API y web sin puerto público. SSR usa dirección privada http://api:8080.
 - Una sola instancia de API al inicio; la cola debe tolerar reinicios y futuras instancias sin publicar dos veces.
 
 ## 4. Estructura de código prevista
 - platform/web/: React, rutas públicas/admin, i18n, componentes, editor y Dockerfile.
 - platform/api/: cmd/server, internal/{auth,content,publishing,media,search,contact,jobs}, migrations y Dockerfile.
-- platform/compose.yaml: web, api, postgres; volúmenes y healthchecks.
+- platform/compose.yaml: proxy, web, api, postgres y migrate; volúmenes y healthchecks. compose.e2e.yaml añade un GitHub simulado sólo para pruebas.
 - platform/contracts/openapi.yaml: contrato versionado de API y tipos TS generables.
 - docs/architecture/: decisiones y diseño.
 Estas rutas describen entregables futuros; esta entrega no crea servicios ejecutables.
@@ -171,7 +172,7 @@ Evitar guardar el texto completo en logs. Retención propuesta de mensajes: 30 d
 Antes de habilitar: dominio remitente, destinatario y API key configurados; sin configuración, formulario deshabilitado con enlaces alternativos. No enviar correos reales como parte de esta especificación.
 
 ## 14. Docker y Coolify
-Tres servicios runtime: web, api, postgres. Build multietapa, usuario no-root donde corresponda, imágenes versionadas y dependencias fijadas; sin montar código fuente en producción.
+Cuatro servicios runtime: proxy, web, api y postgres, más la tarea migrate. Build multietapa, usuario no-root donde corresponda, imágenes versionadas y dependencias fijadas; sin montar código fuente en producción.
 Volúmenes postgres_data y media_data persistentes. Red interna para DB/API; exposición pública sólo por proxy. Healthchecks y reintentos de conexión; readiness comprueba dependencias sin filtrar credenciales.
 Migraciones como tarea de release antes de activar nueva API; un ejecutor con lock. Cambios compatibles hacia adelante; no ejecutar rollback destructivo automáticamente.
 Configuración: PUBLIC_ORIGIN, INTERNAL_API_URL, DATABASE_URL, ADMIN_GITHUB_USER_ID, GITHUB_CLIENT_ID/SECRET, SESSION_SECRET si se requiere firma, RESEND_API_KEY, CONTACT_FROM/TO, STORAGE_DRIVER, STORAGE_LOCAL_ROOT, upload limits y TZ editorial.

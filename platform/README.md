@@ -6,16 +6,18 @@ Especificación: [web-v1.md](../docs/architecture/web-v1.md) · Decisión de sta
 | [web/](web/README.md) | React Router 8 (SSR, Node.js), TypeScript, Tailwind 4 |
 | [api/](api/) | API Go: `serve`, `migrate` y `healthcheck` |
 | [contracts/openapi.yaml](contracts/openapi.yaml) | Contrato de la API |
-| [compose.yaml](compose.yaml) | postgres, migrate, api y web |
+| [proxy/](proxy/Caddyfile) | Caddy: única entrada pública; `/api/v1/*` y `/media/*` → api, resto → web |
+| [compose.yaml](compose.yaml) | proxy, web, api, postgres y migrate |
+| [compose.e2e.yaml](compose.e2e.yaml), [e2e/](e2e/auth.sh) | GitHub simulado y prueba de login de punta a punta (sólo pruebas) |
 
 ## Arranque local
-Requiere Docker con Compose. Los puertos se publican sólo en `127.0.0.1`; PostgreSQL no se publica.
+Requiere Docker con Compose. Sólo el proxy publica un puerto (`127.0.0.1:8000`); web, API y PostgreSQL quedan en redes internas.
 ```bash
 cd platform
 cp .env.example .env        # valores locales; nunca subir .env
 docker compose up --build -d --wait
-curl localhost:8080/api/v1/health/ready
-open http://localhost:3000
+curl localhost:8000/api/v1/health/ready
+open http://localhost:8000
 docker compose down         # conserva volúmenes; «down -v» los borra
 ```
 Desarrollo sin contenedores:
@@ -32,7 +34,25 @@ cd platform/api && gofmt -l . && go vet ./... && go test ./...
 TEST_DATABASE_URL=postgres://… go test -count=1 ./migrations/   # PostgreSQL desechable
 npx -y @redocly/cli@2.54.3 lint platform/contracts/openapi.yaml
 ```
-El mismo conjunto corre en [CI](../.github/workflows/ci.yml), junto con una prueba de humo con Compose.
+Login de punta a punta, a través del proxy real y con un GitHub simulado:
+```bash
+docker compose -f compose.yaml -f compose.e2e.yaml up --build -d --wait
+./e2e/auth.sh
+docker compose -f compose.yaml -f compose.e2e.yaml down -v
+```
+Todo este conjunto corre también en [CI](../.github/workflows/ci.yml).
+
+## Acceso del propietario (WEB-002)
+1. Crea una OAuth App en GitHub (*Settings → Developer settings → OAuth Apps*) con homepage `PUBLIC_ORIGIN` y callback `PUBLIC_ORIGIN/api/v1/auth/github/callback`. Para producción hace falta otra app, porque GitHub sólo admite un callback por app.
+2. En `.env` (o en los secretos de Coolify): `PUBLIC_ORIGIN`, `ADMIN_GITHUB_USER_ID` (ID numérico, no el usuario), `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET`. Sin ellos el login queda deshabilitado y la API responde 503 en `/api/v1/auth/*`.
+3. Entra en `PUBLIC_ORIGIN/admin`.
+
+Seguridad:
+- Authorization Code con PKCE S256 y sin scopes. El `state` es de un solo uso, se guarda con hash y va ligado al navegador por una cookie.
+- Sólo el ID numérico del propietario recibe sesión; cualquier otra cuenta se rechaza y queda auditada. El token de GitHub nunca se guarda.
+- La sesión es opaca y se guarda con hash. Va en una cookie `HttpOnly`, `SameSite=Lax`, `Path=/` que dura 12 h (`SESSION_TTL`). Con https es `__Host-` y `Secure`; http sólo se acepta en localhost.
+- Las mutaciones exigen un `Origin` igual a `PUBLIC_ORIGIN` y el token CSRF de la sesión. Las respuestas privadas son `no-store`.
+- El SSR de `/admin` reenvía sólo la cookie de sesión y sólo a `INTERNAL_API_URL`. La web no decide nada: Go autentica y autoriza.
 
 ## Decisiones de implementación (WEB-001)
 Elecciones técnicas dentro del stack de ADR-006; se pueden revisar sin cambiar el ADR.
@@ -45,4 +65,4 @@ Elecciones técnicas dentro del stack de ADR-006; se pueden revisar sin cambiar 
 - Web: `/` redirige temporalmente (302) a `/es`; `/:lang` sólo acepta `es` y `en`. Página provisional con `noindex` hasta WEB-006. Sin fuentes externas ni favicon hasta tener la identidad visual aprobada.
 
 ## Pendiente
-Dominio y callback OAuth, recursos reales del VPS, datos de Resend y destino de backups (web-v1.md §17). `INTERNAL_API_URL` se declara en Compose, pero la web aún no llama a la API: la primera llamada SSR llega con WEB-002 o WEB-003.
+Dominio y callback OAuth, recursos reales del VPS, datos de Resend y destino de backups (web-v1.md §17). Revocar el token de GitHub tras leer la identidad (hoy sólo se descarta) y limitar la tasa de `/auth/github/start`: mejoras propuestas, no implementadas.

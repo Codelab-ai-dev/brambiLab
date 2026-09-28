@@ -6,6 +6,14 @@ COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server
 RUN mkdir -p /out/data/media
 
+# Test-only GitHub OAuth double for the Compose e2e check (compose.e2e.yaml). It is a separate
+# target and never part of the default (last) stage below.
+FROM build AS fakegithub-build
+RUN CGO_ENABLED=0 go build -trimpath -o /out/fakegithub ./cmd/fakegithub
+FROM gcr.io/distroless/static-debian12:nonroot AS fakegithub
+COPY --from=fakegithub-build /out/fakegithub /fakegithub
+ENTRYPOINT ["/fakegithub"]
+
 # Distroless: no shell or curl; the binary's own "healthcheck" command probes liveness.
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/server /server

@@ -3,7 +3,7 @@ Actualizado: 2026-09-27
 
 Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
-Prioridad actual: WEB-002 (OAuth del propietario y sesiones), con la aceptación adicional de mismo origen y cookie SSR registrada en [backlog.md](backlog.md). WEB-001 terminada (PR #5, merge `c8abe1c`); su corrección de credenciales PostgreSQL está en `fix/WEB-001-db-credentials`. Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
+Prioridad actual: WEB-002 en revisión: [Issue #7](https://github.com/Codelab-ai-dev/brambiLab/issues/7), PR #9 (rama `feat/WEB-002-owner-auth`). Siguiente WEB-003. Seguimiento de WEB-001: [Issue #8](https://github.com/Codelab-ai-dev/brambiLab/issues/8), PR #10. Mismo origen mediante el proxy Caddy (decisión de Gustavo, 2026-09-27). Falta la prueba de login real con la OAuth App de Gustavo. WEB-001 terminada (PR #5 y #6). Especificación: [web-v1.md](../docs/architecture/web-v1.md); arranque y verificación en [platform/README.md](../platform/README.md). Web priorizada por Gustavo sin esperar a completar BL-001. FND-003 sigue en review.
 
 En curso independiente: BL-001-001 (inventario), preparación ya unida en `main`. La plantilla del inventario está lista; la tarea espera los datos físicos de Gustavo.
 Consulta [backlog.md](backlog.md) para aceptación y estado. Antes de modificar, lee [AGENTS.md](../AGENTS.md).
@@ -23,6 +23,8 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
 ## Entregas web
+2026-09-27 · WEB-002: login del propietario con GitHub, sesiones, CSRF, proxy de entrada y e2e con GitHub simulado. [Handoff](../docs/handoffs/2026-09-27-web-002.md).
+
 2026-09-27 · WEB-001 seguimiento: credenciales PostgreSQL mediante variables `PG*` y actualización del seguimiento tras la revisión de Codex. [Handoff](../docs/handoffs/2026-09-27-web-001-followup.md).
 
 2026-09-27 · WEB-001: scaffold SSR/Go/PostgreSQL/Compose, OpenAPI base, migraciones y CI. [Handoff](../docs/handoffs/2026-09-27-web-001.md).
