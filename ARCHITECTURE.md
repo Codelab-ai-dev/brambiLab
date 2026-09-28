@@ -3,7 +3,7 @@
 Un repositorio inicial contiene gobierno, proyectos y contenido. Cada proyecto conserva documentación junto al código. `docs/projects/` es un índice, no una copia de las fichas de `projects/`.
 
 ## Fuente de verdad
-Antes de crear GitHub: archivos versionables y tareas en `tasks/`. Después de migrar: Git para documentos/código; Issues para estado de tareas y aceptación; PRs para revisión. `tasks/current.md` conserva sólo enlaces y el punto de reanudación. No mantener dos backlogs activos.
+Antes de migrar las tareas a GitHub Issues: archivos versionables y tareas en `tasks/`. Después de migrar: Git para documentos/código; Issues para estado de tareas y aceptación; PRs para revisión. `tasks/current.md` conserva sólo enlaces y el punto de reanudación. No mantener dos backlogs activos.
 
 ## Contenido
 Proyecto = desarrollo con objetivo y validación. Experimento = prueba acotada que puede alimentar un proyecto. Investigación = análisis de alternativas con fuentes y fecha. Build log = relato factual de una sesión.

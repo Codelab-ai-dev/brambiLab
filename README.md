@@ -11,10 +11,10 @@ Laboratorio personal de Gustavo para software, IA, microcontroladores, IoT y rob
 5. Primer proyecto: [BL-001 AI Rover](projects/001-ai-rover/README.md).
 
 ## Estado real
-Foundation documental preparada. No hay firmware, aplicación, sitio web ni pruebas físicas implementadas en este paquete. Las carpetas de código son reservas explícitas. No hay repositorio remoto enlazado ni sincronización automática entre agentes.
+Foundation documental versionada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). No hay firmware, aplicación, sitio web ni pruebas físicas implementadas. Las carpetas de código son reservas explícitas. No hay sincronización automática entre agentes: el contexto se entrega mediante commits, PRs y handoffs.
 
 ## Arranque local
-Extrae el ZIP y abre esta carpeta con Claude Code. Usa el prompt de [START_HERE.md](START_HERE.md). Para crear el historial Git, sigue sus instrucciones. Revisa los documentos antes de hacer público el repositorio.
+Clona el repositorio y ábrelo con Claude Code; los pasos están en [START_HERE.md](START_HERE.md). Todo lo que se suba a GitHub queda publicado: revisa que las evidencias no contengan datos personales ni secretos.
 
 ## Mapa
 - `projects/`: fuente canónica de cada proyecto, su código y documentación.

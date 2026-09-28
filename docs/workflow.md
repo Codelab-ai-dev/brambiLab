@@ -8,7 +8,7 @@
 7. Registra aprendizajes y próxima tarea; un hito verificado puede producir contenido público.
 
 ## Fuente única y conflictos
-Hasta disponer de GitHub, tasks/backlog.md lleva el estado. Tras migración, los Issues lo llevan y los archivos sólo enlazan. No editar la misma rama desde dos agentes a la vez. Ante conflicto, inspeccionar ambos cambios y preservar la intención de ambos; nunca resolver descartando cambios sin revisión.
+Hasta migrar las tareas a GitHub Issues, tasks/backlog.md lleva el estado. Tras migración, los Issues lo llevan y los archivos sólo enlazan. No editar la misma rama desde dos agentes a la vez. Ante conflicto, inspeccionar ambos cambios y preservar la intención de ambos; nunca resolver descartando cambios sin revisión.
 
 ## Definición de terminado
 Aceptación cumplida, instrucciones reproducibles, evidencia identificable, limitaciones descritas y handoff actualizado. Si falta hardware o acceso, marcar bloqueo y entregar lo verificable.
