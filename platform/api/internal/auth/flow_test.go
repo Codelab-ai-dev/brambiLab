@@ -422,3 +422,26 @@ func TestPKCEVerifierMustMatchChallenge(t *testing.T) {
 		t.Fatalf("sessions after PKCE failure = %d", n)
 	}
 }
+
+func TestStatusReportsOnlyWhetherLoginIsEnabled(t *testing.T) {
+	for _, tc := range []struct {
+		adminID int64
+		want    string
+	}{{ownerID, `{"login_enabled":true}`}, {0, `{"login_enabled":false}`}} {
+		// The status endpoint never touches the database.
+		e := start(t, nil, tc.adminID)
+		resp, err := http.Get(e.origin + "/api/v1/auth/status")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body bytes.Buffer
+		_, _ = body.ReadFrom(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || strings.TrimSpace(body.String()) != tc.want {
+			t.Fatalf("admin %d: status = %d %s, want 200 %s", tc.adminID, resp.StatusCode, body.String(), tc.want)
+		}
+		if !strings.Contains(resp.Header.Get("Cache-Control"), "no-store") {
+			t.Fatalf("status Cache-Control = %q", resp.Header.Get("Cache-Control"))
+		}
+	}
+}

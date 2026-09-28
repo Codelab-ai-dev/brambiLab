@@ -32,6 +32,7 @@ func NewHandler(cfg Config, pool *pgxpool.Pool, logger *slog.Logger) *Handler {
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/auth/status", h.status)
 	mux.HandleFunc("GET /api/v1/auth/github/start", h.enabled(h.start))
 	mux.HandleFunc("GET /api/v1/auth/github/callback", h.enabled(h.callback))
 	mux.Handle("GET /api/v1/auth/me", h.RequireOwner(http.HandlerFunc(h.me)))
@@ -117,6 +118,17 @@ func (h *Handler) callback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, h.cookie(sessionCookieName, sessionToken, h.cfg.SessionTTL))
 	h.logger.Info("owner login", "request_id", httpapi.RequestID(r.Context()), "session_id", sess.ID)
 	http.Redirect(w, r, h.cfg.PublicOrigin+returnTo, http.StatusFound)
+}
+
+type statusResponse struct {
+	LoginEnabled bool `json:"login_enabled"`
+}
+
+// status tells the login page whether to offer the GitHub button. It exposes a single boolean,
+// never which setting is missing.
+func (h *Handler) status(w http.ResponseWriter, _ *http.Request) {
+	private(w)
+	httpapi.WriteJSON(w, http.StatusOK, statusResponse{LoginEnabled: h.cfg.Enabled()})
 }
 
 type meResponse struct {
