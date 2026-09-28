@@ -252,7 +252,8 @@ func (h *Handler) saveRevision(w http.ResponseWriter, r *http.Request) {
 		h.storeError(w, r, "load content", err)
 		return
 	}
-	snap, plain, err := in.Snapshot.Normalize(c.Kind, DocumentOptions{})
+	// Media nodes are allowed; the store checks each asset exists, is ready and has the right kind.
+	snap, plain, err := in.Snapshot.Normalize(c.Kind, DocumentOptions{AllowMedia: true})
 	if err != nil {
 		h.storeError(w, r, "validate snapshot", err)
 		return

@@ -370,8 +370,9 @@ func TestMaliciousAndOversizedBodies(t *testing.T) {
 		"assetId": "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11", "alt": "x"}}}})
 	r := save(t, s, c.ID, "es", 0, media)
 	r.JSON(t, &e)
-	if r.Status != http.StatusUnprocessableEntity || e.Code != "media_not_available" {
-		t.Errorf("media before WEB-004: %d %s", r.Status, r.Body)
+	// WEB-004: media nodes are accepted only for existing, ready assets (never invented ids).
+	if r.Status != http.StatusUnprocessableEntity || e.Code != "validation_failed" || !strings.Contains(e.Fields["body"], "no existe") {
+		t.Errorf("media with an unknown asset: %d %s", r.Status, r.Body)
 	}
 	huge := fmt.Sprintf(`{"expected_version":0,"kind":"manual","snapshot":{"title":"x","slug":"x","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":%q}]}]}}}`,
 		strings.Repeat("a", 1<<20))

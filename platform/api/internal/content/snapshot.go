@@ -44,6 +44,8 @@ type Snapshot struct {
 	ProjectFields *ProjectFields `json:"project_fields,omitempty"`
 	CategoryID    *string        `json:"category_id"`
 	TagIDs        []string       `json:"tag_ids"`
+	// CoverAssetID is a ready image (WEB-004). omitempty keeps hashes of older revisions stable.
+	CoverAssetID *string `json:"cover_asset_id,omitempty"`
 }
 
 // FieldErrors maps snapshot fields to messages (the "fields" of a validation_failed error).
@@ -78,6 +80,13 @@ func (s Snapshot) Normalize(kind string, opts DocumentOptions) (Snapshot, string
 			errs["category_id"] = "must be a UUID"
 		}
 		out.CategoryID = &id
+	}
+	if s.CoverAssetID != nil && *s.CoverAssetID != "" {
+		id := strings.ToLower(*s.CoverAssetID)
+		if !uuidPattern.MatchString(id) {
+			errs["cover_asset_id"] = "must be a UUID"
+		}
+		out.CoverAssetID = &id
 	}
 	seen := map[string]bool{}
 	for _, t := range s.TagIDs {
@@ -177,6 +186,46 @@ func checkText(errs FieldErrors, field, v string, min, max int) {
 			}
 		}
 	}
+}
+
+// AssetRef is one use of an asset inside a snapshot, as recorded in revision_assets.
+type AssetRef struct {
+	ID    string
+	Usage string // image, video, poster, download, cover
+}
+
+// AssetRefs lists every asset the snapshot uses (body media nodes and the cover).
+func (s Snapshot) AssetRefs() []AssetRef {
+	var refs []AssetRef
+	seen := map[AssetRef]bool{}
+	add := func(id, usage string) {
+		r := AssetRef{ID: id, Usage: usage}
+		if id != "" && !seen[r] {
+			seen[r] = true
+			refs = append(refs, r)
+		}
+	}
+	var walk func(n Node)
+	walk = func(n Node) {
+		str := func(k string) string { v, _ := n.Attrs[k].(string); return v }
+		switch n.Type {
+		case "image":
+			add(str("assetId"), "image")
+		case "video":
+			add(str("assetId"), "video")
+			add(str("posterAssetId"), "poster")
+		case "download":
+			add(str("assetId"), "download")
+		}
+		for _, c := range n.Content {
+			walk(c)
+		}
+	}
+	walk(s.Body)
+	if s.CoverAssetID != nil {
+		add(*s.CoverAssetID, "cover")
+	}
+	return refs
 }
 
 // Hash is the SHA-256 of the canonical JSON of a normalized snapshot: equal snapshots, equal hash.
