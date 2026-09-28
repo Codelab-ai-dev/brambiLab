@@ -1,9 +1,10 @@
 // Browser-side mutations of private admin data. They go straight to the Go API on the same public
 // origin (through the proxy) with the session CSRF token; Go authenticates and authorizes.
 
+import type { EditorialState } from "~/content/api-types";
 import type { SaveOutcome } from "~/content/autosave";
 
-export type ApiError = { code: string; message: string; fields?: Record<string, string>; current_version?: number };
+export type ApiError = { code: string; message: string; fields?: Record<string, string>; current_version?: number; state?: EditorialState };
 export type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; error: ApiError };
 
 export async function apiSend<T>(method: "POST" | "PATCH", path: string, csrf: string, body?: unknown, headers: Record<string, string> = {}): Promise<ApiResult<T>> {
@@ -53,6 +54,17 @@ const codes: Record<string, string> = {
   content_archived: "El contenido está archivado: desarchívalo para editar.",
   csrf_failed: "La sesión cambió. Recarga la página.",
   origin_rejected: "Petición rechazada por origen.",
+  editorial_conflict: "El estado de publicación cambió mientras tanto (otra pestaña o el programador). Revisa el estado actual y vuelve a intentarlo.",
+  publish_blocked: "Esta versión todavía no se puede publicar:",
+  slug_taken: "Otro contenido ya usa esa ruta pública (o la tuvo antes). Cambia el slug, guarda y vuelve a intentarlo.",
+  has_published_logs: "Este proyecto tiene entradas de bitácora publicadas en este idioma. Retíralas primero:",
+  schedule_exists: "Ya hay una publicación programada.",
+  no_active_schedule: "No hay ninguna publicación programada.",
+  not_published: "Esta traducción no está publicada ni programada.",
+  job_not_failed: "Sólo se puede reintentar una programación fallida.",
+  idempotency_key_reused: "La petición se repitió con otros datos. Recarga la página.",
+  scheduled_content: "No se puede archivar con publicaciones programadas. Cancélalas primero.",
+  published_content: "No se puede archivar un contenido publicado. Retíralo primero.",
 };
 
 export function describe(error: ApiError): string {
@@ -73,4 +85,25 @@ export async function assetRequest(method: "PATCH" | "DELETE", id: string, csrf:
   });
   const json = (r.status === 204 ? null : await r.json().catch(() => null)) as { code?: string } | null;
   return { ok: r.ok, status: r.status, json };
+}
+
+export type PublicationAction = "publish" | "schedule" | "cancel" | "withdraw" | `jobs/${string}/retry`;
+
+export function publicationPath(contentId: string, locale: string, action?: PublicationAction | "jobs") {
+  return `/api/v1/admin/contents/${contentId}/translations/${locale}/publication${action ? `/${action}` : ""}`;
+}
+
+/** One editorial mutation with a fresh Idempotency-Key (Go checks session, CSRF and Origin). */
+export async function publicationRequest(
+  contentId: string,
+  locale: string,
+  action: PublicationAction,
+  csrf: string,
+  body: Record<string, unknown>,
+): Promise<ApiResult<EditorialState>> {
+  try {
+    return await apiSend<EditorialState>("POST", publicationPath(contentId, locale, action), csrf, body, { "Idempotency-Key": `pub-${crypto.randomUUID()}` });
+  } catch {
+    return { ok: false, status: 0, error: { code: "network", message: "Sin conexión con el servidor: no se sabe si la acción llegó. Recarga la página para ver el estado real antes de repetirla." } };
+  }
 }

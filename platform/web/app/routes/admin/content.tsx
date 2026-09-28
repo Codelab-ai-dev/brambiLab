@@ -1,9 +1,10 @@
 import { Form, Link, useNavigation, useRouteLoaderData } from "react-router";
 import type { Route } from "./+types/content";
 import { Button, EmptyState, LinkButton, Notice, PageHeader } from "~/components/admin/ui";
-import { displayTitle, formatDate, kindLabels, localeLabels, type Content, type Locale, type Page } from "~/content/api-types";
+import { displayTitle, formatDate, kindLabels, localeLabels, type Content, type EditorialState, type Locale, type Page, type PublicationJob } from "~/content/api-types";
+import { PublicationPanel, StatusBadge } from "~/content/PublicationPanel";
 import { adminGet } from "~/lib/admin-api.server";
-import { apiSend, describe } from "~/lib/admin-client";
+import { apiSend, describe, publicationPath } from "~/lib/admin-client";
 import { privateHeaders } from "~/lib/api.server";
 import type { loader as layoutLoader } from "./layout";
 
@@ -26,7 +27,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       ? (await adminGet<Page<Content>>(request, `/api/v1/admin/contents?kind=log&project_id=${content.id}&page_size=100`)).items
       : [];
   const project = content.kind === "log" && content.project_id ? await adminGet<Content>(request, `/api/v1/admin/contents/${content.project_id}`) : null;
-  return { content, logs, project };
+  const publication = Object.fromEntries(
+    await Promise.all(
+      content.translations.map(async (t) => {
+        const [state, jobs] = await Promise.all([
+          adminGet<EditorialState>(request, publicationPath(content.id, t.locale)),
+          adminGet<Page<PublicationJob>>(request, `${publicationPath(content.id, t.locale, "jobs")}?page_size=5`),
+        ]);
+        return [t.locale, { state, jobs: jobs.items }] as const;
+      }),
+    ),
+  ) as Partial<Record<Locale, { state: EditorialState; jobs: PublicationJob[] }>>;
+  return { content, logs, project, publication };
 }
 
 export async function clientAction({ request, params }: Route.ClientActionArgs) {
@@ -41,16 +53,12 @@ export async function clientAction({ request, params }: Route.ClientActionArgs) 
           ...(form.get("copy_from") ? { copy_from_locale: String(form.get("copy_from")) } : {}),
         })
       : await apiSend("POST", `${base}/${intent === "archive" ? "archive" : "unarchive"}`, csrf);
-  if (!result.ok) {
-    const message =
-      result.error.code === "published_content" ? "No se puede archivar un contenido publicado. Retíralo primero (WEB-005)." : describe(result.error);
-    return { ok: false as const, message };
-  }
+  if (!result.ok) return { ok: false as const, message: describe(result.error) };
   return { ok: true as const, message: intent === "translate" ? "Traducción creada." : intent === "archive" ? "Contenido archivado." : "Contenido activo de nuevo." };
 }
 
 export default function ContentOverview({ loaderData, actionData }: Route.ComponentProps) {
-  const { content, logs, project } = loaderData;
+  const { content, logs, project, publication } = loaderData;
   const { owner } = useRouteLoaderData<typeof layoutLoader>("routes/admin/layout")!;
   const busy = useNavigation().state !== "idle";
   const archived = content.archived_at !== null;
@@ -74,9 +82,6 @@ export default function ContentOverview({ loaderData, actionData }: Route.Compon
         }
         actions={
           <>
-            <Button disabled title="Disponible con WEB-005" aria-describedby="publish-note">
-              Publicar
-            </Button>
             <Form method="post">
               {csrf}
               <input type="hidden" name="intent" value={archived ? "unarchive" : "archive"} />
@@ -94,7 +99,6 @@ export default function ContentOverview({ loaderData, actionData }: Route.Compon
           </>
         }
       />
-      <p id="publish-note" className="-mt-4 mb-4 text-xs text-text-muted">Publicar llegará con WEB-005.</p>
       {actionData && <Notice tone={actionData.ok ? "success" : "danger"}>{actionData.message}</Notice>}
 
       <section aria-labelledby="translations" className="mt-6">
@@ -106,7 +110,10 @@ export default function ContentOverview({ loaderData, actionData }: Route.Compon
             const otherHasText = (content.translations.find((x) => x.locale === other)?.latest_version ?? 0) > 0;
             return (
               <div key={locale} className="flex flex-col gap-3 rounded-md border border-border p-4">
-                <h3 className="font-medium">{localeLabels[locale]}</h3>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-medium">{localeLabels[locale]}</h3>
+                  {publication[locale] && <StatusBadge state={publication[locale].state} />}
+                </div>
                 {t ? (
                   <>
                     <p className="text-sm text-text-muted">
@@ -142,6 +149,37 @@ export default function ContentOverview({ loaderData, actionData }: Route.Compon
         </div>
         <p className="mt-2 text-xs text-text-muted">Una copia queda marcada como pendiente de traducir; no se traduce automáticamente.</p>
       </section>
+
+      {content.translations.some((t) => t.latest_version > 0) && (
+        <section aria-labelledby="publishing" className="mt-8">
+          <h2 id="publishing" className="text-lg font-semibold">Publicación</h2>
+          <p className="mt-1 text-sm text-text-muted">
+            Cada idioma se publica por separado y siempre con una versión guardada. Para publicar otra versión, usa su historial.
+            {content.kind === "log" && " Una entrada de bitácora necesita su proyecto publicado en el mismo idioma."}
+          </p>
+          <div className="mt-3 grid gap-4 lg:grid-cols-2">
+            {content.translations
+              .filter((t) => t.latest_version > 0 && publication[t.locale])
+              .map((t) => {
+                const p = publication[t.locale]!;
+                return (
+                  <PublicationPanel
+                    key={t.locale}
+                    contentId={content.id}
+                    locale={t.locale}
+                    csrf={owner.csrf_token}
+                    initial={p.state}
+                    jobs={p.jobs}
+                    savedVersion={t.latest_version}
+                    archived={archived}
+                    revalidate
+                    headingLevel={3}
+                  />
+                );
+              })}
+          </div>
+        </section>
+      )}
 
       {content.kind === "project" && (
         <section aria-labelledby="logs" className="mt-8">

@@ -163,3 +163,77 @@ export function slugify(title: string): string {
     .slice(0, 120)
     .replace(/-+$/, "");
 }
+
+// Publication (WEB-005, web-v1.md §8.1).
+export const EDITORIAL_ZONE = "America/Mexico_City";
+
+export type EditorialStatus = "unpublished" | "published" | "withdrawn";
+export type JobStatus = "scheduled" | "succeeded" | "failed" | "cancelled";
+
+export type PublicationJob = {
+  id: string;
+  revision_version: number;
+  run_at: string;
+  run_at_local: string;
+  status: JobStatus;
+  attempts: number;
+  max_attempts: number;
+  next_attempt_at: string | null;
+  last_error: string | null;
+  error_kind: "transient" | "terminal" | null;
+  cancel_reason: string | null;
+  created_at: string;
+  finished_at: string | null;
+  attempt_log: { attempt: number; at: string; outcome: "succeeded" | "transient_error" | "terminal_error"; error: string | null }[];
+};
+
+export type EditorialState = {
+  status: EditorialStatus;
+  editorial_version: number;
+  latest_version: number;
+  published_version: number | null;
+  published_at: string | null;
+  first_published_at: string | null;
+  withdrawn_at: string | null;
+  route: string | null;
+  active_job: PublicationJob | null;
+  time_zone: typeof EDITORIAL_ZONE;
+};
+
+export const editorialStatusLabels: Record<EditorialStatus, string> = {
+  unpublished: "Sin publicar",
+  published: "Publicada",
+  withdrawn: "Retirada",
+};
+
+export const jobStatusLabels: Record<JobStatus, string> = {
+  scheduled: "Programada",
+  succeeded: "Publicada",
+  failed: "Fallida",
+  cancelled: "Cancelada",
+};
+
+export const cancelReasonLabels: Record<string, string> = {
+  cancelled: "cancelada a mano",
+  replaced: "reemplazada por otra programación",
+  manual_publish: "sustituida por una publicación manual",
+  withdrawn: "cancelada al retirar",
+};
+
+/** "2026-10-01T09:30" (editorial wall clock) → "1 oct 2026, 9:30 (America/Mexico_City)". */
+export function formatLocal(local: string): string {
+  const [date, time] = local.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const month = new Date(Date.UTC(y, m - 1, 15)).toLocaleString("es-MX", { month: "short", timeZone: "UTC" });
+  return `${d} ${month.replace(".", "")} ${y}, ${time} (${EDITORIAL_ZONE})`;
+}
+
+/** The current editorial wall clock, "YYYY-MM-DDTHH:MM", for datetime-local min values. */
+export function nowLocal(now = new Date()): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: EDITORIAL_ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}

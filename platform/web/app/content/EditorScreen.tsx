@@ -15,7 +15,9 @@ import {
   snapshotFrom,
   statusLabels,
   type Content,
+  type EditorialState,
   type Locale,
+  type PublicationJob,
   type ProjectFields,
   type ProjectStatus,
   type Asset,
@@ -27,6 +29,7 @@ import {
 import { Autosaver, type AutosaveState } from "./autosave";
 import { ContentEditor, type MediaBridge } from "./ContentEditor";
 import { DocumentView } from "./DocumentView";
+import { PublicationPanel } from "./PublicationPanel";
 import { docToMarkdown, markdownToDoc, type ImportResult } from "./markdown";
 import type { Doc } from "./schema";
 
@@ -36,11 +39,13 @@ type Props = {
   categories: Term[];
   tags: Term[];
   csrf: string;
+  publication: EditorialState;
+  jobs: PublicationJob[];
 };
 
 const MAX_IMPORT_BYTES = 1 << 20;
 
-export function EditorScreen({ content, translation, categories, tags, csrf }: Props) {
+export function EditorScreen({ content, translation, categories, tags, csrf, publication, jobs }: Props) {
   const locale = translation.locale;
   const readOnly = content.archived_at !== null;
   const initial = snapshotFrom(translation.latest);
@@ -221,13 +226,18 @@ export function EditorScreen({ content, translation, categories, tags, csrf }: P
         {!readOnly && <Button onClick={() => setImportOpen(true)}>Importar Markdown</Button>}
         <Button onClick={exportMarkdown}>Exportar Markdown</Button>
         {hasOther && <LinkButton to={`/admin/contenidos/${content.id}/${other}`}>Editar en {localeLabels[other]}</LinkButton>}
-        <Button disabled aria-describedby="publish-note">
-          Publicar
-        </Button>
-        <span id="publish-note" className="self-center text-xs text-text-muted">
-          Publicar llegará con WEB-005.
-        </span>
       </nav>
+
+      <PublicationPanel
+        contentId={content.id}
+        locale={locale}
+        csrf={csrf}
+        initial={publication}
+        jobs={jobs}
+        savedVersion={save.version}
+        archived={readOnly}
+        blockedReason={publishBlockedReason(save)}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Título" error={fields.title}>
@@ -437,6 +447,18 @@ export function EditorScreen({ content, translation, categories, tags, csrf }: P
       )}
     </div>
   );
+}
+
+/** Publishing acts on saved revisions only; say why it is unavailable while the buffer differs. */
+function publishBlockedReason(save: AutosaveState): string | undefined {
+  switch (save.status) {
+    case "saved":
+      return save.version > 0 ? undefined : "Guarda una revisión para poder publicarla.";
+    case "conflict":
+      return "Resuelve el conflicto de guardado antes de publicar.";
+    default:
+      return `Hay cambios sin guardar: se publicaría la v${save.version} guardada, no lo que ves. Guarda primero.`;
+  }
 }
 
 function SaveStatus({ state, readOnly }: { state: AutosaveState; readOnly: boolean }) {
