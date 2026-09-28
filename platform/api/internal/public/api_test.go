@@ -480,6 +480,16 @@ func TestSearchLanguagesAccentsAndVisibility(t *testing.T) {
 			t.Fatalf("q=%q: %+v", q, l)
 		}
 	}
+	// Accents are ignored also in hyphenated tokens with digits.
+	m := e.create(t, "article", "es", "")
+	e.publish(t, m, "es", e.save(t, m, "es", article("Módulo", "modulo", "Prueba de telemetría-x1 con el ESP32-C3.")))
+	for _, q := range []string{"telemetria-x1", "telemetría-x1", "esp32-c3", "telemetria"} {
+		if l := e.search(t, "es", q); slugs(l) != "modulo" {
+			t.Fatalf("q=%q: %s", q, slugs(l))
+		}
+	}
+	e.withdraw(t, m, "es")
+
 	// Title matches rank above body matches, also when paging (the newer body match is not first).
 	if l := e.search(t, "es", "energía"); slugs(l) != "energia,motores" {
 		t.Fatalf("ranking %s", slugs(l))
@@ -781,9 +791,12 @@ func TestSitemapListsCanonicalVisiblePagesOnly(t *testing.T) {
 
 	type entry struct {
 		Kind, Locale, Slug string
-		ProjectSlug        *string  `json:"project_slug"`
-		LastMod            string   `json:"lastmod"`
-		Alternates         []string `json:"alternates"`
+		ProjectSlug        *string `json:"project_slug"`
+		LastMod            string  `json:"lastmod"`
+		Alternates         []struct {
+			Locale, Slug string
+			ProjectSlug  *string `json:"project_slug"`
+		} `json:"alternates"`
 	}
 	sm := decode[struct {
 		Items []entry `json:"items"`
@@ -795,12 +808,16 @@ func TestSitemapListsCanonicalVisiblePagesOnly(t *testing.T) {
 		if it.ProjectSlug != nil {
 			s += "@" + *it.ProjectSlug
 		}
-		got = append(got, s+":"+strings.Join(it.Alternates, "+"))
+		alts := []string{}
+		for _, a := range it.Alternates {
+			alts = append(alts, a.Locale+"="+a.Slug)
+		}
+		got = append(got, s+":"+strings.Join(alts, "+"))
 		if it.LastMod == "" {
 			t.Fatalf("no lastmod %+v", it)
 		}
 	}
-	want := map[string]bool{"es:project:rover-marte:en": true, "en:project:rover-en:es": true, "es:log:dia@rover-marte:": true}
+	want := map[string]bool{"es:project:rover-marte:en=rover-en": true, "en:project:rover-en:es=rover-marte": true, "es:log:dia@rover-marte:": true}
 	if len(got) != 3 || sm.Total != 3 {
 		t.Fatalf("sitemap %v", got)
 	}

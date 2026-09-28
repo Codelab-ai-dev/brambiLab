@@ -253,7 +253,7 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
 
 **Proyección de búsqueda** (`search_documents`, una fila por traducción publicada).
 - La mantiene un trigger sobre `translations.published_revision_id`, así que se actualiza en la misma transacción al publicar (manual o programado), republicar o retirar. La migración hace el backfill.
-- `search` = título (peso A) + resumen (B) + `plain_text` (C). Configuraciones `bl_es`/`bl_en` = spanish/english con `unaccent` («energia» encuentra «energía»).
+- `search` = título (peso A) + resumen (B) + `plain_text` (C). Configuraciones `bl_es`/`bl_en` = spanish/english con `unaccent` («energia» encuentra «energía»), también en tokens con guion o dígitos («telemetría-2», «ESP32-C3»; migración 00007).
 - Las consultas usan `websearch_to_tsquery` (texto libre, comillas y `-palabra`, sin sintaxis que falle) y **siempre** se cruzan con `visible_translations`: un índice obsoleto nunca basta para mostrar algo.
 - Orden: `ts_rank_cd` descendente, luego `first_published_at` descendente y `content_id`. Consulta vacía, de más de 200 caracteres (422) o sin lexemas buscables (sólo signos o palabras vacías): respuesta `no_terms` sin resultados; los índices siguen en sus rutas.
 - Fragmentos: `ts_headline` sobre `plain_text` sin caracteres de control, con marcadores de control propios; Go los convierte en segmentos `{text, hit}`. La web los pinta como texto (y `<mark>`), nunca como HTML.
@@ -279,7 +279,9 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
 - Un alias del API (301) se convierte en 301 del sitio a su ruta canónica en un salto. Retirado o inexistente: 404. Una caída del API: 503 con página de error, nunca «sin contenido» ni 404.
 - Canonical absoluto desde `PUBLIC_ORIGIN` validado (nunca el Host). `hreflang` recíproco sólo si la otra traducción es visible, sin `x-default`. Imagen OG sólo si la portada es pública.
 - Indexables: inicio, índices sin filtro (su paginación, con canonical propio), detalles, acerca de y contacto. `noindex`: búsqueda y listados con filtros.
-- `sitemap.xml` con rutas canónicas visibles y `lastmod` = `published_at`; se convierte en índice de sitemaps a partir de 5 000 URL. `robots.txt` apunta al sitemap absoluto y excluye `/admin` (la autorización no depende de robots).
+- `sitemap.xml` con rutas canónicas visibles y `lastmod` = `published_at`; se convierte en índice de sitemaps (`/sitemaps/N.xml`) a partir de 5 000 URL. Cada entrada del API lleva los slugs vigentes de la otra traducción visible para enlazar `xhtml:link hreflang`.
+- Parámetros públicos iguales en ambos idiomas: `q`, `kind`, `category`, `tag` y `page`. Un valor mal formado responde 400; un filtro bien formado sin coincidencias, lista vacía.
+- Los errores dentro de `/es` y `/en` conservan cabecera y pie, llevan `noindex` y `no-store`, y distinguen 404, 400 y 503. `robots.txt` apunta al sitemap absoluto y excluye `/admin` (la autorización no depende de robots).
 - HTML público con `Cache-Control: no-store` durante v1.
 
 ## 10. API REST inicial

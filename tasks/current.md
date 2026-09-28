@@ -23,7 +23,7 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
 ## Entregas web
-2026-09-28 · WEB-006 PR 1 (API pública, búsqueda y configuración). [Handoff](../docs/handoffs/2026-09-28-web-006-api.md). Siguen SSR/i18n/SEO (PR 2) e integración visual con e2e (PR 3).
+2026-09-28 · WEB-006: PR 1 #31 (API pública, búsqueda y configuración; [handoff](../docs/handoffs/2026-09-28-web-006-api.md)) unido; PR 2 (sitio SSR, i18n y SEO; [handoff](../docs/handoffs/2026-09-28-web-006-ssr.md)). Sigue la integración visual con configuración y e2e (PR 3).
 
 2026-09-28 · WEB-005: PR 1 #27 (modelo, API, rutas y lector público; [handoff](../docs/handoffs/2026-09-28-web-005-api.md)) unido; PR 2 #28 (ejecución programada; [handoff](../docs/handoffs/2026-09-28-web-005-scheduler.md)) unido; PR 3 #29 (panel y e2e; [handoff](../docs/handoffs/2026-09-28-web-005-panel.md)) unido. WEB-005 terminada.
 
