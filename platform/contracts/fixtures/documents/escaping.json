@@ -1,0 +1,95 @@
+{
+ "type": "doc",
+ "content": [
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "*no es énfasis* y _tampoco_ ni **esto**"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "# no es un título"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "1. no es una lista"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "- ni esto + tampoco"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "[no es enlace](https://x.y) ni ![imagen](a.png)"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "<b>no es html</b> &amp; entidad &copy;"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "barra \\ invertida, `tilde grave`, ~~no tachado~~, pipe | y dos: :::"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "::youtube{video=dQw4w9WgXcQ} escrito como texto"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "Acentos: áéíóú ñ ü ÁÉÍÓÚ Ñ — emoji 🤖 y chino 机器人"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "  espacios al inicio y al final  "
+    }
+   ]
+  }
+ ]
+}

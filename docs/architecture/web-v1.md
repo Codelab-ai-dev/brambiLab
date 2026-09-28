@@ -121,6 +121,29 @@ El formato canónico es un esquema JSON propio (`body_schema_version: 1`), no el
 - **Medios preparados para WEB-004:** `image` (`assetId`, `alt`, `caption`), `video` (`assetId`, `posterAssetId`, `caption`) y `download` (`assetId`, `label`). Están versionados y probados con fixtures, pero la API los rechaza (`media_not_available`) hasta que existan los assets. No se generan IDs ficticios.
 - **Límites:** petición de 1 MiB como máximo, profundidad 32, 20 000 nodos y 200 000 caracteres de texto. Título de 200 caracteres, slug de 120 (`a-z0-9-`), resumen de 500, SEO de 70 y 160, y 20 etiquetas.
 
+**Editor y Markdown (WEB-003, parte 2).**
+- **Prueba previa (2026-09-27):** la extensión oficial `@tiptap/markdown` 3.31.3, en beta, no superó el fixture de prueba:
+  1. no alargó el fence de un bloque de código que contenía ```` ``` ````, así que el documento quedó corrompido;
+  2. exportó `\|` sin escapar dentro de una celda, con lo que la tabla ganó una columna;
+  3. no entiende directivas;
+  4. el JSON cambiaba en una segunda pasada.
+
+  Por eso las conversiones son explícitas, sobre mdast (`mdast-util-from-markdown` y `mdast-util-to-markdown` con GFM tables y directivas, MIT), y trabajan con el formato canónico, no con Tiptap.
+- **Dialecto:** CommonMark más tablas GFM, más directivas de hoja:
+  - `::youtube{video=ID start=S}`
+  - `::image{asset=UUID alt="…" caption="…"}`
+  - `::video{asset=UUID poster=UUID caption="…"}`
+  - `::download{asset=UUID label="…"}`
+
+  Exportación con `-` en viñetas, `*` en énfasis, fences con ```` ` ```` (alargados cuando hace falta), escape de caracteres especiales y espacios de borde como `&#x20;`. Los párrafos vacíos, que sólo dan espaciado, no se exportan.
+- **Importación:** nunca descarga URLs y nunca descarta contenido en silencio; todo lo no soportado se conserva como texto literal con aviso. En concreto:
+  - HTML, directivas desconocidas y `texto:con:dos-puntos`;
+  - el título 1 pasa a 2 y los títulos 5 y 6 pasan a 4;
+  - las imágenes se convierten en enlace con su texto alternativo;
+  - los enlaces inseguros quedan como texto;
+  - se omiten la alineación de tablas y los metadatos de los bloques de código.
+- **Editor:** Tiptap 3.31.3 sólo en cliente (`immediatelyRender: false`), restringido al esquema v1. Un adaptador convierte a canónico y normaliza de forma explícita: una celda con varias líneas se une con espacios y la primera fila de una tabla pasa a encabezado. Rechaza las celdas combinadas. Los fixtures compartidos (`platform/contracts/fixtures/documents`) atan Go y TypeScript al mismo contrato.
+
 ## 8. Publicación y programación
 Por traducción: sin publicar, publicada, retirada. El borrador/revisión nueva puede coexistir con una publicación; la programación es un job separado.
 1. Guardar crea revisión privada.

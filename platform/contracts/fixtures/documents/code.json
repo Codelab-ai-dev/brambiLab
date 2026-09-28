@@ -1,0 +1,86 @@
+{
+ "type": "doc",
+ "content": [
+  {
+   "type": "codeBlock",
+   "attrs": {
+    "language": "md"
+   },
+   "content": [
+    {
+     "type": "text",
+     "text": "```go\nfmt.Println(\"fence dentro\")\n```"
+    }
+   ]
+  },
+  {
+   "type": "codeBlock",
+   "content": [
+    {
+     "type": "text",
+     "text": "~~~\ntildes\n~~~"
+    }
+   ]
+  },
+  {
+   "type": "codeBlock",
+   "content": [
+    {
+     "type": "text",
+     "text": "sin lenguaje"
+    }
+   ]
+  },
+  {
+   "type": "codeBlock",
+   "attrs": {
+    "language": "c++"
+   },
+   "content": [
+    {
+     "type": "text",
+     "text": "int main() { return 0; }"
+    }
+   ]
+  },
+  {
+   "type": "codeBlock",
+   "attrs": {
+    "language": "python"
+   },
+   "content": [
+    {
+     "type": "text",
+     "text": "línea 1\n\n  línea 3 con sangría"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "inline con `backticks` dentro",
+     "marks": [
+      {
+       "type": "code"
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": " y "
+    },
+    {
+     "type": "text",
+     "text": "``dos``",
+     "marks": [
+      {
+       "type": "code"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

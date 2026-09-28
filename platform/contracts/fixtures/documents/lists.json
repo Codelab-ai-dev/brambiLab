@@ -1,0 +1,185 @@
+{
+ "type": "doc",
+ "content": [
+  {
+   "type": "orderedList",
+   "content": [
+    {
+     "type": "listItem",
+     "content": [
+      {
+       "type": "paragraph",
+       "content": [
+        {
+         "type": "text",
+         "text": "tres"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "listItem",
+     "content": [
+      {
+       "type": "paragraph",
+       "content": [
+        {
+         "type": "text",
+         "text": "cuatro"
+        }
+       ]
+      },
+      {
+       "type": "bulletList",
+       "content": [
+        {
+         "type": "listItem",
+         "content": [
+          {
+           "type": "paragraph",
+           "content": [
+            {
+             "type": "text",
+             "text": "anidado"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "listItem",
+         "content": [
+          {
+           "type": "paragraph",
+           "content": [
+            {
+             "type": "text",
+             "text": "otro"
+            }
+           ]
+          },
+          {
+           "type": "orderedList",
+           "content": [
+            {
+             "type": "listItem",
+             "content": [
+              {
+               "type": "paragraph",
+               "content": [
+                {
+                 "type": "text",
+                 "text": "profundo"
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "attrs": {
+    "start": 3
+   }
+  },
+  {
+   "type": "bulletList",
+   "content": [
+    {
+     "type": "listItem",
+     "content": [
+      {
+       "type": "paragraph",
+       "content": [
+        {
+         "type": "text",
+         "text": "con código"
+        }
+       ]
+      },
+      {
+       "type": "codeBlock",
+       "attrs": {
+        "language": "python"
+       },
+       "content": [
+        {
+         "type": "text",
+         "text": "x = 1"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "listItem",
+     "content": [
+      {
+       "type": "paragraph",
+       "content": [
+        {
+         "type": "text",
+         "text": "con cita"
+        }
+       ]
+      },
+      {
+       "type": "blockquote",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "citada"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "blockquote",
+   "content": [
+    {
+     "type": "paragraph",
+     "content": [
+      {
+       "type": "text",
+       "text": "cita con lista"
+      }
+     ]
+    },
+    {
+     "type": "bulletList",
+     "content": [
+      {
+       "type": "listItem",
+       "content": [
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "elemento"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
