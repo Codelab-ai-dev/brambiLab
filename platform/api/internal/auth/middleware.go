@@ -5,6 +5,7 @@ import (
 	"errors"
 	"mime"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
@@ -24,6 +25,11 @@ type sessionKey struct{}
 func SessionFrom(ctx context.Context) Session {
 	s, _ := ctx.Value(sessionKey{}).(Session)
 	return s
+}
+
+// Actor names the session owner for audit events ("github:<id>"). Only valid behind RequireOwner.
+func Actor(r *http.Request) string {
+	return "github:" + strconv.FormatInt(SessionFrom(r.Context()).GitHubUserID, 10)
 }
 
 // SessionCookieName is the cookie the web SSR must forward to the internal API.

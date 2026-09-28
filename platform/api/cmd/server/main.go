@@ -20,6 +20,7 @@ import (
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/auth"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/config"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/content"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/db"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
@@ -89,6 +90,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Handler: httpapi.NewRouter(logger, authCfg.PublicOrigin,
 			health.Handler{DB: pool, Logger: logger},
 			authHandler,
+			content.NewHandler(content.NewStore(pool), logger, authHandler.RequireOwner, auth.Actor),
 		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,

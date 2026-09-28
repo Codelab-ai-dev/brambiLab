@@ -43,7 +43,7 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 |---|---|---|---|
 | WEB-001 | Scaffold SSR/API/DB/Docker y contrato base | done (PR #5, merge `c8abe1c`, CI run 36364615971) | Especificación |
 | WEB-002 | GitHub OAuth de propietario y sesiones | Estado en [Issue #7](https://github.com/Codelab-ai-dev/brambiLab/issues/7) | WEB-001 |
-| WEB-003 | Contenido, revisiones, i18n y editor | backlog | WEB-002 |
+| WEB-003 | Contenido, revisiones, i18n y editor | Estado en [Issue #12](https://github.com/Codelab-ai-dev/brambiLab/issues/12) | WEB-002 |
 | WEB-004 | Archivos, descargas y videos preparados | backlog | WEB-003 |
 | WEB-005 | Publicación manual/programada y retirada | backlog | WEB-004 |
 | WEB-006 | Portafolio/laboratorio, SSR, SEO y búsqueda | backlog | WEB-005 |

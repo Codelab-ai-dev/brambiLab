@@ -11,6 +11,8 @@ type Error struct {
 	Message   string            `json:"message"`
 	Fields    map[string]string `json:"fields,omitempty"`
 	RequestID string            `json:"request_id"`
+	// CurrentVersion accompanies version_conflict (web-v1.md §6.2).
+	CurrentVersion *int `json:"current_version,omitempty"`
 }
 
 func WriteJSON(w http.ResponseWriter, status int, body any) {

@@ -1,11 +1,12 @@
 openapi: 3.1.0
 info:
   title: BrambiLab API
-  version: 0.2.1
+  version: 0.3.0
   description: |
     Base contract for web v1 (docs/architecture/web-v1.md §10).
     WEB-001: operation endpoints and the shared error shape. WEB-002: owner-only
-    GitHub OAuth and sessions. Each later task adds its routes here first.
+    GitHub OAuth and sessions. WEB-003: private content, translations and
+    immutable revisions. Each later task adds its routes here first.
     Unsafe methods require an Origin (or Referer) equal to PUBLIC_ORIGIN; otherwise
     403 origin_rejected.
   license:
@@ -139,7 +140,392 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+  /admin/contents:
+    get:
+      operationId: listContents
+      summary: Paginated contents, newest first, with a summary per translation.
+      tags: [content]
+      security: [{ session: [] }]
+      parameters:
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/ContentKind" } }
+        - { name: project_id, in: query, description: Logs of this project., schema: { type: string, format: uuid } }
+        - { name: archived, in: query, schema: { type: boolean, default: false } }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+      responses:
+        "200":
+          description: Page of contents.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentPage" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    post:
+      operationId: createContent
+      summary: Creates a content with its first (empty) translation. Kind and parent never change later.
+      tags: [content]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, locale]
+              additionalProperties: false
+              properties:
+                kind: { $ref: "#/components/schemas/ContentKind" }
+                project_id: { type: string, format: uuid, description: Required for log; forbidden otherwise. }
+                locale: { $ref: "#/components/schemas/Locale" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Content" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}:
+    parameters: [{ $ref: "#/components/parameters/ContentID" }]
+    get:
+      operationId: getContent
+      summary: Content by id with translation summaries.
+      tags: [content]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Content with translation summaries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Content" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contents/{id}/archive:
+    parameters: [{ $ref: "#/components/parameters/ContentID" }]
+    post:
+      operationId: archiveContent
+      summary: Archives without deleting history. Rejected with 409 while any translation is published (withdraw is WEB-005).
+      tags: [content]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200":
+          description: Archived.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Content" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /admin/contents/{id}/unarchive:
+    parameters: [{ $ref: "#/components/parameters/ContentID" }]
+    post:
+      operationId: unarchiveContent
+      summary: Makes an archived content active again.
+      tags: [content]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200":
+          description: Active again.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Content" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contents/{id}/translations:
+    parameters: [{ $ref: "#/components/parameters/ContentID" }]
+    post:
+      operationId: createTranslation
+      summary: Adds a locale, empty or as an explicit copy (kind=copy revision, pending translation). Never machine-translated.
+      tags: [content]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale]
+              additionalProperties: false
+              properties:
+                locale: { $ref: "#/components/schemas/Locale" }
+                copy_from_locale: { $ref: "#/components/schemas/Locale" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Translation" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}/translations/{locale}:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: getTranslation
+      summary: Translation with its latest saved revision (null before the first save).
+      tags: [content]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Translation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Translation" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contents/{id}/translations/{locale}/revisions:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+    get:
+      operationId: listRevisions
+      summary: Revision history, newest first.
+      tags: [content]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+      responses:
+        "200":
+          description: Page of revisions.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevisionPage" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      operationId: saveRevision
+      summary: Saves a full immutable snapshot (manual or auto). Unchanged snapshot → 200 created=false.
+      description: |
+        expected_version must equal the translation's latest_version, else 409 version_conflict
+        with current_version. Retrying with the same Idempotency-Key returns the same result.
+        Body limits: 1 MiB request, depth 32, 20000 nodes (web-v1.md §7.1).
+      tags: [content]
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/CSRF" }
+        - name: Idempotency-Key
+          in: header
+          description: Client-generated key (8–128 chars [A-Za-z0-9_-]) per save operation.
+          schema: { type: string, pattern: "^[A-Za-z0-9_-]{8,128}$" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SaveRevisionRequest" }
+      responses:
+        "200":
+          description: Snapshot identical to the latest revision; nothing created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaveRevisionResponse" }
+        "201":
+          description: Revision created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaveRevisionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/contents/{id}/translations/{locale}/revisions/{version}:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+      - { $ref: "#/components/parameters/Version" }
+    get:
+      operationId: getRevision
+      summary: One saved revision. The private preview renders from this.
+      tags: [content]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Revision.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Revision" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /admin/contents/{id}/translations/{locale}/revisions/{version}/restore:
+    parameters:
+      - { $ref: "#/components/parameters/ContentID" }
+      - { $ref: "#/components/parameters/LocalePath" }
+      - { $ref: "#/components/parameters/Version" }
+    post:
+      operationId: restoreRevision
+      summary: Creates a new revision (kind=restore) with the old snapshot. The original is never modified.
+      tags: [content]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expected_version]
+              additionalProperties: false
+              properties:
+                expected_version: { type: integer, minimum: 0 }
+      responses:
+        "201":
+          description: Restored as a new revision.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaveRevisionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /admin/categories:
+    get:
+      operationId: listCategories
+      summary: All categories.
+      tags: [taxonomy]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: All categories.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Term" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    post:
+      operationId: createCategory
+      summary: Creates a category.
+      tags: [taxonomy]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TermInput" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Term" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/categories/{termId}:
+    parameters: [{ $ref: "#/components/parameters/TermID" }]
+    patch:
+      operationId: updateCategory
+      summary: Updates slug/labels. Stable id; past revisions keep referring to it.
+      tags: [taxonomy]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TermInput" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Term" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/tags:
+    get:
+      operationId: listTags
+      summary: All tags.
+      tags: [taxonomy]
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: All tags.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Term" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    post:
+      operationId: createTag
+      summary: Creates a tag.
+      tags: [taxonomy]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TermInput" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Term" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /admin/tags/{termId}:
+    parameters: [{ $ref: "#/components/parameters/TermID" }]
+    patch:
+      operationId: updateTag
+      summary: Updates slug/labels of a tag.
+      tags: [taxonomy]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TermInput" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Term" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
 components:
+  parameters:
+    CSRF:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: Session CSRF token from /auth/me. Origin must also equal PUBLIC_ORIGIN.
+      schema: { type: string }
+    ContentID:
+      { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    TermID:
+      { name: termId, in: path, required: true, schema: { type: string, format: uuid } }
+    LocalePath:
+      { name: locale, in: path, required: true, schema: { $ref: "#/components/schemas/Locale" } }
+    Version:
+      { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    Page:
+      { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize:
+      { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
   securitySchemes:
     session:
       type: apiKey
@@ -147,6 +533,31 @@ components:
       name: __Host-bl_session
       description: Opaque session cookie (HttpOnly, Secure, SameSite=Lax, Path=/). Named bl_session on http://localhost.
   responses:
+    Forbidden:
+      description: origin_rejected or csrf_failed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Unknown resource.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: version_conflict (with current_version), published_content, locale_exists or slug_taken.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Invalid:
+      description: validation_failed (per-field messages in fields) or media_not_available.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooLarge:
+      description: Request body above 1 MiB.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     Unauthenticated:
       description: No live owner session.
       content:
@@ -164,6 +575,174 @@ components:
         type: string
         pattern: "^[A-Za-z0-9._-]{1,64}$"
   schemas:
+    ContentKind: { type: string, enum: [project, article, log] }
+    Locale: { type: string, enum: [es, en] }
+    RevisionKind: { type: string, enum: [manual, auto, restore, copy] }
+    TranslationSummary:
+      type: object
+      required: [locale, latest_version, published]
+      properties:
+        locale: { $ref: "#/components/schemas/Locale" }
+        latest_version: { type: integer, minimum: 0 }
+        title: { type: [string, "null"], description: Title of the latest revision. }
+        published: { type: boolean }
+        updated_at: { type: [string, "null"], format: date-time }
+    Content:
+      type: object
+      required: [id, kind, created_at, translations]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/ContentKind" }
+        project_id: { type: [string, "null"], format: uuid }
+        created_at: { type: string, format: date-time }
+        archived_at: { type: [string, "null"], format: date-time }
+        translations: { type: array, items: { $ref: "#/components/schemas/TranslationSummary" } }
+    ContentPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Content" } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    Document:
+      type: object
+      description: Canonical document v1 (web-v1.md §7.1), validated strictly by the API.
+      required: [type, content]
+      properties:
+        type: { const: doc }
+        content: { type: array, items: { $ref: "#/components/schemas/Node" } }
+    Node:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string }
+        attrs: { type: object }
+        content: { type: array, items: { $ref: "#/components/schemas/Node" } }
+        text: { type: string }
+        marks:
+          type: array
+          items:
+            type: object
+            required: [type]
+            properties:
+              type: { type: string, enum: [bold, italic, code, link] }
+              attrs: { type: object }
+    ProjectFields:
+      type: object
+      additionalProperties: false
+      properties:
+        objective: { type: string, maxLength: 1000 }
+        status: { type: string, enum: [idea, in_development, paused, completed] }
+        technologies: { type: array, maxItems: 30, items: { type: string, maxLength: 50 } }
+        links:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [label, url]
+            properties:
+              label: { type: string, maxLength: 100 }
+              url: { type: string, format: uri, description: http or https only. }
+        results: { type: string, maxLength: 2000 }
+    Snapshot:
+      type: object
+      required: [title, slug, body]
+      additionalProperties: false
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 120 }
+        summary: { type: string, maxLength: 500 }
+        body: { $ref: "#/components/schemas/Document" }
+        seo:
+          type: object
+          additionalProperties: false
+          properties:
+            title: { type: string, maxLength: 70 }
+            description: { type: string, maxLength: 160 }
+        project_fields: { $ref: "#/components/schemas/ProjectFields" }
+        category_id: { type: [string, "null"], format: uuid }
+        tag_ids: { type: array, maxItems: 20, uniqueItems: true, items: { type: string, format: uuid } }
+    Revision:
+      allOf:
+        - $ref: "#/components/schemas/Snapshot"
+        - type: object
+          required: [version, kind, created_at, body_schema_version]
+          properties:
+            version: { type: integer, minimum: 1 }
+            kind: { $ref: "#/components/schemas/RevisionKind" }
+            created_at: { type: string, format: date-time }
+            body_schema_version: { type: integer, const: 1 }
+            restored_from_version: { type: [integer, "null"] }
+            copied_from_locale: { type: [string, "null"] }
+    RevisionSummary:
+      type: object
+      required: [version, kind, created_at, title]
+      properties:
+        version: { type: integer }
+        kind: { $ref: "#/components/schemas/RevisionKind" }
+        created_at: { type: string, format: date-time }
+        title: { type: string }
+        restored_from_version: { type: [integer, "null"] }
+    RevisionPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/RevisionSummary" } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    Translation:
+      type: object
+      required: [content_id, locale, latest_version, published, latest]
+      properties:
+        content_id: { type: string, format: uuid }
+        locale: { $ref: "#/components/schemas/Locale" }
+        latest_version: { type: integer, minimum: 0 }
+        published: { type: boolean }
+        latest:
+          oneOf:
+            - $ref: "#/components/schemas/Revision"
+            - type: "null"
+    SaveRevisionRequest:
+      type: object
+      required: [expected_version, kind, snapshot]
+      additionalProperties: false
+      properties:
+        expected_version: { type: integer, minimum: 0 }
+        kind: { type: string, enum: [manual, auto] }
+        snapshot: { $ref: "#/components/schemas/Snapshot" }
+    SaveRevisionResponse:
+      type: object
+      required: [created, revision]
+      properties:
+        created: { type: boolean }
+        revision: { $ref: "#/components/schemas/Revision" }
+    Term:
+      type: object
+      required: [id, slug, labels]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        labels:
+          type: object
+          required: [es, en]
+          properties:
+            es: { type: string }
+            en: { type: string }
+    TermInput:
+      type: object
+      required: [slug, labels]
+      additionalProperties: false
+      properties:
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 60 }
+        labels:
+          type: object
+          required: [es, en]
+          additionalProperties: false
+          properties:
+            es: { type: string, minLength: 1, maxLength: 60 }
+            en: { type: string, minLength: 1, maxLength: 60 }
     HealthStatus:
       type: object
       required: [status]
@@ -200,7 +779,14 @@ components:
           additionalProperties: { type: string }
         request_id:
           type: string
+        current_version:
+          type: integer
+          description: Only on version_conflict.
 tags:
+  - name: content
+    description: Private contents, translations and revisions (web-v1.md §6–7).
+  - name: taxonomy
+    description: Categories and tags with stable ids and es/en labels.
   - name: auth
     description: Owner-only GitHub login and sessions (web-v1.md §11).
   - name: operation

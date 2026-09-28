@@ -65,5 +65,14 @@ Elecciones técnicas dentro del stack de ADR-006; se pueden revisar sin cambiar 
 - Errores `{code,message,fields,request_id}`; `X-Request-ID` se acepta del proxy si es seguro y se genera si no.
 - Web: `/` redirige temporalmente (302) a `/es`; `/:lang` sólo acepta `es` y `en`. Página provisional con `noindex` hasta WEB-006. Sin fuentes externas ni favicon hasta tener la identidad visual aprobada.
 
+## Contenido editorial (WEB-003, en curso: #12)
+API privada en `/api/v1/admin/contents`, además de `categories` y `tags` ([contrato](contracts/openapi.yaml)):
+- Proyectos, artículos y bitácoras en es/en, con revisiones inmutables.
+- `expected_version` obligatorio y 409 ante conflictos.
+- Snapshots idénticos no crean revisión nueva; `Idempotency-Key` para reintentos.
+- Restaurar crea una revisión nueva.
+
+El documento usa el formato canónico v1 y Go lo valida de forma estricta (web-v1.md §7.1). PostgreSQL también impide cambiar el tipo o el padre, reescribir revisiones y publicar una revisión de otra traducción. Editor, Markdown y panel llegan en los siguientes PR de WEB-003.
+
 ## Pendiente
 Dominio y callback OAuth, recursos reales del VPS, datos de Resend y destino de backups (web-v1.md §17). Revocar el token de GitHub tras leer la identidad (hoy sólo se descarta) y limitar la tasa de `/auth/github/start`: mejoras propuestas, no implementadas.
