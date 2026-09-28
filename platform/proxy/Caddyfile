@@ -7,6 +7,14 @@
 }
 
 :8000 {
+	# Private panel: never cacheable nor indexable, whatever the route, status or data request (#12).
+	@admin path /admin /admin/*
+	header @admin {
+		Cache-Control "no-store, private"
+		X-Robots-Tag "noindex, nofollow"
+		defer
+	}
+
 	@api path /api/v1/* /media/*
 	handle @api {
 		reverse_proxy api:8080

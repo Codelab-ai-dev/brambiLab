@@ -72,7 +72,21 @@ API privada en `/api/v1/admin/contents`, además de `categories` y `tags` ([cont
 - Snapshots idénticos no crean revisión nueva; `Idempotency-Key` para reintentos.
 - Restaurar crea una revisión nueva.
 
-El documento usa el formato canónico v1 y Go lo valida de forma estricta (web-v1.md §7.1). PostgreSQL también impide cambiar el tipo o el padre, reescribir revisiones y publicar una revisión de otra traducción. Editor, Markdown y panel llegan en los siguientes PR de WEB-003.
+El documento usa el formato canónico v1 y Go lo valida de forma estricta (web-v1.md §7.1). PostgreSQL también impide cambiar el tipo o el padre, reescribir revisiones y publicar una revisión de otra traducción. Panel en `/admin` (sólo en español por ahora):
+- listados por tipo y fichas con traducciones es/en (vacía o copia marcada) y bitácora del proyecto;
+- editor Tiptap con los datos del contenido, autoguardado (3 s de inactividad, 15 s como mínimo entre guardados) y guardado manual;
+- diálogo de conflicto que conserva lo escrito;
+- importación de Markdown con avisos y confirmación, y exportación;
+- historial con restauración y vista previa privada;
+- archivado.
+
+Las mutaciones van del navegador a Go con el token CSRF; las lecturas SSR reenvían sólo la cookie. Caddy fuerza `no-store` y `noindex` en todo `/admin*`.
+
+E2E del panel en un navegador (Playwright + Chromium), con el stack de `compose.e2e.yaml` en marcha:
+```bash
+cd platform/web && npx playwright install chromium
+BASE_URL=http://localhost:8000 npm run e2e      # SHOTS_DIR=/tmp/x guarda capturas
+```
 
 ## Pendiente
 Dominio y callback OAuth, recursos reales del VPS, datos de Resend y destino de backups (web-v1.md §17). Revocar el token de GitHub tras leer la identidad (hoy sólo se descarta) y limitar la tasa de `/auth/github/start`: mejoras propuestas, no implementadas.
