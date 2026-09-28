@@ -95,6 +95,9 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		authHandler.RequireOwner, auth.Actor, authHandler.IsOwner)
 	go mediaHandler.RunCleanup(ctx, 30*time.Minute, 2*time.Hour)
 
+	publisher := publishing.NewService(pool)
+	go publisher.Run(ctx, publishing.DefaultTick, logger)
+
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
 		Handler: httpapi.NewRouter(logger, authCfg.PublicOrigin,
@@ -102,7 +105,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			authHandler,
 			content.NewHandler(content.NewStore(pool), logger, authHandler.RequireOwner, auth.Actor),
 			mediaHandler,
-			publishing.NewHandler(publishing.NewService(pool), logger, authHandler.RequireOwner, auth.Actor),
+			publishing.NewHandler(publisher, logger, authHandler.RequireOwner, auth.Actor),
 		),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,

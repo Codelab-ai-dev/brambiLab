@@ -42,6 +42,8 @@ type Service struct {
 	MaxAttempts int
 	BaseBackoff time.Duration
 	MaxBackoff  time.Duration
+
+	hooks hooks
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
