@@ -6,7 +6,7 @@ Estado: done (2026-09-27, commit `332e5f0`; remoto público Codelab-ai-dev/bramb
 Aceptación: revisar alcance y convenciones; crear commit local; registrar hash y elegir posteriormente remoto/visibilidad. Evidencia: hash real. No crear historial ficticio.
 
 ## BL-001-001 — Inventario y estado inicial V0
-Estado: ready. Dependencia: ninguna técnica.
+Estado: in-progress (plantilla lista; espera datos físicos de Gustavo, ver [current.md](current.md)). Dependencia: ninguna técnica.
 Alcance: completar hardware.md, bom.md y build-log.md con datos observados.
 Aceptación: identificar placa, driver, motores y alimentación; documentar control actual; fotos referenciadas; dimensiones de montaje; cada desconocido explícito; descripción de una prueba del estado inicial o bloqueo que impide ejecutarla.
 Fuera: comprar componentes, diseñar electrónica nueva, implementar firmware.
