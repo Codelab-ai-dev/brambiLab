@@ -246,6 +246,42 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
   - Sin JavaScript o con `prefers-reduced-motion`, todo queda estático y completo. Lo decorativo es `aria-hidden`.
   - Sólo contenido real del repositorio.
 
+### 9.1 Implementación WEB-006 (#30)
+**Una sola regla pública.**
+- Todo lo público sale de `visible_translations` y de la revisión apuntada por `published_revision_id`. React/Node no decide visibilidad: SSR llama sólo a `/api/v1/public/*`, sin reenviar la cookie de sesión, así que el propietario ve lo mismo que un anónimo.
+- Guardar o restaurar un borrador no toca ninguna superficie pública: tarjetas, detalle, búsqueda, taxonomía, contadores ni sitemap.
+
+**Proyección de búsqueda** (`search_documents`, una fila por traducción publicada).
+- La mantiene un trigger sobre `translations.published_revision_id`, así que se actualiza en la misma transacción al publicar (manual o programado), republicar o retirar. La migración hace el backfill.
+- `search` = título (peso A) + resumen (B) + `plain_text` (C). Configuraciones `bl_es`/`bl_en` = spanish/english con `unaccent` («energia» encuentra «energía»).
+- Las consultas usan `websearch_to_tsquery` (texto libre, comillas y `-palabra`, sin sintaxis que falle) y **siempre** se cruzan con `visible_translations`: un índice obsoleto nunca basta para mostrar algo.
+- Orden: `ts_rank_cd` descendente, luego `first_published_at` descendente y `content_id`. Consulta vacía, de más de 200 caracteres (422) o sin lexemas buscables (sólo signos o palabras vacías): respuesta `no_terms` sin resultados; los índices siguen en sus rutas.
+- Fragmentos: `ts_headline` sobre `plain_text` sin caracteres de control, con marcadores de control propios; Go los convierte en segmentos `{text, hit}`. La web los pinta como texto (y `<mark>`), nunca como HTML.
+
+**Listados y filtros.**
+- `GET /public/{locale}/contents?kind&category&tag&project&page&page_size`: filtros combinados con AND (un tipo, una categoría, una etiqueta, un proyecto para bitácoras). `page_size` 1-50 (12 por defecto).
+- Orden por `first_published_at` descendente y `content_id`. Paginación por desplazamiento: publicar o retirar entre páginas puede desplazar un elemento; se acepta y se documenta.
+- Las tarjetas no llevan cuerpo: título, resumen, fechas, categoría, etiquetas, campos técnicos del proyecto (estado, tecnologías), proyecto padre de una bitácora y portada sólo si es pública.
+- Taxonomía pública: categorías y etiquetas usadas por revisiones publicadas visibles en ese idioma (y tipo), con contadores. Un término usado sólo en borradores no aparece.
+
+**Detalle.** Los lectores de WEB-005 añaden:
+- `first_published_at`, categoría, etiquetas y `alternates` (la otra traducción visible, con su tipo y slugs vigentes);
+- los metadatos de los medios servibles de forma anónima (`ready`, `public_enabled` y, para descargas, `downloadable`). Lo revocado se omite y la web lo muestra como no disponible.
+
+**Configuración del sitio** (`site_settings`, fila única con `version`, y `site_featured_projects`).
+- Presentación (inicio) y biografía (acerca de) en es/en, correo de contacto, enlaces (`github`, `linkedin`, `website` u `other`, sólo `https://`, 8 como máximo) y proyectos destacados ordenados (6 como máximo).
+- Se guarda con «Guardar cambios públicos»: efecto inmediato, `expected_version` (409 si cambió) y auditoría. No hay revisiones de ajustes.
+- Un destacado sólo aparece si su proyecto es visible en ese idioma; seleccionarlo nunca publica nada ni hace públicos archivos. La configuración no admite archivos propios: las imágenes salen de portadas de proyectos publicados.
+- La respuesta pública (`GET /public/{locale}/site`, `/home`) expone sólo los campos permitidos.
+
+**Rutas del sitio y SEO** (web).
+- El sitio traduce las rutas del API a las de §9 con un mapa validado; nunca redirige a una URL del API ni a otro origen.
+- Un alias del API (301) se convierte en 301 del sitio a su ruta canónica en un salto. Retirado o inexistente: 404. Una caída del API: 503 con página de error, nunca «sin contenido» ni 404.
+- Canonical absoluto desde `PUBLIC_ORIGIN` validado (nunca el Host). `hreflang` recíproco sólo si la otra traducción es visible, sin `x-default`. Imagen OG sólo si la portada es pública.
+- Indexables: inicio, índices sin filtro (su paginación, con canonical propio), detalles, acerca de y contacto. `noindex`: búsqueda y listados con filtros.
+- `sitemap.xml` con rutas canónicas visibles y `lastmod` = `published_at`; se convierte en índice de sitemaps a partir de 5 000 URL. `robots.txt` apunta al sitemap absoluto y excluye `/admin` (la autorización no depende de robots).
+- HTML público con `Cache-Control: no-store` durante v1.
+
 ## 10. API REST inicial
 Prefijo /api/v1; JSON, paginación y errores {code,message,fields,request_id}. Contrato en OpenAPI.
 | Grupo | Operaciones previstas |

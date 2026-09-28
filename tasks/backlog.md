@@ -46,7 +46,7 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 | WEB-003 | Contenido, revisiones, i18n y editor | Estado en [Issue #12](https://github.com/Codelab-ai-dev/brambiLab/issues/12) | WEB-002 |
 | WEB-004 | Archivos, descargas y videos preparados | Estado en [Issue #20](https://github.com/Codelab-ai-dev/brambiLab/issues/20) | WEB-003 |
 | WEB-005 | Publicación manual/programada y retirada | Estado en [Issue #26](https://github.com/Codelab-ai-dev/brambiLab/issues/26) | WEB-004 |
-| WEB-006 | Portafolio/laboratorio, SSR, SEO y búsqueda | backlog | WEB-005 |
+| WEB-006 | Portafolio/laboratorio, SSR, SEO y búsqueda | Estado en [Issue #30](https://github.com/Codelab-ai-dev/brambiLab/issues/30) | WEB-005 |
 | WEB-007 | Contacto con Resend | backlog | WEB-006 |
 | WEB-008 | Coolify, backups y validación de lanzamiento | backlog | WEB-007 |
 
