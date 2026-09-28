@@ -11,7 +11,7 @@ Laboratorio personal de Gustavo para software, IA, microcontroladores, IoT y rob
 5. Primer proyecto: [BL-001 AI Rover](projects/001-ai-rover/README.md).
 
 ## Estado real
-Foundation documental versionada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). No hay firmware, aplicación, sitio web ni pruebas físicas implementadas. Las carpetas de código son reservas explícitas. No hay sincronización automática entre agentes: el contexto se entrega mediante commits, PRs y handoffs.
+Foundation documental versionada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). La web v1 tiene un scaffold local en [platform/](platform/README.md), sin desplegar ni contenido publicado. No hay firmware, aplicación Android ni pruebas físicas. No hay sincronización automática entre agentes: el contexto se entrega mediante commits, PRs y handoffs.
 
 ## Arranque local
 Clona el repositorio y ábrelo con Claude Code; los pasos están en [START_HERE.md](START_HERE.md). Todo lo que se suba a GitHub queda publicado: revisa que las evidencias no contengan datos personales ni secretos.

@@ -41,7 +41,7 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 
 | ID | Tarea | Estado | Dependencia |
 |---|---|---|---|
-| WEB-001 | Scaffold SSR/API/DB/Docker y contrato base | ready | Especificación |
+| WEB-001 | Scaffold SSR/API/DB/Docker y contrato base | review (rama `feat/WEB-001-scaffold`) | Especificación |
 | WEB-002 | GitHub OAuth de propietario y sesiones | backlog | WEB-001 |
 | WEB-003 | Contenido, revisiones, i18n y editor | backlog | WEB-002 |
 | WEB-004 | Archivos, descargas y videos preparados | backlog | WEB-003 |

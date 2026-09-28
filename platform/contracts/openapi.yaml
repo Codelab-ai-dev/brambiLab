@@ -1,0 +1,88 @@
+openapi: 3.1.0
+info:
+  title: BrambiLab API
+  version: 0.1.0
+  description: |
+    Base contract for web v1 (docs/architecture/web-v1.md §10).
+    WEB-001 covers operation endpoints and the shared error shape; each later
+    task adds its routes here before implementing them.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: /api/v1
+paths:
+  /health/live:
+    get:
+      operationId: getLiveness
+      summary: Process is serving HTTP; does not check dependencies.
+      tags: [operation]
+      security: []
+      responses:
+        "200":
+          description: Alive.
+          headers:
+            X-Request-ID: { $ref: "#/components/headers/RequestID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Dependencies (PostgreSQL) are reachable.
+      tags: [operation]
+      security: []
+      responses:
+        "200":
+          description: Ready.
+          headers:
+            X-Request-ID: { $ref: "#/components/headers/RequestID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+        "503":
+          description: A dependency is unavailable. Details are logged, not returned.
+          headers:
+            X-Request-ID: { $ref: "#/components/headers/RequestID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+components:
+  headers:
+    RequestID:
+      description: Request correlation ID, echoed from a valid upstream value or generated.
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9._-]{1,64}$"
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, unavailable]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    Error:
+      type: object
+      description: Body of every non-2xx response except health probes.
+      required: [code, message, request_id]
+      properties:
+        code:
+          type: string
+          examples: [not_found, internal, validation_failed]
+        message:
+          type: string
+        fields:
+          type: object
+          description: Per-field validation messages.
+          additionalProperties: { type: string }
+        request_id:
+          type: string
+tags:
+  - name: operation
+    description: Probes for Docker, Coolify and monitoring.
