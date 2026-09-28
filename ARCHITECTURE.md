@@ -8,8 +8,10 @@ Antes de migrar las tareas a GitHub Issues: archivos versionables y tareas en `t
 ## Contenido
 Proyecto = desarrollo con objetivo y validación. Experimento = prueba acotada que puede alimentar un proyecto. Investigación = análisis de alternativas con fuentes y fecha. Build log = relato factual de una sesión.
 
-## Plataforma futura
-La web consumirá contenido de estas fuentes; su framework, hosting, dominio y formato de ingestión están pendientes. v1 no requiere base de datos ni servicios externos.
+## Plataforma web v1
+Web priorizada antes de completar el rover. React/TypeScript/Tailwind con SSR Node.js; negocio en Go; PostgreSQL; Docker/Coolify en VPS exclusivo. [Especificación técnica](docs/architecture/web-v1.md) y [ADR-006](docs/architecture/ADR-006-web-stack.md).
+
+Git es canónico para código, decisiones y documentación de ingeniería. PostgreSQL es canónico para contenido editorial del panel; el volumen local almacena medios. Markdown se importa/exporta explícitamente, sin sincronización automática con Git. Resend envía contacto; GitHub autentica al único administrador.
 
 ## BL-001: propuesta de responsabilidades
 Android/CMF Phone 1: interfaz, cámara y evaluación de inferencia local.
