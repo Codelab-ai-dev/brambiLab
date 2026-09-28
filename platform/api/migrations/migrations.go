@@ -17,6 +17,18 @@ import (
 //go:embed *.sql
 var files embed.FS
 
+// UpTo applies migrations up to and including version (used to test upgrades from older schemas).
+func UpTo(ctx context.Context, conn *pgx.ConnConfig, version int64) error {
+	db := stdlib.OpenDB(*conn)
+	defer db.Close()
+	provider, err := goose.NewProvider(goose.DialectPostgres, db, files)
+	if err != nil {
+		return fmt.Errorf("load migrations: %w", err)
+	}
+	_, err = provider.UpTo(ctx, version)
+	return err
+}
+
 // Up applies pending migrations. Concurrent callers wait for the lock instead of
 // applying the same migration twice.
 func Up(ctx context.Context, conn *pgx.ConnConfig, logger *slog.Logger) error {

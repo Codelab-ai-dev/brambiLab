@@ -89,6 +89,21 @@ Un log sólo es público si el proyecto padre tiene versión publicada en el mis
 Unicidad del slug público por idioma y tipo/ruta; detectar conflictos también al ejecutar programación.
 Retener revisiones en v1; su política de purga se definirá después. No borrar archivos todavía referenciados.
 
+### 6.1 Implementación WEB-003
+- `translations.latest_version` avanza de forma atómica con cada revisión. `published_revision_id` tiene una FK compuesta `(published_revision_id, id) → revisions(id, translation_id)`, así que no puede apuntar a una revisión de otra traducción. Ninguna operación de WEB-003 lo modifica; es de WEB-005.
+- La revisión guarda el snapshot completo: título, slug, resumen, cuerpo, SEO, campos de proyecto, categoría (una, opcional) y etiquetas (varias). Las etiquetas se relacionan por revisión, así que editar la taxonomía no cambia versiones anteriores. Las categorías y etiquetas tienen una identidad estable y etiquetas es/en.
+- Tipos de revisión: `manual`, `auto`, `restore` (con `restored_from_version`) y `copy` (borrador copiado de otro idioma, marcado como pendiente de traducir, nunca como traducción terminada).
+- Archivar conserva el historial y se rechaza con 409 si alguna traducción está publicada. No hay borrado físico.
+- Un log exige un proyecto padre existente, no archivado y de tipo project. El tipo y el padre no cambian después de crear el contenido.
+
+### 6.2 Guardado y conflictos (decisión WEB-003)
+Cada guardado exitoso, manual o automático, crea un snapshot inmutable completo.
+- **Autoguardado:** tras 3 s de inactividad y sólo si hubo cambios; como máximo uno cada 15 s y una sola petición en vuelo por traducción. Los cambios hechos durante una petición quedan pendientes para el siguiente snapshot; una respuesta antigua no los marca como guardados. «Guardar revisión» persiste de inmediato y se serializa con los autoguardados pendientes.
+- **Duplicados:** Go calcula un SHA-256 sobre el JSON canónico del snapshot. Si coincide con la última revisión, responde 200 `created: false` sin crear otra. La cabecera `Idempotency-Key` hace que el reintento de una misma operación devuelva la misma revisión.
+- **Concurrencia:** `expected_version` es obligatorio. La comprobación y la inserción son atómicas (`UPDATE … WHERE latest_version = $expected`). Un conflicto responde 409 con la versión actual; el cliente conserva su buffer y ofrece recargar (tras confirmar el descarte) o exportar su trabajo local. Nunca reintenta con la versión del otro editor.
+- **Estados visibles:** «Cambios sin guardar», «Guardando», «Guardado», «Error» y «Conflicto». Hay aviso al salir o al cambiar de idioma con cambios pendientes. Al recargar se recupera la última revisión guardada; no hay modo offline.
+- **Restaurar** crea una revisión nueva (`restore`) y nunca modifica el original. El historial es paginado y distingue manual, automática, restauración y copia. Sin purga en v1.
+
 ## 7. Edición y Markdown
 Documento estructurado JSON validado como formato canónico; no HTML arbitrario como fuente confiable. Implementación concreta del editor por seleccionar en WEB-003 con prueba de compatibilidad.
 Bloques v1: títulos, párrafos, énfasis, listas, enlaces, citas, código con lenguaje, tablas simples, imágenes con alt, video MP4, YouTube y descarga de archivo.
@@ -97,6 +112,14 @@ Embeds personalizados usan directivas documentadas (por ejemplo :::youtube, :::v
 Cambiar de editor no debe descartar contenido. Importaciones remotas no descargan URLs arbitrarias desde el servidor. HTML/iframe libre deshabilitado; YouTube mediante ID/URL validada.
 Pegar imágenes crea assets privados; texto alternativo y portada se editan en el panel.
 Prueba de salida: visual → Markdown → importación conserva semántica de todos los bloques soportados. No prometer compatibilidad universal con cualquier Markdown.
+
+### 7.1 Formato canónico v1 (WEB-003)
+El formato canónico es un esquema JSON propio (`body_schema_version: 1`), no el JSON interno del editor. Un adaptador en el cliente convierte entre Tiptap y el formato canónico en ambos sentidos. Go valida de forma estricta y rechaza nodos, marcas o atributos desconocidos, aunque el documento haya pasado por el editor.
+- **Bloques:** `paragraph`, `heading` (niveles 2 a 4; el título va aparte), `bulletList`, `orderedList` (`start`), `listItem`, `blockquote`, `codeBlock` (`language`, texto sin marcas), `horizontalRule`, `table`/`tableRow`/`tableHeader`/`tableCell` (tablas simples: cada celda es un párrafo, sin fusiones) y `youtube` (`videoId` de 11 caracteres validado, `start` opcional).
+- **En línea:** `text` con las marcas `bold`, `italic`, `code` y `link` (`href`), y `hardBreak`.
+- **Enlaces:** se aceptan `http`, `https`, `mailto`, rutas relativas `/…` y anclas `#…`. Se rechazan `javascript:`, `data:`, `vbscript:` y cualquier otro esquema. No hay HTML ni iframes.
+- **Medios preparados para WEB-004:** `image` (`assetId`, `alt`, `caption`), `video` (`assetId`, `posterAssetId`, `caption`) y `download` (`assetId`, `label`). Están versionados y probados con fixtures, pero la API los rechaza (`media_not_available`) hasta que existan los assets. No se generan IDs ficticios.
+- **Límites:** petición de 1 MiB como máximo, profundidad 32, 20 000 nodos y 200 000 caracteres de texto. Título de 200 caracteres, slug de 120 (`a-z0-9-`), resumen de 500, SEO de 70 y 160, y 20 etiquetas.
 
 ## 8. Publicación y programación
 Por traducción: sin publicar, publicada, retirada. El borrador/revisión nueva puede coexistir con una publicación; la programación es un job separado.
