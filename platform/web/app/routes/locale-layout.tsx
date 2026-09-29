@@ -77,7 +77,7 @@ export function ErrorBoundary() {
 function SiteChrome({ locale, pathname, switcher, links = [], year, children }: { locale: Locale; pathname: string; switcher: Switcher; links?: SiteLink[]; year: number; children: ReactNode }) {
   return (
     <div className="bl-site flex min-h-screen flex-col">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-contrast">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-contrast focus:outline-2 focus:outline-offset-2 focus:outline-white">
         {t(locale, "nav.skip")}
       </a>
       <Navigation locale={locale} pathname={pathname} switcher={switcher} />

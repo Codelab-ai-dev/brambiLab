@@ -267,6 +267,15 @@ html:has(.bl-site) {
   scroll-padding-top: 5.5rem;
 }
 
+/* Focus is always visible on the public site: a default ring for every interactive element
+   (links inside documents, the translation notice, …), which component classes may refine. */
+@layer base {
+  .bl-site :is(a[href], button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
 /* Type scale (WEB-009 §2). */
 /* Hero title: sized to its own column (container query units) so each line fits whole.
    --bl-measure is the widest line in em, measured per language by the caller; the rem bounds

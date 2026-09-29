@@ -257,12 +257,13 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
   - Los metadatos aparecen sólo si el campo existe.
   - La cifra de proyectos es el total público del idioma y sólo se muestra a partir de 3.
   - Las áreas se presentan como enfoque, no como proyectos.
+- Accesibilidad (entrega 3): anillo de foco por defecto en todo elemento interactivo público; `e2e/a11y.pw.ts` ejecuta axe (WCAG 2.2 A/AA) en todas las rutas, recorre el foco con teclado y comprueba zoom y texto al 200 %. Complementa, no sustituye, la revisión con lector de pantalla.
 - Movimiento: sólo transiciones CSS de hover; nada oculta contenido en SSR ni sin JavaScript. Con `prefers-reduced-motion` no se mueve nada.
 - Páginas interiores (entrega 2):
   - cabecera navy con titular grande;
   - índices y búsqueda como filas editoriales (`<article>` con título enlazado, fecha, tipo, estado, tecnologías, términos y miniatura desaturada), con filtros GET y paginación;
   - el recuento de la cabecera es el total del API;
-  - proyecto, artículo y bitácora: portada en color y sin recorte, texto sobre papel, ficha técnica del proyecto, bitácora y «Seguir explorando», sólo con destinos existentes (índice, proyecto de la bitácora y categoría);
+  - proyecto, artículo y bitácora: portada en color, a lo ancho y sin recorte (`object-contain`), texto sobre papel, ficha técnica del proyecto, bitácora y «Seguir explorando», sólo con destinos existentes (índice, proyecto de la bitácora y categoría);
   - acerca de y contacto sobre papel; el formulario desactivado sigue explicándolo.
 - Navegación: cabecera fija translúcida, con el menú móvil como botón desplegable (`aria-expanded`; Escape cierra y devuelve el foco). Sin JavaScript, el mismo control enlaza a la navegación del pie. Los enlaces de perfil del pie son sólo los configurados.
 - Logotipo modular (#45): tres piezas que forman una «b» y el texto «BrambiLab», del kit en `platform/web/public/brand/originals/` (copia sin modificar con `SHA256SUMS`).

@@ -75,9 +75,11 @@ test("project page: cover in colour and uncropped, technical sheet, log and rela
   await page.goto(paths.project);
   const img = page.locator(`main img[src="/media/${cover}"]`).first();
   await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-  const shown = await img.evaluate((el: HTMLImageElement) => ({ filter: getComputedStyle(el).filter, ratio: el.clientWidth / el.clientHeight, natural: el.naturalWidth / el.naturalHeight }));
+  const shown = await img.evaluate((el: HTMLImageElement) => ({ filter: getComputedStyle(el).filter, fit: getComputedStyle(el).objectFit, width: el.clientWidth, frame: el.parentElement!.clientWidth }));
+  // In colour, never cropped (contain) and prominent: the width of its frame, whatever the file size.
   expect(shown.filter).toBe("none");
-  expect(Math.abs(shown.ratio - shown.natural)).toBeLessThan(0.02);
+  expect(shown.fit).toBe("contain");
+  expect(shown.width).toBeGreaterThan(shown.frame * 0.9);
   const sheet = page.getByRole("complementary", { name: "Ficha técnica" });
   await expect(sheet).toContainText("Medir el consumo en marcha.");
   await expect(page.getByRole("region", { name: /Bitácora/ })).toContainText(`Prueba ${run}`);

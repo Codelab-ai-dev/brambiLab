@@ -47,10 +47,10 @@ export function Navigation({ locale, pathname, switcher }: { locale: Locale; pat
         <a href={homePath(locale)} aria-label="BrambiLab" className={`shrink-0 rounded-sm ${focusRing}`}>
           <BrambiLabLogo className="h-7 sm:h-8" />
         </a>
-        <nav aria-label={t(locale, "nav.label")} className="flex items-center gap-3 md:gap-8">
+        <nav aria-label={t(locale, "nav.label")} className="flex min-w-0 items-center justify-end gap-3 md:flex-wrap md:gap-x-8 md:gap-y-1 md:py-2">
           <ul
             id="site-nav"
-            className={`${open ? "flex" : "hidden"} absolute inset-x-0 top-full flex-col border-b border-border bg-deep px-4 py-4 sm:px-6 md:static md:flex md:flex-row md:items-center md:gap-7 md:border-0 md:bg-transparent md:p-0`}
+            className={`${open ? "flex" : "hidden"} absolute inset-x-0 top-full flex-col border-b border-border bg-deep px-4 py-4 sm:px-6 md:static md:flex md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-x-7 md:gap-y-1 md:border-0 md:bg-transparent md:p-0`}
           >
             {navItems.map((n) => {
               const href = sectionPath(locale, n.section);

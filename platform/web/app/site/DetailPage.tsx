@@ -13,7 +13,7 @@ function MissingTranslation({ locale, href }: { locale: Locale; href: string }) 
   return (
     <p className="mt-8 text-sm text-text-muted" data-translation="missing">
       {t(locale, "switch.missingNotice")}{" "}
-      <a href={href} hrefLang={other} lang={other} className="text-accent underline underline-offset-2">
+      <a href={href} hrefLang={other} lang={other} className="rounded-xs text-accent underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
         {t(locale, "switch.missingLink")}
       </a>
     </p>
@@ -69,7 +69,7 @@ export function DetailPage({ data }: { data: DetailData }) {
                 height={c.cover.height ?? undefined}
                 fetchPriority="high"
                 decoding="async"
-                className="mx-auto h-auto max-h-[75vh] w-auto max-w-full bg-deep object-contain"
+                className="h-auto max-h-[75vh] w-full bg-deep object-contain"
               />
             </Frame>
           )}
