@@ -68,7 +68,7 @@ test("indexes list editorial rows; the project row shows real facts and a desatu
   expect(await thumb.evaluate((el) => getComputedStyle(el).filter)).toContain("grayscale");
   // The count in the header is the API total for this language, never the page length.
   const total = (await (await page.request.get("/api/v1/public/es/contents?kind=project&page_size=1")).json()).total;
-  await expect(page.locator("header").nth(1)).toContainText(`${total} proyectos publicados`);
+  await expect(page.locator("header").nth(1)).toContainText(`${total} ${total === 1 ? "proyecto publicado" : "proyectos publicados"}`);
 });
 
 test("project page: cover in colour and uncropped, technical sheet, log and related links that exist", async ({ page, request }) => {
