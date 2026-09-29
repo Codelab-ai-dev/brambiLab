@@ -231,3 +231,23 @@ body {
     to { opacity: 1; transform: none; }
   }
 }
+
+/* Brand logo colors (#45). Light surfaces: the kit's dark version. Dark surfaces (bench header,
+   hero, viewer, dark theme): the kit's white text; the navy stem (#0A1E3F, 1.15:1 on the bench)
+   becomes light ink so the "b" keeps its shape — an optical variant for Gustavo to review. */
+:root {
+  --logo-ink: #0A1E3F;
+  --logo-stem: #0A1E3F;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --logo-ink: #FFFFFF;
+    --logo-stem: #ECE7DC;
+  }
+}
+.bl-bench,
+.bl-bench-bar,
+.bl-viewer {
+  --logo-ink: #FFFFFF;
+  --logo-stem: #ECE7DC;
+}

@@ -2,7 +2,7 @@ import { redirect } from "react-router";
 import type { Route } from "./+types/login";
 import { privateHeaders } from "~/lib/api.server";
 import { loginState } from "~/lib/login.server";
-import { Wordmark } from "~/components/site/Wordmark";
+import { BrambiLabLogo } from "~/components/brand/BrambiLabLogo";
 
 export function headers() {
   return privateHeaders;
@@ -37,7 +37,10 @@ export default function Login({ loaderData }: Route.ComponentProps) {
   return (
     <main className="bl-grid flex min-h-screen items-start justify-center px-4 py-16 sm:items-center">
       <div className="w-full max-w-sm rounded-md border border-border bg-surface p-8 shadow-sm">
-        <Wordmark />
+        <p>
+          <BrambiLabLogo className="h-8" />
+          <span className="sr-only">BrambiLab</span>
+        </p>
         <h1 className="mt-6 text-2xl font-semibold">Panel privado</h1>
         <p className="mt-2 text-sm text-text-muted">Acceso exclusivo del propietario mediante GitHub.</p>
         {loggedOut && (

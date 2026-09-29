@@ -1,6 +1,6 @@
 import { Link, Outlet, redirect, useLocation } from "react-router";
 import type { Route } from "./+types/layout";
-import { Wordmark } from "~/components/site/Wordmark";
+import { BrambiLabLogo } from "~/components/brand/BrambiLabLogo";
 import { getOwner } from "~/lib/api.server";
 
 // Every /admin page (except login) requires the owner session, checked by Go on each request.
@@ -38,9 +38,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
       </a>
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <a href="/admin" className="flex items-center gap-3 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
-            <Wordmark />
-            <span className="rounded bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-muted">Panel</span>
+          <a href="/admin" aria-label="BrambiLab · Panel" className="flex items-center gap-3 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+            <BrambiLabLogo className="h-7" />
+            <span aria-hidden="true" className="rounded bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-muted">Panel</span>
           </a>
           <div className="flex items-center gap-4 text-sm">
             <span className="font-mono text-xs text-text-muted">@{owner.github_login}</span>

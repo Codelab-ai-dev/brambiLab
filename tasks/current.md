@@ -23,6 +23,8 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](../docs/architecture/ADR-007-licencias.md)).
 
 ## Entregas web
+2026-09-28 · #45 logo modular en cabecera, pie, panel y favicon; kit original versionado en `platform/web/public/brand/originals/`. **Variante óptica en superficies oscuras pendiente de aprobación de Gustavo.** [Handoff](../docs/handoffs/2026-09-28-brand-45-logo.md).
+
 2026-09-28 · WEB-008 cerrada con excepciones: evidencia de producción y cierre del puerto 8000 de Coolify en [lanzamiento.md](../docs/operations/lanzamiento.md); [handoff](../docs/handoffs/2026-09-28-web-008-close.md). Seguimiento en #43.
 
 2026-09-28 · #41 imágenes del contenido en tarjetas compactas con visor accesible y corrección del 500 del documento vacío. [Handoff](../docs/handoffs/2026-09-28-ui-41-image-viewer.md).

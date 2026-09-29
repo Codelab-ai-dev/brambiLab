@@ -9,6 +9,14 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
+
+// Brand icons (#45): SVG favicon with an ICO fallback and the Apple touch icon. No web manifest:
+// the site is not a PWA.
+export const links: Route.LinksFunction = () => [
+  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+  { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
+  { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+];
 import { t } from "./i18n";
 import { homePath, localeOfPath } from "./site/paths";
 import "./app.css";
