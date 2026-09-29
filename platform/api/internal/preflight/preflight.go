@@ -12,6 +12,7 @@ import (
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/auth"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/config"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/contact"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/ops"
 )
 
 type Level string
@@ -110,6 +111,13 @@ func Check(getenv func(string) string, writable func(string) error) []Result {
 	}
 	if getenv("TRUSTED_PROXIES") == "" {
 		add(Warn, "TRUSTED_PROXIES", "unset: every private range is trusted; set the Docker network of Coolify's proxy and Caddy")
+	}
+	if _, err := ops.WebhookURL(getenv("ALERT_WEBHOOK_URL")); err != nil {
+		add(Fail, "ALERT_WEBHOOK_URL", "%v", err)
+	} else if getenv("ALERT_WEBHOOK_URL") == "" {
+		add(Warn, "ALERT_WEBHOOK_URL", "unset: problems are only logged and shown in the panel (Operación)")
+	} else {
+		add(OK, "ALERT_WEBHOOK_URL", "set")
 	}
 	if strings.EqualFold(getenv("BACKGROUND_JOBS"), "off") {
 		add(Fail, "BACKGROUND_JOBS", "is off: publications and contact would never run (restore environments only)")
