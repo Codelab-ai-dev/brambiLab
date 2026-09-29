@@ -6,7 +6,7 @@ import { apiQuery, listQuery, localeOf, seo } from "~/site/loader.server";
 import { sectionPath } from "~/site/paths";
 import { forwardHeaders, noindexHeaders, seoMeta } from "~/site/seo";
 import type { SearchPage, Taxonomy } from "~/site/types";
-import { CardGrid, Container, Empty, FilterForm, PageIntro, Pager } from "~/site/ui";
+import { ContentList, Empty, FilterForm, Frame, PageHeader, Pager, textControl, textLabel } from "~/site/ui";
 
 export const headers = forwardHeaders;
 
@@ -43,43 +43,38 @@ export default function Search({ loaderData }: Route.ComponentProps) {
   for (const k of ["q", "kind", "category", "tag"] as const) if (q[k]) query.set(k, q[k]!);
   return (
     <main>
-      <PageIntro title={t(locale, "search.title")} lead={t(locale, "search.hint")}>
-        <div className="mt-8">
+      <PageHeader title={t(locale, "search.title")} lead={t(locale, "search.hint")}>
+        <div className="mt-12 border-t border-border pt-8">
           <FilterForm locale={locale} action={path} categories={taxonomy.categories} tags={taxonomy.tags} selected={q} kinds>
-            <label className="flex w-full flex-col gap-1 text-sm font-medium sm:w-auto sm:min-w-80">
+            {/* On one row (desktop) the help sits under the field without changing its height, so every control of
+                the row shares one baseline; the form reserves its space below. */}
+            <label className={`${textLabel} relative w-full lg:w-[28rem]`}>
               {t(locale, "search.label")}
-              <input
-                type="search"
-                name="q"
-                defaultValue={q.q ?? ""}
-                maxLength={200}
-                aria-describedby="search-help"
-                className="min-h-10 rounded-md border border-border-strong bg-surface px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-              />
-              <span id="search-help" className="text-xs font-normal text-text-muted">
+              <input type="search" name="q" defaultValue={q.q ?? ""} maxLength={200} aria-describedby="search-help" className={`${textControl} text-lg`} />
+              <span id="search-help" className="font-mono lg:absolute lg:top-full lg:left-0 lg:mt-2 text-xs tracking-normal normal-case">
                 {t(locale, "search.help")}
               </span>
             </label>
           </FilterForm>
         </div>
-      </PageIntro>
-      <Container className="py-10">
+      </PageHeader>
+      <Frame className="py-12 sm:py-16">
         {!results.has_terms ? (
-          <p className="text-text-muted" role="status">
+          <p className="text-lg text-text-muted" role="status">
             {t(locale, "search.hint")}
           </p>
         ) : results.items.length === 0 ? (
           <Empty>{t(locale, "search.none")}</Empty>
         ) : (
           <>
-            <p className="mb-6 font-mono text-sm text-text-muted" role="status">
-              {results.total} {t(locale, results.total === 1 ? "search.result" : "search.results")}
+            <p className="bl-meta mb-6 text-text-muted" role="status">
+              <span className="text-accent">{results.total}</span> {t(locale, results.total === 1 ? "search.result" : "search.results")}
             </p>
-            <CardGrid locale={locale} cards={results.items} headingLevel={2} />
+            <ContentList locale={locale} cards={results.items} headingLevel={2} />
           </>
         )}
         <Pager locale={locale} page={results.page} pageSize={results.page_size} total={results.total} path={path} query={query} />
-      </Container>
+      </Frame>
     </main>
   );
 }

@@ -313,6 +313,12 @@ html:has(.bl-site) {
 .bl-prose {
   font-family: var(--font-prose);
 }
+.bl-prose :is(h2, h3, h4) {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
 
 /* Photographs on editorial blocks: desaturated presentation (the file keeps its colours; the
    detail page and the image viewer show them as they are). Hover: up to scale(1.03). */

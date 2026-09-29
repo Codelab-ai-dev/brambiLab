@@ -6,7 +6,7 @@ import { sectionPath } from "~/site/paths";
 import { forwardHeaders, seoMeta } from "~/site/seo";
 import type { PublicSite } from "~/site/types";
 import { ContactLinks } from "~/site/ContactLinks";
-import { Container, Empty, PageIntro } from "~/site/ui";
+import { Empty, Frame, PageHeader } from "~/site/ui";
 import { ContactForm, contactStates, type ContactState } from "~/site/ContactForm";
 
 export const headers = forwardHeaders;
@@ -49,20 +49,24 @@ export default function Contact({ loaderData }: Route.ComponentProps) {
   const has = site.contact_email !== "" || site.links.length > 0;
   return (
     <main>
-      <PageIntro title={t(locale, "contact.title")} />
-      <Container className="grid gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <div>
-          <h2 className="font-mono text-xs tracking-widest text-text-muted uppercase">{t(locale, "contact.links")}</h2>
-          <div className="mt-4">{has ? <ContactLinks locale={locale} site={site} /> : <Empty>{t(locale, "contact.empty")}</Empty>}</div>
-        </div>
-        {contact.available ? (
-          <ContactForm locale={locale} serverKey={key} initialState={state} retentionDays={contact.retention_days} />
-        ) : (
-          <p className="rounded-lg border border-dashed border-border p-6 text-text-muted" data-contact="disabled">
-            {t(locale, "form.disabled")}
-          </p>
-        )}
-      </Container>
+      <PageHeader title={t(locale, "contact.title")} lead={site.intro || t(locale, "site.lab")} />
+      <div className="bl-light">
+        <Frame className="grid gap-12 py-14 sm:py-20 lg:grid-cols-12 lg:gap-8">
+          <div className="min-w-0 lg:col-span-4">
+            <h2 className="bl-meta text-text-muted">{t(locale, "contact.links")}</h2>
+            <div className="mt-6">{has ? <ContactLinks locale={locale} site={site} /> : <Empty>{t(locale, "contact.empty")}</Empty>}</div>
+          </div>
+          <div className="min-w-0 lg:col-span-7 lg:col-start-6">
+            {contact.available ? (
+              <ContactForm locale={locale} serverKey={key} initialState={state} retentionDays={contact.retention_days} />
+            ) : (
+              <p className="border-y border-border py-8 text-lg text-text-muted" data-contact="disabled">
+                {t(locale, "form.disabled")}
+              </p>
+            )}
+          </div>
+        </Frame>
+      </div>
     </main>
   );
 }
