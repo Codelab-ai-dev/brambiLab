@@ -190,7 +190,7 @@ func (e *env) jobs(t *testing.T) []job {
 
 func TestDisabledAcceptsNothing(t *testing.T) {
 	e := start(t, func(string) string { return "" })
-	if r := e.get(t, "/api/v1/public/contact"); string(r.Body) != "{\"available\":false}\n" || r.Header.Get("Cache-Control") != "no-store" {
+	if r := e.get(t, "/api/v1/public/contact"); string(r.Body) != "{\"available\":false,\"retention_days\":30}\n" || r.Header.Get("Cache-Control") != "no-store" {
 		t.Fatalf("public status %s %v", r.Body, r.Header)
 	}
 	if r := e.postJSON(t, body(newKey(), nil), "203.0.113.1"); r.Status != http.StatusServiceUnavailable || code(t, r) != "contact_unavailable" {
@@ -224,7 +224,7 @@ func (e *env) get(t *testing.T, path string) authtest.Response {
 
 func TestReceiptValidationAndIdempotency(t *testing.T) {
 	e := start(t, enabledEnv(nil))
-	if r := e.get(t, "/api/v1/public/contact"); string(r.Body) != "{\"available\":true}\n" {
+	if r := e.get(t, "/api/v1/public/contact"); string(r.Body) != "{\"available\":true,\"retention_days\":30}\n" {
 		t.Fatalf("public status %s", r.Body)
 	}
 	key := newKey()

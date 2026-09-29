@@ -3,6 +3,7 @@ package testdb
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"log/slog"
@@ -38,7 +39,10 @@ func New(t *testing.T) *pgxpool.Pool {
 		}
 	})
 
-	name := fmt.Sprintf("bl_test_%d", time.Now().UnixNano())
+	// Packages run in parallel processes: a random suffix avoids same-nanosecond collisions.
+	suffix := make([]byte, 4)
+	_, _ = rand.Read(suffix)
+	name := fmt.Sprintf("bl_test_%d_%x", time.Now().UnixNano(), suffix)
 	if _, err := admin.Exec(ctx, "CREATE DATABASE "+name); err != nil {
 		t.Fatal(err)
 	}

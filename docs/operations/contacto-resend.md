@@ -42,7 +42,7 @@ Está preparada, pero **no se ejecuta** hasta que Gustavo la autorice expresamen
    - nombre: «Prueba BrambiLab»;
    - correo: una dirección tuya distinta de `CONTACT_TO`;
    - mensaje: «Prueba de activación del formulario, <fecha y hora>».
-2. **En el panel** `/admin/contacto` (llega con el PR del panel), el mensaje debe pasar a **«Aceptado por Resend»** con su id. Eso significa que Resend lo aceptó, no que se entregó.
+2. **En el panel** `/admin/contacto`, el mensaje debe pasar a **«Aceptado por Resend»** con su id. Eso significa que Resend lo aceptó, no que se entregó.
 3. **En el buzón `CONTACT_TO`:** llega el aviso con asunto `Contacto BrambiLab #xxxxxxxx`. «Responder» se dirige a la dirección del visitante (Reply-To).
 4. **En Resend** (*Emails*): comprueba el estado de entrega. En v1 no hay webhooks, así que el sitio no sabe si hubo rebote ni entrega.
 5. Anota el resultado en el handoff de WEB-008.

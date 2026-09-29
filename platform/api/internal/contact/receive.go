@@ -211,7 +211,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/contact", h.receive)
 	mux.HandleFunc("GET /api/v1/public/contact", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		httpapi.WriteJSON(w, http.StatusOK, map[string]bool{"available": h.cfg.Enabled})
+		httpapi.WriteJSON(w, http.StatusOK, map[string]any{"available": h.cfg.Enabled, "retention_days": int(h.cfg.Retention.Hours() / 24)})
 	})
 }
 
