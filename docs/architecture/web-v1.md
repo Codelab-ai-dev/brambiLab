@@ -238,7 +238,10 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
 - Fondo papel y texto tinta; ámbar como señal (enlaces, foco, estado activo) y tinta para las acciones principales. Modo oscuro en grafito con ámbar encendido.
 - IBM Plex Sans para leer e IBM Plex Mono para datos (fechas, versiones, identificadores), incluidas en el propio sitio (OFL).
 - Retícula milimetrada decorativa sólo en portada y login.
-- Logotipo sólo tipográfico («BRAMBILAB_»); no hay logo gráfico hasta que existan assets aprobados.
+- Logotipo modular (#45): tres piezas que forman una «b» y el texto «BrambiLab», del kit en `platform/web/public/brand/originals/` (copia sin modificar con `SHA256SUMS`). El kit es una reconstrucción (texto en DejaVu Sans Bold) y requiere revisión visual de Gustavo antes de producción.
+  - Componente único `BrambiLabLogo` con los trazados del kit sin alterar, `viewBox` 1220×380 y altura fija: sin distorsión ni salto de layout. Es decorativo (`aria-hidden`); el enlace que lo contiene se llama «BrambiLab» y lleva a la portada del idioma.
+  - Superficie clara: colores originales. Superficie oscura (cabecera banco, modo oscuro): texto blanco y **variante óptica** del segmento #0A1E3F → #ECE7DC, porque el original da 1,15:1 sobre grafito. Variante pendiente de aprobación explícita de Gustavo; los tokens `--logo-stem` y `--logo-ink` la revierten en una línea.
+  - Favicon SVG con alternativa ICO y `apple-touch-icon`; sin manifest ni PWA.
 - Tokens semánticos en `platform/web/app/app.css`: contraste AA en texto y 3:1 en bordes de controles, comprobados par a par.
 - **Portada «banco de pruebas vivo»** (elegida por Gustavo el 2026-09-28): hero y cabecera pública siempre oscuros, como un instrumento, con las secciones de debajo en papel.
   - Osciloscopio SVG cuya traza pasa de senoidal a cuadrada (analógico → digital).

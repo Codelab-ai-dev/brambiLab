@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { isRouteErrorResponse, Outlet, useLocation, useMatches, useRouteError } from "react-router";
-import { Wordmark } from "~/components/site/Wordmark";
+import { BrambiLabLogo } from "~/components/brand/BrambiLabLogo";
 import { t, type Locale, type MessageKey } from "~/i18n";
 import { homePath, localeOfPath, sectionPath, type Section } from "~/site/paths";
 import type { Switcher } from "~/site/types";
@@ -74,7 +74,7 @@ function SiteChrome({ locale, pathname, switcher, children }: { locale: Locale; 
       <header className="bl-bench-bar border-b border-[var(--bench-edge)]/40">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
           <a href={homePath(locale)} aria-label="BrambiLab" className="rounded text-[var(--bench-text)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--bench-signal)]">
-            <Wordmark />
+            <BrambiLabLogo className="h-7 sm:h-8" />
           </a>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <nav aria-label={t(locale, "nav.label")}>
@@ -113,8 +113,11 @@ function SiteChrome({ locale, pathname, switcher, children }: { locale: Locale; 
         {children}
       </div>
       <footer className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-6 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <a href={homePath(locale)} aria-label="BrambiLab" className="self-start rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:self-auto">
+            <BrambiLabLogo className="h-6" />
+          </a>
+          <p className="sm:mr-auto sm:ml-6">
             © 2026 Gustavo González · <a href={`${repository}/blob/main/LICENSE.md`} className="underline underline-offset-2 hover:text-text">{t(locale, "site.footer.licenses")}</a>
           </p>
           <a href={repository} className="font-mono underline underline-offset-2 hover:text-text">
