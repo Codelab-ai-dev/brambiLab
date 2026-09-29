@@ -48,7 +48,7 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 | WEB-005 | Publicación manual/programada y retirada | Estado en [Issue #26](https://github.com/Codelab-ai-dev/brambiLab/issues/26) | WEB-004 |
 | WEB-006 | Portafolio/laboratorio, SSR, SEO y búsqueda | Estado en [Issue #30](https://github.com/Codelab-ai-dev/brambiLab/issues/30) | WEB-005 |
 | WEB-007 | Contacto con Resend | Estado en [Issue #34](https://github.com/Codelab-ai-dev/brambiLab/issues/34) | WEB-006 |
-| WEB-008 | Coolify, backups y validación de lanzamiento | backlog | WEB-007 |
+| WEB-008 | Coolify, backups y validación de lanzamiento | Estado en [Issue #37](https://github.com/Codelab-ai-dev/brambiLab/issues/37) | WEB-007 |
 
 Seguimiento de la revisión de Codex a WEB-001 ([comentario](https://github.com/Codelab-ai-dev/brambiLab/pull/5#issuecomment-5861621351)):
 - Credenciales PostgreSQL con caracteres reservados: corregido en `fix/WEB-001-db-credentials` con variables `PG*` y prueba de integración.

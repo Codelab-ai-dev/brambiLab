@@ -3,9 +3,17 @@
 # The proxy service is the only public entry; secrets live in Coolify.
 name: brambilab
 
+# Bounded container logs (json-file rotation). The API never logs bodies, tokens or contact data.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   postgres:
     image: postgres:18-alpine
+    logging: *logging
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
@@ -25,6 +33,7 @@ services:
   # Release task: applies migrations once, under an advisory lock, before the API starts.
   migrate:
     build: ./api
+    logging: *logging
     command: ["migrate"]
     restart: "no"
     environment: &pg-client
@@ -43,6 +52,7 @@ services:
 
   api:
     build: ./api
+    logging: *logging
     restart: unless-stopped
     environment:
       <<: *pg-client
@@ -57,8 +67,23 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       CONTACT_FROM: ${CONTACT_FROM:-}
       CONTACT_TO: ${CONTACT_TO:-}
+      # Optional; empty means the code default (web-v1.md §13.1, §12.1, §11, §15.1).
+      CONTACT_RATE_PER_CLIENT: ${CONTACT_RATE_PER_CLIENT:-}
+      CONTACT_RATE_GLOBAL: ${CONTACT_RATE_GLOBAL:-}
+      CONTACT_RETENTION_DAYS: ${CONTACT_RETENTION_DAYS:-}
+      # Docker network of Coolify's proxy and Caddy, e.g. 10.0.1.0/24. Empty trusts every private range.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      SESSION_TTL: ${SESSION_TTL:-}
+      MEDIA_MAX_IMAGE_BYTES: ${MEDIA_MAX_IMAGE_BYTES:-}
+      MEDIA_MAX_VIDEO_BYTES: ${MEDIA_MAX_VIDEO_BYTES:-}
+      MEDIA_MAX_RESOURCE_BYTES: ${MEDIA_MAX_RESOURCE_BYTES:-}
+      MEDIA_FREE_RESERVE_BYTES: ${MEDIA_FREE_RESERVE_BYTES:-}
+      # "off" only in isolated restores: publications, contact and cleanups never run.
+      BACKGROUND_JOBS: ${BACKGROUND_JOBS:-}
     volumes:
       - media_data:/data/media
+    # Graceful shutdown: HTTP drains up to 15 s; workers stop between passes.
+    stop_grace_period: 30s
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -67,6 +92,7 @@ services:
 
   web:
     build: ./web
+    logging: *logging
     restart: unless-stopped
     environment:
       INTERNAL_API_URL: http://api:8080
@@ -81,6 +107,7 @@ services:
   # In Coolify, attach the domain to this service only.
   proxy:
     build: ./proxy
+    logging: *logging
     restart: unless-stopped
     depends_on:
       web:

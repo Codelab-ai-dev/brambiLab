@@ -33,6 +33,11 @@ type Server struct {
 
 // Start mounts auth plus the modules built by mount (which receives the auth handler).
 func Start(t *testing.T, pool *pgxpool.Pool, mount func(a *auth.Handler, logger *slog.Logger) []httpapi.Module) *Server {
+	return StartWrapped(t, pool, nil, mount)
+}
+
+// StartWrapped is Start with a router wrapper (e.g. the maintenance gate).
+func StartWrapped(t *testing.T, pool *pgxpool.Pool, wrap func(http.Handler) http.Handler, mount func(a *auth.Handler, logger *slog.Logger) []httpapi.Module) *Server {
 	t.Helper()
 	fake := fakegithub.New("test-client", "test-secret", fakegithub.User{ID: OwnerID, Login: "owner"})
 	gh := httptest.NewServer(fake.Handler())
@@ -47,7 +52,7 @@ func Start(t *testing.T, pool *pgxpool.Pool, mount func(a *auth.Handler, logger 
 		AuthorizeURL: gh.URL + "/login/oauth/authorize", TokenURL: gh.URL + "/login/oauth/access_token", UserURL: gh.URL + "/user",
 	}, pool, logger)
 	modules := append([]httpapi.Module{a}, mount(a, logger)...)
-	api.Config.Handler = httpapi.NewRouter(logger, origin, modules...)
+	api.Config.Handler = httpapi.NewRouter(logger, origin, wrap, modules...)
 	api.Start()
 	t.Cleanup(api.Close)
 

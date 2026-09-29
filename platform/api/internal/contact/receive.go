@@ -28,6 +28,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/ops"
 )
 
 const (
@@ -47,6 +48,8 @@ type Store struct {
 	pool *pgxpool.Pool
 	cfg  Config
 	Now  func() time.Time
+	// Gate pauses sending and purge (maintenance, BACKGROUND_JOBS=off).
+	Gate ops.Gate
 
 	secretOnce sync.Once
 	secret     []byte

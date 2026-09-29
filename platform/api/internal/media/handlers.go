@@ -20,6 +20,7 @@ import (
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/content"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/ops"
 )
 
 var idPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -40,6 +41,8 @@ type Handler struct {
 	requireOwner func(http.Handler) http.Handler
 	actor        func(*http.Request) string
 	isOwner      func(*http.Request) bool
+	// Gate pauses the staging cleanup (maintenance, BACKGROUND_JOBS=off).
+	Gate ops.Gate
 
 	large  chan struct{} // one large upload at a time
 	decode chan struct{} // one image decode/re-encode at a time (bounded memory)
@@ -341,8 +344,11 @@ func (h *Handler) RunCleanup(ctx context.Context, every, maxAge time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
-		if err := h.Cleanup(ctx, maxAge); err != nil && !errors.Is(err, context.Canceled) {
-			h.logger.Warn("media cleanup failed", "error", err)
+		if done, ok := h.Gate.Try(); ok {
+			if err := h.Cleanup(ctx, maxAge); err != nil && !errors.Is(err, context.Canceled) {
+				h.logger.Warn("media cleanup failed", "error", err)
+			}
+			done()
 		}
 		select {
 		case <-ctx.Done():

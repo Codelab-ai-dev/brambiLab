@@ -37,10 +37,13 @@ func (s *Service) Run(ctx context.Context, tick time.Duration, logger *slog.Logg
 	t := time.NewTicker(tick)
 	defer t.Stop()
 	for {
-		if n, err := s.RunDue(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("scheduler pass", "error", err)
-		} else if n > 0 {
-			logger.Info("scheduler pass", "jobs", n)
+		if done, ok := s.Gate.Try(); ok {
+			if n, err := s.RunDue(ctx); err != nil && ctx.Err() == nil {
+				logger.Error("scheduler pass", "error", err)
+			} else if n > 0 {
+				logger.Info("scheduler pass", "jobs", n)
+			}
+			done()
 		}
 		select {
 		case <-ctx.Done():

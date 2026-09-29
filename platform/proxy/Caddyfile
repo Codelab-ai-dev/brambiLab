@@ -21,10 +21,11 @@
 		defer
 	}
 
-	# Uploads are streamed to Go, which enforces per-type limits (web-v1.md §12.1).
+	# Uploads are streamed to Go, which enforces per-type limits (web-v1.md §12.1). Binary units:
+	# the largest type is 250 MiB (video); "256MB" would be 256×10^6 bytes, below 250 MiB.
 	@upload path /api/v1/admin/assets
 	request_body @upload {
-		max_size 256MB
+		max_size 256MiB
 	}
 
 	# Contact form: Go limits the body to 32 KiB; refuse anything much larger at the edge.

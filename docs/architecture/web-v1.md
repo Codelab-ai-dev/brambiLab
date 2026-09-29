@@ -436,7 +436,14 @@ Antes de habilitar: dominio remitente, destinatario y API key configurados; sin 
 Cuatro servicios runtime: proxy, web, api y postgres, más la tarea migrate. Build multietapa, usuario no-root donde corresponda, imágenes versionadas y dependencias fijadas; sin montar código fuente en producción.
 Volúmenes postgres_data y media_data persistentes. Red interna para DB/API; exposición pública sólo por proxy. Healthchecks y reintentos de conexión; readiness comprueba dependencias sin filtrar credenciales.
 Migraciones como tarea de release antes de activar nueva API; un ejecutor con lock. Cambios compatibles hacia adelante; no ejecutar rollback destructivo automáticamente.
-Configuración: PUBLIC_ORIGIN, INTERNAL_API_URL, DATABASE_URL, ADMIN_GITHUB_USER_ID, GITHUB_CLIENT_ID/SECRET, SESSION_SECRET si se requiere firma, RESEND_API_KEY, CONTACT_FROM/TO, STORAGE_DRIVER, STORAGE_LOCAL_ROOT, upload limits y TZ editorial.
+Configuración que el código lee realmente (verificado en WEB-008; la lista completa y su uso están en [docs/operations/release.md](../operations/release.md)):
+- **web:** `PUBLIC_ORIGIN` e `INTERNAL_API_URL`.
+- **api, conexión y origen:** `PG*` (libpq; `DATABASE_URL` es opcional) y `PUBLIC_ORIGIN`.
+- **api, login:** `ADMIN_GITHUB_USER_ID`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` y `SESSION_TTL`.
+- **api, contacto:** `CONTACT_*` y `RESEND_API_KEY`.
+- **api, red y medios:** `TRUSTED_PROXIES`, `STORAGE_LOCAL_ROOT`, `MEDIA_MAX_*_BYTES`, `MEDIA_FREE_RESERVE_BYTES`, `API_PORT` y `BACKGROUND_JOBS`.
+
+No existen `SESSION_SECRET` (la sesión es un token opaco con hash en la base), `STORAGE_DRIVER` (sólo hay almacenamiento local) ni una variable de zona editorial (America/Mexico_City está fijada en el código).
 Dominio final y callbacks pendientes. No asumir capacidad exacta de KVM 2: verificar RAM/CPU/disco en panel antes de fijar límites. Ajustar pool DB, concurrencia y memoria mediante prueba de carga; no prometer tráfico soportado.
 CI prevista: lint/typecheck/build frontend; go vet/test/build; integración PostgreSQL; migraciones; construcción Docker. Despliegue mediante Coolify desde rama acordada con autorización, no despliegue automático en esta entrega.
 
@@ -445,6 +452,30 @@ Logs estructurados con request_id; métricas de latencia, errores, jobs atrasado
 Backups: PostgreSQL + bytes media + configuración necesaria, cifrados fuera del VPS. Destino, frecuencia, retención y objetivos RPO/RTO pendientes de elección antes de lanzamiento.
 Diseñar copia consistente: congelar borrados/cambios destructivos o snapshot coordinado, registrar manifiesto de objetos y verificar referencias DB. Un volumen persistente no es un backup.
 Gate de lanzamiento: restaurar DB y archivos en entorno separado y comprobar login, referencias y publicaciones. Proveedor pendiente no bloquea desarrollo.
+
+### 15.1 Implementación WEB-008 (#37)
+**Interruptores operativos.**
+- `app_maintenance` (migración 00009) se activa con SQL desde el script de backup. Mientras está activo:
+  - la API responde 503 `maintenance` (con `Retry-After: 60`) a todo método no seguro;
+  - cada tarea en segundo plano (programador, envío y purga de contacto, limpieza de medios y de sesiones) se salta su pasada.
+- La API escribe `acknowledged_at` cuando ya no queda ninguna escritura ni pasada en curso. El backup sólo empieza tras ese acuse.
+- Una copia hecha en mantenimiento se restaura en mantenimiento: es el estado seguro por defecto.
+- `BACKGROUND_JOBS=off` (sólo para entornos de restauración) impide cualquier tarea en segundo plano durante toda la vida del proceso, así que la restauración no ejecuta publicaciones vencidas ni reenvía contactos.
+
+**Preflight.**
+- `server preflight` valida una configuración de producción y sólo muestra nombres de variables. Rechaza:
+  - un `PUBLIC_ORIGIN` que no sea https o sea de ejemplo o localhost;
+  - una contraseña de base débil o de ejemplo;
+  - el login sin configurar o con valores de prueba;
+  - variables sólo de prueba (`GITHUB_*_URL`, `RESEND_API_URL`…);
+  - un contacto activado incompleto o con valores de ejemplo;
+  - `BACKGROUND_JOBS=off`;
+  - un volumen de medios no escribible.
+- Avisa si `TRUSTED_PROXIES` no está fijado.
+
+**Límites a lo largo de la cadena.** Caddy acepta 256 MiB en `/api/v1/admin/assets` (antes `256MB` decimales, que rechazaban con 413 un vídeo de 250 MiB; comprobado con un MP4 sintético de 250 MiB) y 64 KB en `/api/v1/contact`. Go aplica los límites por tipo.
+
+**Logs.** Rotación json-file de 10 MB × 5 por servicio.
 
 ## 16. Entregas y aceptación
 | Tarea | Resultado verificable |

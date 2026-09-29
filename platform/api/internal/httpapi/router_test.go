@@ -19,7 +19,7 @@ func (panicModule) Register(mux *http.ServeMux) {
 
 func do(t *testing.T, req *http.Request) (*httptest.ResponseRecorder, httpapi.Error) {
 	t.Helper()
-	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), "https://example.test", panicModule{})
+	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), "https://example.test", nil, panicModule{})
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	var body httpapi.Error
