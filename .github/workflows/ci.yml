@@ -104,7 +104,7 @@ jobs:
       - name: Secrets never reach logs
         run: |
           grep -q "POSTGRES_PASSWORD='change-me@local/#1'" .env
-          for secret in 'change-me@local' 'e2e-secret' 're_e2e_fake' 'access_token' 'csrf_token' 'bl_session='; do
+          for secret in 'change-me@local' 'e2e-secret' 're_e2e_fake' 'access_token' 'csrf_token' 'bl_session=' 'MARCA-' 'ana@example.org'; do
             if docker compose logs 2>&1 | grep -qF "$secret"; then
               echo "found in logs: $secret"; exit 1
             fi

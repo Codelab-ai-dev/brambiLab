@@ -30,7 +30,7 @@ export default function AdminHome() {
           </section>
         ))}
       </div>
-      <p className="mt-6 text-sm text-text-muted">Cada idioma se publica o se programa por separado desde la ficha, el editor o el historial del contenido; lo no publicado sigue siendo privado. El sitio público completo llega con WEB-006.</p>
+      <p className="mt-6 text-sm text-text-muted">Cada idioma se publica o se programa por separado desde la ficha, el editor o el historial del contenido; lo no publicado sigue siendo privado. Los mensajes del formulario de contacto están en «Contacto».</p>
     </>
   );
 }

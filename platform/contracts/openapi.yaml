@@ -899,9 +899,10 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [available]
+                required: [available, retention_days]
                 properties:
                   available: { type: boolean }
+                  retention_days: { type: integer, description: Days messages are kept (for the privacy notice). }
   /admin/contact/messages:
     get:
       operationId: listContactMessages

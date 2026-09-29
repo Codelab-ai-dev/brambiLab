@@ -423,6 +423,12 @@ Antes de habilitar: dominio remitente, destinatario y API key configurados; sin 
   - Un `unknown`, o un `failed` fuera de la ventana, exige `confirm_possible_duplicate: true`: usa una clave nueva (`contact/{uuid}/r{n}`), se audita y avisa de un posible duplicado.
   - Un `accepted_by_provider` nunca se reenvía (409).
 - `RequireOwner`, CSRF, `no-store` y `noindex`. No hay acción de responder al visitante.
+- Pantallas `/admin/contacto` (listado con filtro por estado) y `/admin/contacto/{id}` (mensaje como texto, intentos, próximo intento, ventana e id de Resend). Consultar funciona sin JS; el reintento usa `clientAction` y **requiere JS**, como el resto de acciones del panel.
+- **Formulario público:**
+  - sin JS, POST directo a Go y 303 con `?estado`, en `noindex`;
+  - con JS, JSON: conserva valores y clave tras un fallo de red o un 429, usa clave nueva tras editar o tras un acuse, lleva el foco al primer campo inválido y anuncia el resultado con `role=status`/`alert`;
+  - no usa `localStorage`;
+  - el aviso de privacidad toma `retention_days` de `GET /public/contact`.
 
 **Retención.** 30 días (`CONTACT_RETENTION_DAYS`). La purga borra el mensaje, su trabajo, los intentos y la clave de idempotencia, salvo los trabajos con un lease vigente, que se purgan en la pasada siguiente. La auditoría sólo guarda ids. No borra correos en buzones, en Resend ni en backups: su retención se documenta antes del lanzamiento (WEB-008).
 

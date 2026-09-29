@@ -23,6 +23,8 @@ type Step struct {
 	Delay      time.Duration `json:"delay"`
 	Accept     bool          `json:"accept"`
 	BadBody    bool          `json:"bad_body"`
+	// Match limits the step to requests whose body contains it (empty: the next request).
+	Match string `json:"match"`
 }
 
 type Email struct {
@@ -105,8 +107,12 @@ func (s *Server) send(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	s.calls++
 	var step Step
-	if len(s.script) > 0 {
-		step, s.script = s.script[0], s.script[1:]
+	for i, st := range s.script {
+		if st.Match == "" || bytes.Contains(body, []byte(st.Match)) {
+			step = st
+			s.script = append(s.script[:i:i], s.script[i+1:]...)
+			break
+		}
 	}
 	s.mu.Unlock()
 	if r.Header.Get("Authorization") != "Bearer "+s.apiKey {

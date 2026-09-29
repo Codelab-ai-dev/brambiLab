@@ -45,6 +45,8 @@ export default [
     route("medios", "routes/admin/media.tsx"),
     route("medios/:id", "routes/admin/media-detail.tsx"),
     route("sitio", "routes/admin/site.tsx"),
+    route("contacto", "routes/admin/contact-messages.tsx"),
+    route("contacto/:id", "routes/admin/contact-message.tsx"),
   ]),
   ...site,
 ] satisfies RouteConfig;

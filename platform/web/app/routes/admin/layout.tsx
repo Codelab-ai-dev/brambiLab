@@ -23,6 +23,7 @@ const nav: { to: string; label: string; active: (path: string, tipo: string | nu
   { to: "/admin/medios", label: "Medios", active: (p) => p.startsWith("/admin/medios") },
   { to: "/admin/taxonomia", label: "Categorías y etiquetas", active: (p) => p === "/admin/taxonomia" },
   { to: "/admin/sitio", label: "Sitio público", active: (p) => p === "/admin/sitio" },
+  { to: "/admin/contacto", label: "Contacto", active: (p) => p.startsWith("/admin/contacto") },
 ];
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
