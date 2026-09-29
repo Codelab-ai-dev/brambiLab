@@ -9,7 +9,7 @@ export function ContactLinks({ locale, site }: { locale: Locale; site: PublicSit
     <ul className="flex min-w-0 flex-wrap gap-3">
       {site.contact_email && (
         <li className="min-w-0 max-w-full">
-          <a href={`mailto:${site.contact_email}`} className="inline-flex max-w-full min-h-11 items-center gap-3 rounded-md border border-border-strong px-4 hover:border-accent focus-visible:outline-2 focus-visible:outline-accent">
+          <a href={`mailto:${site.contact_email}`} className="inline-flex max-w-full min-h-11 items-center gap-3 rounded-sm border border-border-strong px-4 hover:border-accent focus-visible:outline-2 focus-visible:outline-accent">
             <span className="font-mono text-xs text-accent">@</span>
             <span className="min-w-0 [overflow-wrap:anywhere]">
               <span className="sr-only">{t(locale, "contact.email")}: </span>
@@ -20,7 +20,7 @@ export function ContactLinks({ locale, site }: { locale: Locale; site: PublicSit
       )}
       {site.links.map((l) => (
         <li key={l.url}>
-          <a href={l.url} rel="noopener noreferrer me" className="inline-flex min-h-11 items-center gap-3 rounded-md border border-border-strong px-4 hover:border-accent focus-visible:outline-2 focus-visible:outline-accent">
+          <a href={l.url} rel="noopener noreferrer me" className="inline-flex min-h-11 items-center gap-3 rounded-sm border border-border-strong px-4 hover:border-accent focus-visible:outline-2 focus-visible:outline-accent">
             <span aria-hidden="true" className="font-mono text-xs text-accent">{kindMark[l.kind]}</span>
             {l.label}
           </a>

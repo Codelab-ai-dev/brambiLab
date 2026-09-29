@@ -48,7 +48,7 @@ export function Hero({ locale }: { locale: Locale }) {
           </a>
         </div>
 
-        <div className="grid gap-8 border-t border-border py-10 sm:grid-cols-2 lg:col-span-2 lg:flex lg:flex-col lg:justify-between lg:border-t-0 lg:py-24 lg:pr-6">
+        <div className="grid min-w-0 gap-8 border-t border-border py-10 [overflow-wrap:anywhere] sm:grid-cols-2 lg:col-span-2 lg:flex lg:flex-col lg:justify-between lg:border-t-0 lg:py-24 lg:pr-6">
           <p className="bl-meta max-w-[22ch] text-text">{t(locale, "hero.statement")}</p>
           <span aria-hidden="true" className="hidden h-16 w-px bg-signal lg:block" />
           <div>
@@ -69,7 +69,7 @@ export function Hero({ locale }: { locale: Locale }) {
             <path d="M0 12h24M12 0v24" />
             <circle cx="12" cy="12" r="6" />
           </svg>
-          <figcaption className="bl-meta absolute bottom-4 left-4 text-[0.6875rem] text-text-muted">{t(locale, "visual.conceptual")}</figcaption>
+          <figcaption className="bl-meta absolute bottom-3 left-3 bg-deep px-1.5 py-0.5 text-[0.6875rem] text-text-muted">{t(locale, "visual.conceptual")}</figcaption>
         </figure>
       </Frame>
     </section>

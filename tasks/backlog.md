@@ -50,7 +50,7 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 | WEB-007 | Contacto con Resend | Estado en [Issue #34](https://github.com/Codelab-ai-dev/brambiLab/issues/34) | WEB-006 |
 | WEB-008 | Coolify, backups y validación de lanzamiento | Cerrada con excepciones ([#37](https://github.com/Codelab-ai-dev/brambiLab/issues/37)); pendientes en [#43](https://github.com/Codelab-ai-dev/brambiLab/issues/43) | WEB-007 |
 | UI-45 | Logo modular en cabecera, pie y favicon | Terminada ([#45](https://github.com/Codelab-ai-dev/brambiLab/issues/45) cerrado, PR #46) | Kit de marca de Gustavo |
-| WEB-009 | Rediseño editorial del sitio público (navy, cyan, tipografía grande) | En curso ([#47](https://github.com/Codelab-ai-dev/brambiLab/issues/47)): entrega 1 (sistema visual, estructura del sitio y home) en PR; entregas 2 (resto de rutas públicas) y 3 (auditoría y cierre) pendientes | UI-45 |
+| WEB-009 | Rediseño editorial del sitio público (navy, cyan, tipografía grande) | Implementada ([#47](https://github.com/Codelab-ai-dev/brambiLab/issues/47)): entrega 1 en `main` (#48); entregas 2 y 3 en el PR de cierre; despliegue pendiente de autorización | UI-45 |
 
 Seguimiento de la revisión de Codex a WEB-001 ([comentario](https://github.com/Codelab-ai-dev/brambiLab/pull/5#issuecomment-5861621351)):
 - Credenciales PostgreSQL con caracteres reservados: corregido en `fix/WEB-001-db-credentials` con variables `PG*` y prueba de integración.

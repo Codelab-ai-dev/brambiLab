@@ -246,7 +246,7 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
   - Contraste medido par a par, incluidos los tokens propios de la superficie clara (texto secundario `#4F5B6B`, enlace `#006A8E`), porque el gris `#8B98A8` (2,66:1) y el cyan (1,77:1) no sirven sobre papel.
   - Las líneas decorativas (cyan al 15 %) nunca sustituyen un borde de control ni el foco.
 - Tipografía:
-  - Space Grotesk variable (OFL, servida por el sitio) para titulares e interfaz, IBM Plex Mono para metadatos e IBM Plex Sans sólo para el texto largo (`.bl-prose`), porque Space Grotesk no tiene cursiva.
+  - Space Grotesk variable (OFL, servida por el sitio) para titulares e interfaz, IBM Plex Mono para metadatos e IBM Plex Sans sólo para el texto largo (`.bl-prose`), porque Space Grotesk no tiene cursiva. Ancho de lectura de 34 em (≈ 70 caracteres por línea).
   - Titular del hero ajustado al ancho de su columna (unidades de contenedor) para que cada línea quepa entera; titulares de sección `clamp(2.5rem, 7vw, 8rem)`, con un mínimo inferior al del issue porque «Construyamos» mide 6,6 em.
   - Retícula de 12, 6 y 1 columnas, con marco de hasta 100rem. Radios de 0–4 px.
 - Imágenes:
@@ -257,7 +257,14 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
   - Los metadatos aparecen sólo si el campo existe.
   - La cifra de proyectos es el total público del idioma y sólo se muestra a partir de 3.
   - Las áreas se presentan como enfoque, no como proyectos.
+- Accesibilidad (entrega 3): anillo de foco por defecto en todo elemento interactivo público; `e2e/a11y.pw.ts` ejecuta axe (WCAG 2.2 A/AA) en todas las rutas, recorre el foco con teclado y comprueba zoom y texto al 200 %. Complementa, no sustituye, la revisión con lector de pantalla.
 - Movimiento: sólo transiciones CSS de hover; nada oculta contenido en SSR ni sin JavaScript. Con `prefers-reduced-motion` no se mueve nada.
+- Páginas interiores (entrega 2):
+  - cabecera navy con titular grande;
+  - índices y búsqueda como filas editoriales (`<article>` con título enlazado, fecha, tipo, estado, tecnologías, términos y miniatura desaturada), con filtros GET y paginación;
+  - el recuento de la cabecera es el total del API;
+  - proyecto, artículo y bitácora: portada en color, a lo ancho y sin recorte (`object-contain`), texto sobre papel, ficha técnica del proyecto, bitácora y «Seguir explorando», sólo con destinos existentes (índice, proyecto de la bitácora y categoría);
+  - acerca de y contacto sobre papel; el formulario desactivado sigue explicándolo.
 - Navegación: cabecera fija translúcida, con el menú móvil como botón desplegable (`aria-expanded`; Escape cierra y devuelve el foco). Sin JavaScript, el mismo control enlaza a la navegación del pie. Los enlaces de perfil del pie son sólo los configurados.
 - Logotipo modular (#45): tres piezas que forman una «b» y el texto «BrambiLab», del kit en `platform/web/public/brand/originals/` (copia sin modificar con `SHA256SUMS`).
   - Componente único `BrambiLabLogo` con los trazados del kit sin alterar, `viewBox` 1220×380 y altura fija: sin distorsión ni salto de layout. Es decorativo (`aria-hidden`); el enlace que lo contiene se llama «BrambiLab» y lleva a la portada del idioma.
