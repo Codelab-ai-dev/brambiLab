@@ -10,9 +10,10 @@ import type { CardPage, PublicContent, Switcher } from "./types";
 const notFound = () => data(null, { status: 404, headers: publicHeaders });
 
 /** Plain text of the first paragraphs, for a description when the author wrote none. */
-function firstText(c: PublicContent): string {
+export function firstText(c: Pick<PublicContent, "body">): string {
   const out: string[] = [];
-  for (const b of c.body.content) {
+  // A stored document may lack "content" ({"type":"doc"}): it has no text, not an error.
+  for (const b of c.body.content ?? []) {
     if (b.type === "paragraph" && b.content) out.push(b.content.map((n) => ("text" in n ? n.text : " ")).join(""));
     if (out.join(" ").length > 160) break;
   }

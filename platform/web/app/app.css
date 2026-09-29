@@ -84,7 +84,8 @@ body {
  * mono labels 5.5:1 on --bench-bg.
  */
 .bl-bench,
-.bl-bench-bar {
+.bl-bench-bar,
+.bl-viewer {
   --bench-bg: #0e1012;
   --bench-panel: #15181b;
   --bench-edge: #6b727b;
@@ -194,3 +195,39 @@ body {
 .bl-editor .ProseMirror hr { border: 0; border-top: 1px solid var(--color-border); }
 .bl-editor .ProseMirror .selectedCell { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .bl-editor .ProseMirror .ProseMirror-selectednode { outline: 2px solid var(--color-accent); }
+
+/* Document images (#41): a specimen plate behind thumbnails (object-fit: contain leaves margins)
+   and the dark viewer, in the bench palette. */
+.bl-plate {
+  background-image:
+    linear-gradient(var(--color-grid-strong) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-strong) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.bl-viewer::backdrop {
+  background: rgb(12 14 16 / 0.92);
+}
+.bl-viewer-nav {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--bench-edge);
+  background: rgb(14 16 18 / 0.7);
+  color: var(--bench-text);
+  font-size: 1.25rem;
+}
+.bl-viewer-nav:hover { border-color: var(--bench-signal); }
+.bl-viewer-nav:focus-visible { outline: 2px solid var(--bench-signal); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .bl-viewer[open] { animation: bl-viewer-in 160ms ease-out; }
+  @keyframes bl-viewer-in {
+    from { opacity: 0; transform: scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
+}

@@ -100,7 +100,7 @@ test("insert image, video with poster and download; save, reload, preview and pl
   for (const img of await images.all()) {
     await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
   }
-  await expect(article.locator("figcaption")).toHaveText("Prueba con ruedas levantadas");
+  await expect(article.locator("figure:has(video) figcaption")).toHaveText("Prueba con ruedas levantadas");
   const video = article.locator("video");
   // Playback and seeking go through Range requests (206) to Go via Caddy.
   const seek = await video.evaluate(async (el: HTMLVideoElement) => {

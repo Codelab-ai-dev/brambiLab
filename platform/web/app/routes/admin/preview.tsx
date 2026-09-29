@@ -38,7 +38,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       if ("content" in b && Array.isArray(b.content)) b.content.forEach((c) => "content" in c && Array.isArray(c.content) && walk(c.content as Block[]));
       if (b.type === "blockquote") walk(b.content);
     });
-  walk(revision.body.content);
+  walk(revision.body.content ?? []);
   const found = await Promise.all([...ids].map((id) => adminGet<Asset>(request, `/api/v1/admin/assets/${id}`).catch(() => null)));
   const assets: Record<string, AssetMeta> = {};
   for (const a of found) if (a) assets[a.id] = { width: a.width, height: a.height, bytes: a.bytes };

@@ -4,7 +4,8 @@
 
 import { useState, type ReactNode } from "react";
 import { t, type Locale } from "~/i18n";
-import { isSafeHref, type Block, type Doc, type Inline, type TextNode } from "./schema";
+import { ImageGallery, type GalleryImage } from "./ImageGallery";
+import { isSafeHref, type Block, type Doc, type Image, type Inline, type TextNode } from "./schema";
 
 /** Stored-file facts used to reserve space and label downloads; optional (e.g. import preview). */
 export type AssetMeta = { width: number | null; height: number | null; bytes: number; downloadable?: boolean };
@@ -21,11 +22,46 @@ type Props = {
 };
 
 export function DocumentView({ doc, locale, assets = {}, publicOnly = false }: Props) {
-  const ctx: Ctx = { locale, assets, publicOnly };
-  return <div className="space-y-4 leading-relaxed">{doc.content.map((b, i) => renderBlock(b, i, ctx))}</div>;
+  // Figures are numbered in document order; the counter is per render, so SSR and hydration match.
+  const ctx: Ctx = { locale, assets, publicOnly, figure: { n: 0 } };
+  // A stored document may lack "content" ({"type":"doc"}): render it as empty, never crash.
+  return <div className="space-y-4 leading-relaxed">{renderBlocks(doc.content ?? [], ctx)}</div>;
 }
 
-type Ctx = { locale: Locale; assets: Record<string, AssetMeta>; publicOnly: boolean };
+type Ctx = { locale: Locale; assets: Record<string, AssetMeta>; publicOnly: boolean; figure: { n: number } };
+
+/**
+ * Renders a list of blocks, turning each run of consecutive images into one gallery. Blocks keep
+ * their editorial order: text between images splits them into separate galleries.
+ */
+function renderBlocks(blocks: Block[], ctx: Ctx): ReactNode[] {
+  const out: ReactNode[] = [];
+  for (let i = 0; i < blocks.length; ) {
+    if (blocks[i].type !== "image") {
+      out.push(renderBlock(blocks[i], i, ctx));
+      i++;
+      continue;
+    }
+    const start = i;
+    const run: GalleryImage[] = [];
+    for (; i < blocks.length && blocks[i].type === "image"; i++) {
+      const b = blocks[i] as Image;
+      const meta = ctx.assets[b.attrs.assetId];
+      run.push({
+        key: `${i}-${b.attrs.assetId}`,
+        assetId: b.attrs.assetId,
+        alt: b.attrs.alt,
+        caption: b.attrs.caption,
+        width: meta?.width ?? null,
+        height: meta?.height ?? null,
+        available: !ctx.publicOnly || !!meta,
+        figure: ++ctx.figure.n,
+      });
+    }
+    out.push(<ImageGallery key={`g${start}`} images={run} locale={ctx.locale} />);
+  }
+  return out;
+}
 
 function Unavailable({ locale }: { locale: Locale }) {
   return (
@@ -58,7 +94,7 @@ function renderBlock(b: Block, key: number, ctx: Ctx): ReactNode {
       return (
         <ul key={key} className="list-disc space-y-1 pl-6">
           {b.content.map((item, i) => (
-            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, ctx))}</li>
+            <li key={i}>{renderBlocks(item.content, ctx)}</li>
           ))}
         </ul>
       );
@@ -66,14 +102,14 @@ function renderBlock(b: Block, key: number, ctx: Ctx): ReactNode {
       return (
         <ol key={key} start={b.attrs?.start} className="list-decimal space-y-1 pl-6">
           {b.content.map((item, i) => (
-            <li key={i}>{item.content.map((c, j) => renderBlock(c, j, ctx))}</li>
+            <li key={i}>{renderBlocks(item.content, ctx)}</li>
           ))}
         </ol>
       );
     case "blockquote":
       return (
         <blockquote key={key} className="space-y-2 border-l-4 border-border pl-4 text-text-muted">
-          {b.content.map((c, i) => renderBlock(c, i, ctx))}
+          {renderBlocks(b.content, ctx)}
         </blockquote>
       );
     case "codeBlock": {
@@ -116,24 +152,9 @@ function renderBlock(b: Block, key: number, ctx: Ctx): ReactNode {
       );
     case "youtube":
       return <YouTubeEmbed key={key} videoId={b.attrs.videoId} start={b.attrs.start} locale={locale} />;
-    case "image": {
-      const meta = assets[b.attrs.assetId];
-      if (publicOnly && !meta) return <Unavailable key={key} locale={locale} />;
-      return (
-        <figure key={key} className="my-6">
-          <img
-            src={`/media/${b.attrs.assetId}`}
-            alt={b.attrs.alt}
-            width={meta?.width ?? undefined}
-            height={meta?.height ?? undefined}
-            loading="lazy"
-            decoding="async"
-            className="h-auto max-w-full rounded-md"
-          />
-          {b.attrs.caption && <figcaption className="mt-2 text-sm text-text-muted">{b.attrs.caption}</figcaption>}
-        </figure>
-      );
-    }
+    case "image":
+      // Reached only for a lone image outside renderBlocks; same presentation.
+      return renderBlocks([b], ctx);
     case "video": {
       const meta = assets[b.attrs.assetId];
       if (publicOnly && !meta) return <Unavailable key={key} locale={locale} />;
