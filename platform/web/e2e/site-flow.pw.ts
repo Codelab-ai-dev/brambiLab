@@ -126,7 +126,9 @@ test("site settings, featured projects, drafts, withdrawal, revoked cover and a 
   expect(detail).toContain(`<meta property="og:image" content="${BASE}/media/${cover}"/>`);
   await v.page.goto("/es/contacto");
   await expect(v.page.getByRole("link", { name: /contacto@example.com/ })).toHaveAttribute("href", "mailto:contacto@example.com");
-  await expect(v.page.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/example");
+  await expect(v.page.getByRole("main").getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/example");
+  // The footer shows the configured profiles on every page.
+  await expect(v.page.locator("footer").getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/example");
   await v.page.goto("/es/acerca-de");
   await expect(v.page.getByText(`Primer párrafo ${run}.`)).toBeVisible();
   await expect(v.page.getByText("Segundo párrafo.")).toBeVisible();
@@ -168,20 +170,17 @@ test("site settings, featured projects, drafts, withdrawal, revoked cover and a 
   await v.ctx.close();
 });
 
-test("reduced motion freezes the hero; keyboard users can skip to the content", async ({ browser }) => {
-  const trace = async (reducedMotion: "reduce" | "no-preference") => {
-    const ctx = await browser.newContext({ reducedMotion });
-    const page = await ctx.newPage();
-    await page.goto("/es");
-    const path = page.locator(".bl-scope path[stroke-width='2']");
-    const before = await path.getAttribute("d");
-    await page.waitForTimeout(600);
-    const after = await path.getAttribute("d");
-    await ctx.close();
-    return before !== after;
-  };
-  expect(await trace("reduce")).toBe(false);
-  expect(await trace("no-preference")).toBe(true);
+test("the home is static under reduced motion; keyboard users can skip to the content", async ({ browser }) => {
+  // WEB-009: no motion loop at all; with reduced motion not even a transition runs.
+  const still = await browser.newContext({ reducedMotion: "reduce" });
+  const home = await still.newPage();
+  await home.goto("/es");
+  const cta = home.getByRole("link", { name: "Explorar proyectos" });
+  await cta.hover();
+  await home.waitForTimeout(100);
+  expect(await home.evaluate(() => document.getAnimations().filter((a) => a.playState === "running").length)).toBe(0);
+  expect(await cta.locator(".bl-arrow").evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+  await still.close();
 
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
