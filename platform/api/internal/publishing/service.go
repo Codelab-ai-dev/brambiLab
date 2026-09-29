@@ -21,6 +21,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/ops"
 )
 
 // EditorialZone is the only zone for editorial dates (web-v1.md §8).
@@ -44,6 +46,8 @@ type Service struct {
 	MaxBackoff  time.Duration
 
 	hooks hooks
+	// Gate pauses the scheduler (maintenance, BACKGROUND_JOBS=off).
+	Gate ops.Gate
 }
 
 func NewService(pool *pgxpool.Pool) *Service {

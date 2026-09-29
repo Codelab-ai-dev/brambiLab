@@ -39,13 +39,16 @@ func (w *Worker) Run(ctx context.Context, tick time.Duration) {
 	t := time.NewTicker(tick)
 	defer t.Stop()
 	for {
-		if n, err := w.RunDue(ctx); err != nil && ctx.Err() == nil {
-			w.logger.Error("contact worker pass", "error", err)
-		} else if n > 0 {
-			w.logger.Info("contact worker pass", "jobs", n)
-		}
-		if err := w.store.Purge(ctx); err != nil && ctx.Err() == nil {
-			w.logger.Error("contact purge", "error", err)
+		if done, ok := w.store.Gate.Try(); ok {
+			if n, err := w.RunDue(ctx); err != nil && ctx.Err() == nil {
+				w.logger.Error("contact worker pass", "error", err)
+			} else if n > 0 {
+				w.logger.Info("contact worker pass", "jobs", n)
+			}
+			if err := w.store.Purge(ctx); err != nil && ctx.Err() == nil {
+				w.logger.Error("contact purge", "error", err)
+			}
+			done()
 		}
 		select {
 		case <-ctx.Done():
@@ -246,8 +249,11 @@ func (s *Store) RunPurge(ctx context.Context, every time.Duration, logger *slog.
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
-		if err := s.Purge(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("contact purge", "error", err)
+		if done, ok := s.Gate.Try(); ok {
+			if err := s.Purge(ctx); err != nil && ctx.Err() == nil {
+				logger.Error("contact purge", "error", err)
+			}
+			done()
 		}
 		select {
 		case <-ctx.Done():

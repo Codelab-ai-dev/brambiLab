@@ -95,7 +95,7 @@ func ready(t *testing.T, ctx context.Context, cfg *pgxpool.Config, logger *slog.
 		t.Fatal(err)
 	}
 	defer pool.Close()
-	router := httpapi.NewRouter(logger, "http://localhost:8000", health.Handler{DB: pool, Logger: logger, Timeout: 5 * time.Second})
+	router := httpapi.NewRouter(logger, "http://localhost:8000", nil, health.Handler{DB: pool, Logger: logger, Timeout: 5 * time.Second})
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil))
 	return rec.Code

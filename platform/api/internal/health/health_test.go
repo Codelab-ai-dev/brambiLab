@@ -22,7 +22,7 @@ func (f fakeDB) Ping(context.Context) error { return f.err }
 func serve(t *testing.T, db health.Pinger, path string) *httptest.ResponseRecorder {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	router := httpapi.NewRouter(logger, "https://example.test", health.Handler{DB: db, Logger: logger})
+	router := httpapi.NewRouter(logger, "https://example.test", nil, health.Handler{DB: db, Logger: logger})
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 	return rec

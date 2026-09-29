@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -469,4 +470,34 @@ func TestRunLoopRecoversAtStartupAndTicks(t *testing.T) {
 	}
 	e.setNow(due.Add(time.Minute))
 	waitFor(b)
+}
+
+// Maintenance or BACKGROUND_JOBS=off: the loop skips its passes; due jobs wait, then run.
+func TestRunLoopRespectsTheGate(t *testing.T) {
+	e := start(t)
+	a := e.create(t, "article", "es", "")
+	requireStatus(t, "a", e.schedule(t, a, "es", e.save(t, a, "es", snap("A", "a")), dueLoc, false), http.StatusOK, "")
+	e.setNow(due.Add(time.Minute))
+	var open atomic.Bool
+	runner := e.executor()
+	runner.Gate = func() (func(), bool) { return func() {}, open.Load() }
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		runner.Run(ctx, 20*time.Millisecond, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		close(done)
+	}()
+	t.Cleanup(func() { stop(); <-done })
+	time.Sleep(200 * time.Millisecond)
+	if j := e.job(t, a); j.Status != "scheduled" {
+		t.Fatalf("ran while paused: %+v", j)
+	}
+	open.Store(true)
+	deadline := time.Now().Add(5 * time.Second)
+	for e.job(t, a).Status != "succeeded" {
+		if time.Now().After(deadline) {
+			t.Fatal("did not run after the gate opened")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }

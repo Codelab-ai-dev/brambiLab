@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/ops"
 )
 
 const stateTTL = 10 * time.Minute
@@ -20,6 +21,8 @@ type Handler struct {
 	store  store
 	github githubClient
 	logger *slog.Logger
+	// Gate pauses the session cleanup (maintenance, BACKGROUND_JOBS=off).
+	Gate ops.Gate
 }
 
 func NewHandler(cfg Config, pool *pgxpool.Pool, logger *slog.Logger) *Handler {
@@ -180,8 +183,11 @@ func (h *Handler) RunCleanup(ctx context.Context, every time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
-		if err := h.store.cleanup(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			h.logger.Warn("auth cleanup failed", "error", err)
+		if done, ok := h.Gate.Try(); ok {
+			if err := h.store.cleanup(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				h.logger.Warn("auth cleanup failed", "error", err)
+			}
+			done()
 		}
 		select {
 		case <-ctx.Done():

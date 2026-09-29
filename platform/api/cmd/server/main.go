@@ -3,6 +3,7 @@
 //	server [serve]    start the HTTP API (default)
 //	server migrate    apply database migrations and exit (release task)
 //	server healthcheck probe the local liveness endpoint (for distroless images)
+//	server preflight  validate the production configuration (names only, never values)
 package main
 
 import (
@@ -26,6 +27,8 @@ import (
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/health"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/httpapi"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/media"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/ops"
+	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/preflight"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/public"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/publishing"
 	"github.com/Codelab-ai-dev/brambiLab/platform/api/internal/site"
@@ -63,6 +66,16 @@ func run(cmd string, logger *slog.Logger) error {
 		return migrations.Up(ctx, dbCfg.ConnConfig, logger)
 	case "healthcheck":
 		return healthcheck(cfg)
+	case "preflight":
+		// Production configuration check before a release; prints names, never values.
+		results := preflight.Check(os.Getenv, preflight.Writable)
+		for _, r := range results {
+			fmt.Printf("%-4s %s: %s\n", r.Level, r.Name, r.Message)
+		}
+		if preflight.Failed(results) {
+			return errors.New("preflight failed")
+		}
+		return nil
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}
@@ -87,7 +100,16 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	defer pool.Close()
 
+	// Maintenance (backups) and BACKGROUND_JOBS=off (isolated restores) pause every background job.
+	maintenance := ops.NewMaintenance(pool, logger, os.Getenv)
+	if maintenance.BackgroundDisabled() {
+		logger.Warn("background jobs disabled (BACKGROUND_JOBS=off)")
+	}
+	go maintenance.Run(ctx)
+	gate := ops.Gate(maintenance.Allow)
+
 	authHandler := auth.NewHandler(authCfg, pool, logger)
+	authHandler.Gate = gate
 	go authHandler.RunCleanup(ctx, time.Hour)
 
 	storage, err := media.NewLocal(cfg.MediaRoot)
@@ -96,11 +118,13 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	mediaHandler := media.NewHandler(media.NewStore(pool), storage, cfg.MediaLimits, logger,
 		authHandler.RequireOwner, auth.Actor, authHandler.IsOwner)
+	mediaHandler.Gate = gate
 	go mediaHandler.RunCleanup(ctx, 30*time.Minute, 2*time.Hour)
 
 	// Contact (WEB-007): disabled unless fully configured; the reason is logged, never the key.
 	contactCfg := contact.LoadConfig(os.Getenv)
 	contactStore := contact.NewStore(pool, contactCfg)
+	contactStore.Gate = gate
 	contactHandler := contact.NewHandler(contactStore, contactCfg, logger)
 	if contactCfg.Enabled {
 		go contact.NewWorker(contactStore, contact.NewResend(contactCfg.APIURL, contactCfg.APIKey), logger).Run(ctx, contact.WorkerTick)
@@ -112,11 +136,12 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 
 	siteStore := site.NewStore(pool)
 	publisher := publishing.NewService(pool)
+	publisher.Gate = gate
 	go publisher.Run(ctx, publishing.DefaultTick, logger)
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
-		Handler: httpapi.NewRouter(logger, authCfg.PublicOrigin,
+		Handler: httpapi.NewRouter(logger, authCfg.PublicOrigin, maintenance.Middleware,
 			health.Handler{DB: pool, Logger: logger},
 			authHandler,
 			content.NewHandler(content.NewStore(pool), logger, authHandler.RequireOwner, auth.Actor),

@@ -69,7 +69,7 @@ func start(t *testing.T, pool *pgxpool.Pool, adminID int64) *env {
 		SessionTTL:   3600e9,
 		AuthorizeURL: gh.URL + "/login/oauth/authorize", TokenURL: gh.URL + "/login/oauth/access_token", UserURL: gh.URL + "/user",
 	}
-	api.Config.Handler = httpapi.NewRouter(logger, origin, auth.NewHandler(cfg, pool, logger))
+	api.Config.Handler = httpapi.NewRouter(logger, origin, nil, auth.NewHandler(cfg, pool, logger))
 	api.Start()
 	t.Cleanup(api.Close)
 	return &env{t: t, pool: pool, fake: fake, origin: origin, logs: logs}
