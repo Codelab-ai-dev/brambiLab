@@ -1,30 +1,32 @@
-// Public site building blocks in the "cuaderno de laboratorio" style: paper sections, ink text,
-// amber signal, IBM Plex Mono for data. Plain links and GET forms: everything works without JS.
+// Public site building blocks in the editorial direction (WEB-009): wide frame, big type, mono
+// metadata, rows instead of card grids. Plain links and GET forms: everything works without JS.
+// Surfaces come from the scope classes in app.css; these components only use semantic tokens.
 import type { ReactNode } from "react";
+import { Arrow, Eyebrow, Frame } from "~/components/site/editorial";
 import { formatDay, isoDay, t, type Locale, type MessageKey } from "~/i18n";
 import { contentPath } from "./paths";
 import type { Card, Term } from "./types";
 
-export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
-}
+export { Frame };
 
-export function PageIntro({ eyebrow, title, lead, children }: { eyebrow?: string; title: string; lead?: string; children?: ReactNode }) {
+/** Page header of the interior pages: navy band, eyebrow, big title and an optional lead. */
+export function PageHeader({ eyebrow, index, title, lead, children }: { eyebrow?: string; index?: string; title: string; lead?: string; children?: ReactNode }) {
   return (
-    <header className="border-b border-border bg-surface-muted">
-      <Container className="py-10 sm:py-14">
-        {eyebrow && <p className="font-mono text-xs tracking-widest text-accent uppercase">{eyebrow}</p>}
-        <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight break-words sm:text-5xl">{title}</h1>
-        {lead && <p className="mt-4 max-w-2xl text-lg text-text-muted">{lead}</p>}
+    <header className="bl-navy border-b border-border">
+      <Frame className="py-16 sm:py-24">
+        {eyebrow && <Eyebrow index={index}>{eyebrow}</Eyebrow>}
+        <h1 className="bl-h-section mt-6 max-w-[16ch]">{title}</h1>
+        {lead && <p className="mt-8 max-w-2xl text-lg leading-relaxed text-text-muted sm:text-xl">{lead}</p>}
         {children}
-      </Container>
+      </Frame>
     </header>
   );
 }
 
+/** Honest empty state: says what is missing, never pretends. */
 export function Empty({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-text-muted" role="status">
+    <div className="border-y border-border py-12 text-lg text-text-muted" role="status">
       {children}
     </div>
   );
@@ -40,10 +42,10 @@ export function PublishedDate({ locale, iso, label = "date.published" }: { local
 
 export function TermList({ category, tags, hrefFor }: { locale?: Locale; category: Term | null; tags: Term[]; hrefFor?: (kind: "category" | "tag", slug: string) => string }) {
   if (!category && tags.length === 0) return null;
-  const chip = "rounded border border-border px-2 py-0.5 font-mono text-xs text-text-muted";
+  const chip = "inline-flex min-h-7 items-center rounded-xs border border-border px-2 font-mono text-[0.6875rem] tracking-[0.08em] text-text-muted uppercase";
   const link = (kind: "category" | "tag", term: Term) =>
     hrefFor ? (
-      <a href={hrefFor(kind, term.slug)} className={`${chip} hover:border-accent hover:text-text`}>
+      <a href={hrefFor(kind, term.slug)} className={`${chip} hover:border-accent hover:text-text focus-visible:outline-2 focus-visible:outline-accent`}>
         {term.label}
       </a>
     ) : (
@@ -59,80 +61,85 @@ export function TermList({ category, tags, hrefFor }: { locale?: Locale; categor
   );
 }
 
+// The dot colour is a reinforcement only: the status is always written out.
+const statusDot: Record<string, string> = { idea: "bg-text-muted", in_development: "bg-signal", paused: "bg-warning", completed: "bg-success" };
+
 export function StatusBadge({ locale, status }: { locale: Locale; status?: string }) {
   if (!status) return null;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded bg-primary px-2 py-0.5 font-mono text-xs text-primary-contrast">
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
+    <span className="inline-flex min-h-7 items-center gap-2 rounded-xs border border-border-strong px-2 font-mono text-[0.6875rem] tracking-[0.08em] text-text uppercase">
+      <span aria-hidden="true" className={`size-1.5 rounded-full ${statusDot[status] ?? "bg-text-muted"}`} />
       {t(locale, `status.${status}` as MessageKey)}
     </span>
   );
 }
 
-/** A card links to its detail; the whole card is not a link, so text stays selectable. */
-export function ContentCard({ locale, card, headingLevel = 3 }: { locale: Locale; card: Card; headingLevel?: 2 | 3 }) {
+/**
+ * One published item as an editorial row: date and kind, a big linked title, summary (or search
+ * snippet), technical facts and an optional desaturated thumbnail. The row is not one big link,
+ * so its text stays selectable; the title is the link.
+ */
+export function ContentRow({ locale, card, headingLevel = 3 }: { locale: Locale; card: Card; headingLevel?: 2 | 3 }) {
   const href = contentPath(locale, card.kind, card.slug, card.project?.slug) ?? "#";
   const H = headingLevel === 2 ? "h2" : "h3";
+  const tech = card.project_fields?.technologies ?? [];
   return (
-    <article className="group flex w-full flex-col overflow-hidden rounded-lg border border-border bg-surface transition-shadow hover:shadow-[0_0_0_1px_var(--color-accent)]">
-      {card.cover && (
-        <img
-          src={`/media/${card.cover.asset_id}`}
-          alt={card.cover.alt}
-          width={card.cover.width ?? undefined}
-          height={card.cover.height ?? undefined}
-          loading="lazy"
-          decoding="async"
-          className="aspect-[16/9] w-full border-b border-border bg-surface-muted object-cover"
-        />
-      )}
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs tracking-widest text-accent uppercase">{t(locale, `kind.${card.kind}` as MessageKey)}</span>
-          {card.kind === "project" && <StatusBadge locale={locale} status={card.project_fields?.status} />}
-        </div>
-        <H className="text-xl leading-snug font-semibold break-words">
-          <a href={href} className="underline-offset-4 group-hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+    <article className="group grid gap-x-8 gap-y-4 border-b border-border py-8 sm:grid-cols-6 lg:grid-cols-12">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:col-span-6 lg:col-span-2 lg:flex-col lg:items-start">
+        <span className="bl-meta text-accent">{t(locale, `kind.${card.kind}` as MessageKey)}</span>
+        <span className="font-mono text-xs text-text-muted">
+          <time dateTime={isoDay(card.first_published_at)}>{formatDay(locale, card.first_published_at)}</time>
+        </span>
+      </div>
+      <div className={`min-w-0 sm:col-span-6 ${card.cover ? "lg:col-span-6" : "lg:col-span-7"}`}>
+        {card.project && card.kind === "log" && <p className="bl-meta mb-2 text-text-muted">{card.project.title}</p>}
+        <H className="text-[clamp(1.5rem,2.6vw,2.5rem)] leading-[1.05] font-bold tracking-[-0.02em] [overflow-wrap:anywhere]">
+          <a href={href} className="rounded-xs underline-offset-[0.18em] decoration-2 group-hover:underline hover:decoration-signal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
             {card.title}
           </a>
         </H>
-        {card.project && card.kind === "log" && (
-          <p className="text-sm text-text-muted">
-            {t(locale, "log.project")}: {card.project.title}
-          </p>
-        )}
         {card.snippet && card.snippet.length > 0 ? (
-          <p className="text-sm leading-relaxed text-text-muted">
+          <p className="mt-4 max-w-2xl leading-relaxed text-text-muted">
             {/* Plain-text segments from the API; <mark> only around real matches. */}
-            {card.snippet.map((s, i) => (s.hit ? <mark key={i} className="rounded-sm bg-accent/20 px-0.5 text-text">{s.text}</mark> : <span key={i}>{s.text}</span>))}
+            {card.snippet.map((s, i) => (s.hit ? <mark key={i} className="rounded-xs bg-signal/25 px-0.5 text-text">{s.text}</mark> : <span key={i}>{s.text}</span>))}
           </p>
         ) : (
-          card.summary && <p className="leading-relaxed text-text-muted">{card.summary}</p>
+          card.summary && <p className="mt-4 max-w-2xl text-lg leading-relaxed text-text-muted">{card.summary}</p>
         )}
-        {card.project_fields?.technologies && card.project_fields.technologies.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5" aria-label={t(locale, "project.technologies")}>
-            {card.project_fields.technologies.map((tech) => (
-              <li key={tech} className="rounded bg-surface-muted px-2 py-0.5 font-mono text-xs">
-                {tech}
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
-          <PublishedDate locale={locale} iso={card.first_published_at} />
-          <TermList locale={locale} category={card.category} tags={card.tags} />
-        </div>
       </div>
+      <div className={`flex min-w-0 flex-col items-start gap-3 sm:col-span-6 ${card.cover ? "lg:col-span-2" : "lg:col-span-3"}`}>
+        {card.kind === "project" && <StatusBadge locale={locale} status={card.project_fields?.status} />}
+        {tech.length > 0 && (
+          <p className="font-mono text-xs text-text-muted">
+            <span className="sr-only">{t(locale, "project.technologies")}: </span>
+            {tech.join(" · ")}
+          </p>
+        )}
+        <TermList locale={locale} category={card.category} tags={card.tags} />
+      </div>
+      {card.cover && (
+        <a href={href} tabIndex={-1} aria-hidden="true" className="block overflow-hidden bg-surface-muted sm:col-span-3 lg:col-span-2" style={{ aspectRatio: "4 / 3" }}>
+          <img
+            src={`/media/${card.cover.asset_id}`}
+            alt=""
+            width={card.cover.width ?? undefined}
+            height={card.cover.height ?? undefined}
+            loading="lazy"
+            decoding="async"
+            className="bl-photo h-full w-full object-cover"
+          />
+        </a>
+      )}
     </article>
   );
 }
 
-export function CardGrid({ locale, cards, headingLevel = 3, columns = 3 }: { locale: Locale; cards: Card[]; headingLevel?: 2 | 3; columns?: 2 | 3 }) {
+export function ContentList({ locale, cards, headingLevel = 3 }: { locale: Locale; cards: Card[]; headingLevel?: 2 | 3 }) {
   return (
-    <ul className={`grid gap-5 sm:grid-cols-2 ${columns === 3 ? "lg:grid-cols-3" : ""}`}>
+    <ul className="border-t border-border">
       {cards.map((c) => (
-        <li key={`${c.kind}-${c.slug}`} className="flex">
-          <ContentCard locale={locale} card={c} headingLevel={headingLevel} />
+        <li key={`${c.kind}-${c.slug}`}>
+          <ContentRow locale={locale} card={c} headingLevel={headingLevel} />
         </li>
       ))}
     </ul>
@@ -150,9 +157,9 @@ export function Pager({ locale, page, pageSize, total, path, query }: { locale: 
     const s = q.toString();
     return s ? `${path}?${s}` : path;
   };
-  const link = "inline-flex min-h-10 items-center rounded-md border border-border-strong px-4 text-sm font-medium hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent";
+  const link = "inline-flex min-h-12 items-center gap-3 rounded-sm border border-border-strong px-5 font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   return (
-    <nav aria-label={t(locale, "pager.label")} className="mt-10 flex items-center justify-between gap-4">
+    <nav aria-label={t(locale, "pager.label")} className="mt-12 flex items-center justify-between gap-4">
       {page > 1 ? (
         <a href={href(Math.min(page - 1, pages))} rel="prev" className={link}>
           ← {t(locale, "pager.prev")}
@@ -160,8 +167,8 @@ export function Pager({ locale, page, pageSize, total, path, query }: { locale: 
       ) : (
         <span />
       )}
-      <span className="font-mono text-xs text-text-muted">
-        {t(locale, "pager.page")} {page} {t(locale, "pager.of")} {pages}
+      <span className="bl-meta text-text-muted">
+        {t(locale, "pager.page")} <span className="text-text">{page}</span> {t(locale, "pager.of")} {pages}
       </span>
       {page < pages ? (
         <a href={href(page + 1)} rel="next" className={link}>
@@ -174,8 +181,9 @@ export function Pager({ locale, page, pageSize, total, path, query }: { locale: 
   );
 }
 
-const selectClass =
-  "min-h-10 rounded-md border border-border-strong bg-surface px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+const fieldLabel = "flex min-w-0 flex-col gap-2 bl-meta text-text-muted";
+const control =
+  "min-h-12 w-full rounded-sm border border-border-strong bg-surface px-3 font-sans text-base tracking-normal text-text normal-case focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 /** GET form: changing filters starts at page 1 (no page field is sent). */
 export function FilterForm({
@@ -197,12 +205,12 @@ export function FilterForm({
 }) {
   const hasFilters = !!(selected.category || selected.tag || selected.kind);
   return (
-    <form method="get" action={action} className="flex flex-wrap items-end gap-3" role="search" aria-label={t(locale, "filter.label")}>
+    <form method="get" action={action} className={`flex flex-wrap items-end gap-x-4 gap-y-5 ${children ? "lg:pb-8" : ""}`} role="search" aria-label={t(locale, "filter.label")}>
       {children}
       {kinds && (
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className={`${fieldLabel} w-full sm:w-48`}>
           {t(locale, "filter.kind")}
-          <select name="kind" defaultValue={selected.kind ?? ""} className={selectClass}>
+          <select name="kind" defaultValue={selected.kind ?? ""} className={control}>
             <option value="">{t(locale, "filter.anyKind")}</option>
             {(["project", "log", "article"] as const).map((k) => (
               <option key={k} value={k}>
@@ -213,9 +221,9 @@ export function FilterForm({
         </label>
       )}
       {categories.length > 0 && (
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className={`${fieldLabel} w-full sm:w-56`}>
           {t(locale, "filter.category")}
-          <select name="category" defaultValue={selected.category ?? ""} className={selectClass}>
+          <select name="category" defaultValue={selected.category ?? ""} className={control}>
             <option value="">{t(locale, "filter.any")}</option>
             {categories.map((c) => (
               <option key={c.slug} value={c.slug}>
@@ -226,9 +234,9 @@ export function FilterForm({
         </label>
       )}
       {tags.length > 0 && (
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className={`${fieldLabel} w-full sm:w-56`}>
           {t(locale, "filter.tag")}
-          <select name="tag" defaultValue={selected.tag ?? ""} className={selectClass}>
+          <select name="tag" defaultValue={selected.tag ?? ""} className={control}>
             <option value="">{t(locale, "filter.any")}</option>
             {tags.map((c) => (
               <option key={c.slug} value={c.slug}>
@@ -239,15 +247,20 @@ export function FilterForm({
         </label>
       )}
       {(children || kinds || categories.length > 0 || tags.length > 0) && (
-        <button type="submit" className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-contrast hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+        <button type="submit" className="inline-flex min-h-12 items-center gap-3 rounded-sm bg-primary px-5 font-medium text-primary-contrast hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal">
           {children ? t(locale, "search.submit") : t(locale, "filter.apply")}
+          <Arrow direction="right" />
         </button>
       )}
       {hasFilters && (
-        <a href={action} className="min-h-10 self-end py-2 text-sm text-accent underline underline-offset-2">
+        <a href={action} className="inline-flex min-h-12 items-center text-sm text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-accent">
           {t(locale, "list.clear")}
         </a>
       )}
     </form>
   );
 }
+
+/** Input style shared with the search field. */
+export const textControl = control;
+export const textLabel = fieldLabel;

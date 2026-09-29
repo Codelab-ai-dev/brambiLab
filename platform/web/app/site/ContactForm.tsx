@@ -115,22 +115,22 @@ export function ContactForm({ locale, serverKey, initialState, retentionDays }: 
   }
 
   const input =
-    "min-h-11 w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base aria-invalid:border-2 aria-invalid:border-danger focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+    "min-h-12 w-full rounded-sm border border-border-strong bg-white px-3 py-2 text-base aria-invalid:border-2 aria-invalid:border-danger focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
   const described = (f: Field, help?: boolean) => [help && `${f}-help`, errors[f] && `${f}-error`].filter(Boolean).join(" ") || undefined;
 
   return (
-    <section aria-labelledby="form-title" id="formulario" className="scroll-mt-4 rounded-lg border border-border bg-surface p-5 sm:p-8">
-      <h2 id="form-title" className="text-2xl font-semibold tracking-tight">
+    <section aria-labelledby="form-title" id="formulario" className="border-t border-border pt-8">
+      <h2 id="form-title" className="bl-h-project">
         {t(locale, "form.title")}
       </h2>
       <div ref={statusRef} tabIndex={-1} className="mt-4 outline-none" aria-live="polite">
         {status.kind === "received" && (
-          <p role="status" className="rounded-md border-l-4 border-success bg-surface-muted px-4 py-3" data-contact="received">
+          <p role="status" className="rounded-sm border-l-4 border-success bg-surface-muted px-4 py-3" data-contact="received">
             {t(locale, "form.received")}
           </p>
         )}
         {status.kind === "error" && (
-          <p role="alert" className="rounded-md border-l-4 border-danger bg-surface-muted px-4 py-3" data-contact="error">
+          <p role="alert" className="rounded-sm border-l-4 border-danger bg-surface-muted px-4 py-3" data-contact="error">
             {status.message}
           </p>
         )}
@@ -176,7 +176,7 @@ export function ContactForm({ locale, serverKey, initialState, retentionDays }: 
         <button
           type="submit"
           disabled={status.kind === "sending"}
-          className="inline-flex min-h-11 items-center justify-center self-start rounded-md bg-primary px-5 font-medium text-primary-contrast hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center self-start rounded-sm bg-primary px-5 font-medium text-primary-contrast hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
         >
           {status.kind === "sending" ? t(locale, "form.sending") : t(locale, "form.submit")}
         </button>
