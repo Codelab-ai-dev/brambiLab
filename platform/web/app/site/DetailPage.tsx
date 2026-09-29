@@ -63,7 +63,7 @@ export function DetailPage({ data }: { data: DetailData }) {
                 className="mb-8 h-auto w-full rounded-lg border border-border"
               />
             )}
-            <div className="max-w-3xl text-lg">
+            <div className="bl-prose max-w-3xl text-lg">
               <DocumentView doc={c.body} locale={locale} assets={c.assets} publicOnly />
             </div>
           </div>

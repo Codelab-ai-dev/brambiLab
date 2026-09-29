@@ -167,7 +167,7 @@ function Viewer({ images, index, locale, onIndex, onClose }: { images: GalleryIm
     >
       <div data-backdrop className="flex h-full flex-col">
         <header className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <p className="font-mono text-xs tracking-widest whitespace-nowrap text-[var(--bench-label)] uppercase" aria-live="polite">
+          <p className="font-mono text-xs tracking-widest whitespace-nowrap text-[var(--viewer-muted)] uppercase" aria-live="polite">
             {fig(img.figure)}
             {many && (
               <>
@@ -181,7 +181,7 @@ function Viewer({ images, index, locale, onIndex, onClose }: { images: GalleryIm
               href={`/media/${img.assetId}`}
               target="_blank"
               rel="noopener"
-              className="rounded border border-[var(--bench-edge)] px-2.5 py-1.5 text-sm whitespace-nowrap hover:border-[var(--bench-signal)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bench-signal)]"
+              className="rounded border border-[var(--viewer-edge)] px-2.5 py-1.5 text-sm whitespace-nowrap hover:border-[var(--viewer-signal)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--viewer-signal)]"
             >
               {t(locale, "doc.viewer.original")} <span aria-hidden="true">↗</span>
             </a>
@@ -189,7 +189,7 @@ function Viewer({ images, index, locale, onIndex, onClose }: { images: GalleryIm
               type="button"
               data-viewer-close
               onClick={onClose}
-              className="rounded border border-[var(--bench-signal)] px-2.5 py-1.5 text-sm font-medium whitespace-nowrap hover:bg-[var(--bench-signal)] hover:text-[var(--bench-bg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bench-signal)]"
+              className="rounded border border-[var(--viewer-signal)] px-2.5 py-1.5 text-sm font-medium whitespace-nowrap hover:bg-[var(--viewer-signal)] hover:text-[var(--viewer-bg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--viewer-signal)]"
             >
               {t(locale, "doc.viewer.close")} <span aria-hidden="true">✕</span>
             </button>
@@ -212,7 +212,7 @@ function Viewer({ images, index, locale, onIndex, onClose }: { images: GalleryIm
             </button>
           )}
         </div>
-        <footer data-backdrop className="min-h-12 px-4 py-3 text-center text-sm text-[var(--bench-muted)] sm:px-6">
+        <footer data-backdrop className="min-h-12 px-4 py-3 text-center text-sm text-[var(--viewer-muted)] sm:px-6">
           {img.caption && (
             <p id={captionId} className="mx-auto max-w-3xl [overflow-wrap:anywhere]">
               {img.caption}

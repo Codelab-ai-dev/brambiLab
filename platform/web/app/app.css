@@ -7,11 +7,14 @@
 @import "@fontsource/ibm-plex-sans/600.css";
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
+/* Space Grotesk (SIL OFL 1.1, variable 300–700): public site headings and interface (WEB-009). */
+@import "@fontsource-variable/space-grotesk/wght.css";
 
 /*
- * "Lab notebook" direction (approved by Gustavo, 2026-09-27): paper and ink, amber as the signal
- * colour, mono for data (dates, versions, ids). Contrast checked pair by pair (AA text, 3:1 for
- * control borders). Values are the only place to change when a final identity exists.
+ * Base tokens: the private panel keeps the "lab notebook" palette (paper and ink, amber signal,
+ * light/dark from the system). The public site redefines the same semantic tokens inside
+ * .bl-site (WEB-009, below), so the panel never inherits the public redesign.
+ * Contrast checked pair by pair (AA text, 3:1 for control borders).
  */
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
@@ -32,6 +35,16 @@
   --color-success: #2b6a36;
   --color-grid: rgb(27 29 31 / 0.05);
   --color-grid-strong: rgb(27 29 31 / 0.09);
+}
+
+/* Public brand constants (WEB-009); semantic use goes through the tokens above. Static: always
+   emitted, since the public scopes below reference them from plain CSS. */
+@theme static {
+  --color-navy: #0a1e3f;
+  --color-deep: #06111f;
+  --color-signal: #1ec8ff;
+  --font-display: "Space Grotesk Variable", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-prose: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -78,90 +91,6 @@ body {
   background-position: -1px -1px;
 }
 
-/*
- * "Live test bench" (public home hero and header). Always dark, like an instrument on the bench,
- * in both colour schemes. Contrast checked: text 15.5:1, secondary 7.6:1, amber 9.3:1,
- * mono labels 5.5:1 on --bench-bg.
- */
-.bl-bench,
-.bl-bench-bar,
-.bl-viewer {
-  --bench-bg: #0e1012;
-  --bench-panel: #15181b;
-  --bench-edge: #6b727b;
-  --bench-trace: #3a3f45;
-  --bench-grid: rgb(236 231 220 / 0.035);
-  --bench-grid-strong: rgb(236 231 220 / 0.08);
-  --bench-text: #ece7dc;
-  --bench-muted: #a9a396;
-  --bench-label: #8f8a7e;
-  --bench-signal: #f2a541;
-  background-color: var(--bench-bg);
-  color: var(--bench-text);
-  color-scheme: dark;
-}
-.bl-bench {
-  --mx: 50%;
-  --my: 30%;
-  --spot: 0;
-  background-image:
-    radial-gradient(420px circle at var(--mx) var(--my), rgb(242 165 65 / calc(0.1 * var(--spot))), transparent 70%),
-    linear-gradient(var(--bench-grid-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bench-grid-strong) 1px, transparent 1px),
-    linear-gradient(var(--bench-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bench-grid) 1px, transparent 1px);
-  background-size: auto, 48px 48px, 48px 48px, 12px 12px, 12px 12px;
-  background-position: 0 0, -1px -1px, -1px -1px, -1px -1px, -1px -1px;
-}
-.bl-bench::after {
-  /* Fade into the paper sections below. */
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--bench-signal), transparent);
-  opacity: 0.5;
-}
-.bl-bench ::selection {
-  background: rgb(242 165 65 / 0.35);
-}
-.bl-pulse {
-  stroke-dasharray: 6 94;
-  stroke-dashoffset: 0;
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .bl-pulse {
-    opacity: 1;
-    animation: bl-pulse 3.2s linear infinite;
-  }
-  .bl-led {
-    animation: bl-led 3.2s ease-in-out infinite;
-    animation-delay: calc(var(--i, 0) * 0.55s);
-  }
-  .bl-chip {
-    animation: bl-chip 3.2s ease-in-out infinite;
-    animation-delay: calc(var(--i, 0) * 0.55s);
-  }
-}
-
-@keyframes bl-pulse {
-  to {
-    stroke-dashoffset: -100;
-  }
-}
-@keyframes bl-led {
-  0%, 100% { opacity: 0.35; box-shadow: none; }
-  12% { opacity: 1; box-shadow: 0 0 10px 2px rgb(242 165 65 / 0.6); }
-  30% { opacity: 0.6; box-shadow: none; }
-}
-@keyframes bl-chip {
-  0%, 100% { border-color: var(--bench-edge); }
-  12% { border-color: var(--bench-signal); }
-  30% { border-color: var(--bench-edge); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -197,15 +126,25 @@ body {
 .bl-editor .ProseMirror .ProseMirror-selectednode { outline: 2px solid var(--color-accent); }
 
 /* Document images (#41): a specimen plate behind thumbnails (object-fit: contain leaves margins)
-   and the dark viewer, in the bench palette. */
+   and the dark viewer, in the public site's deep navy palette (WEB-009). */
 .bl-plate {
   background-image:
     linear-gradient(var(--color-grid-strong) 1px, transparent 1px),
     linear-gradient(90deg, var(--color-grid-strong) 1px, transparent 1px);
   background-size: 16px 16px;
 }
+.bl-viewer {
+  --viewer-bg: #06111f;
+  --viewer-edge: #627893; /* 4.2:1 on the backdrop */
+  --viewer-text: #ffffff;
+  --viewer-muted: #8b98a8;
+  --viewer-signal: #1ec8ff;
+  background-color: var(--viewer-bg);
+  color: var(--viewer-text);
+  color-scheme: dark;
+}
 .bl-viewer::backdrop {
-  background: rgb(12 14 16 / 0.92);
+  background: rgb(6 17 31 / 0.94);
 }
 .bl-viewer-nav {
   position: absolute;
@@ -217,13 +156,13 @@ body {
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 9999px;
-  border: 1px solid var(--bench-edge);
-  background: rgb(14 16 18 / 0.7);
-  color: var(--bench-text);
+  border: 1px solid var(--viewer-edge);
+  background: rgb(6 17 31 / 0.7);
+  color: var(--viewer-text);
   font-size: 1.25rem;
 }
-.bl-viewer-nav:hover { border-color: var(--bench-signal); }
-.bl-viewer-nav:focus-visible { outline: 2px solid var(--bench-signal); outline-offset: 2px; }
+.bl-viewer-nav:hover { border-color: var(--viewer-signal); }
+.bl-viewer-nav:focus-visible { outline: 2px solid var(--viewer-signal); outline-offset: 2px; }
 @media (prefers-reduced-motion: no-preference) {
   .bl-viewer[open] { animation: bl-viewer-in 160ms ease-out; }
   @keyframes bl-viewer-in {
@@ -232,22 +171,180 @@ body {
   }
 }
 
-/* Brand logo colors (#45). Light surfaces: the kit's dark version. Dark surfaces (bench header,
-   hero, viewer, dark theme): the kit's white text; the navy stem (#0A1E3F, 1.15:1 on the bench)
-   becomes light ink so the "b" keeps its shape — an optical variant for Gustavo to review. */
+
+/* Brand logo colors (#45). Light surfaces: the kit's dark version. Dark surfaces: the kit's white
+   text, and the navy stem (#0A1E3F, 1.0–1.15:1 on navy and deep navy) becomes light ink so the
+   "b" keeps its shape: the optical variant reviewed in #45. */
 :root {
-  --logo-ink: #0A1E3F;
-  --logo-stem: #0A1E3F;
+  --logo-ink: #0a1e3f;
+  --logo-stem: #0a1e3f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --logo-ink: #FFFFFF;
-    --logo-stem: #ECE7DC;
+    --logo-ink: #ffffff;
+    --logo-stem: #ece7dc;
   }
 }
-.bl-bench,
-.bl-bench-bar,
-.bl-viewer {
-  --logo-ink: #FFFFFF;
-  --logo-stem: #ECE7DC;
+
+@layer components {
+/*
+ * Public site (WEB-009, decided by Gustavo on 2026-09-28): "editorial engineering" — deep navy
+ * base, navy hero, deliberate off-white editorial sections, one cyan band. It does not follow the
+ * system light/dark preference: each section chooses its surface. Measured contrast (WCAG):
+ *   deep #06111F: white 18.96, secondary #8B98A8 6.46, cyan 9.71, control border #627893 4.18
+ *   navy #0A1E3F: white 16.53, secondary 5.63, cyan 8.47, control border 3.64
+ *   panel #F4F4F1: text #06111F 17.20, secondary #4F5B6B 6.27, link #006A8E 5.52, border #6B7684 4.19
+ *   cyan #1EC8FF: text #06111F 9.71, secondary #0B3550 6.56 (white on cyan is 1.95: never used)
+ * Decorative hairlines (cyan at 15 %, 1.3:1) never stand in for a control border or focus ring.
+ */
+.bl-site,
+.bl-navy {
+  --color-surface: #06111f;
+  --color-surface-muted: #0c1a2c;
+  --color-border: rgb(30 200 255 / 0.15);
+  --color-border-strong: #627893;
+  --color-text: #ffffff;
+  --color-text-muted: #8b98a8;
+  --color-primary: #1ec8ff;
+  --color-primary-contrast: #06111f;
+  --color-accent: #1ec8ff;
+  --color-accent-contrast: #06111f;
+  --color-danger: #ff8a7a;
+  --color-warning: #e8c95a;
+  --color-success: #7fd08e;
+  --color-grid: rgb(30 200 255 / 0.04);
+  --color-grid-strong: rgb(30 200 255 / 0.08);
+  --logo-ink: #ffffff;
+  --logo-stem: #ece7dc;
+  --font-sans: var(--font-display);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  color-scheme: dark;
+}
+.bl-site {
+  font-family: var(--font-display);
+}
+.bl-navy {
+  --color-surface: #0a1e3f;
+  --color-surface-muted: #0e2549;
+}
+.bl-light {
+  --color-surface: #f4f4f1;
+  --color-surface-muted: #e8e9e4;
+  --color-border: #d3d6d8;
+  --color-border-strong: #6b7684;
+  --color-text: #06111f;
+  --color-text-muted: #4f5b6b;
+  --color-primary: #0a1e3f;
+  --color-primary-contrast: #ffffff;
+  --color-accent: #006a8e;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #a8261b;
+  --color-warning: #6f5a00;
+  --color-success: #2b6a36;
+  --color-grid: rgb(6 17 31 / 0.04);
+  --color-grid-strong: rgb(6 17 31 / 0.08);
+  --logo-ink: #0a1e3f;
+  --logo-stem: #0a1e3f;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  color-scheme: light;
+}
+.bl-signal {
+  --color-surface: #1ec8ff;
+  --color-text: #06111f;
+  --color-text-muted: #0b3550;
+  --color-border: rgb(6 17 31 / 0.25);
+  --color-accent: #06111f;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  color-scheme: light;
+}
+/* The page behind the public site (overscroll, short pages) and in-page anchors below the sticky
+   header: #main, #footer-nav and section anchors never land hidden under it. */
+html:has(.bl-site) {
+  background-color: #06111f;
+  scroll-padding-top: 5.5rem;
+}
+
+/* Type scale (WEB-009 §2). */
+/* Hero title: sized to its own column (container query units) so each line fits whole.
+   --bl-measure is the widest line in em, measured per language by the caller; the rem bounds
+   keep it legible, and with a large text setting the line wraps instead of overflowing. */
+.bl-fit {
+  container-type: inline-size;
+}
+.bl-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, calc(100cqi / var(--bl-measure, 6.8)), 11rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  overflow-wrap: break-word;
+}
+/* Section titles: the issue's clamp(3rem, 7vw, 8rem) with a 2.5rem floor, because the widest
+   Spanish word ("Construyamos", 6.6 em) needs ≤ 43 px to fit whole in 320 px. */
+.bl-h-section {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 7vw, 8rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  overflow-wrap: break-word;
+}
+.bl-h-project {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 6rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  overflow-wrap: break-word;
+}
+/* Mono metadata: 11–13 px, uppercase, tracked. */
+.bl-meta {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+/* Long-form reading keeps IBM Plex Sans: Space Grotesk has no italic, and emphasis must not be a
+   synthetic slant. */
+.bl-prose {
+  font-family: var(--font-prose);
+}
+
+/* Photographs on editorial blocks: desaturated presentation (the file keeps its colours; the
+   detail page and the image viewer show them as they are). Hover: up to scale(1.03). */
+.bl-photo {
+  filter: grayscale(1) contrast(1.05);
+  transition: transform 600ms cubic-bezier(0.2, 0.6, 0.2, 1), filter 600ms ease;
+}
+.group:hover .bl-photo,
+.group:focus-within .bl-photo {
+  transform: scale(1.03);
+  filter: grayscale(0.2) contrast(1.02);
+}
+.bl-arrow {
+  transition: transform 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.group:hover .bl-arrow,
+a:hover > .bl-arrow,
+a:focus-visible > .bl-arrow {
+  transform: translate(4px, -4px);
+}
+.group:hover .bl-arrow[data-dir="right"],
+a:hover > .bl-arrow[data-dir="right"],
+a:focus-visible > .bl-arrow[data-dir="right"] {
+  transform: translateX(6px);
+}
+/* Reduced motion: images and arrows stay put (the colour change on hover remains as feedback). */
+@media (prefers-reduced-motion: reduce) {
+  .bl-photo,
+  .bl-arrow {
+    transition: none;
+    transform: none !important;
+  }
+}
+
 }

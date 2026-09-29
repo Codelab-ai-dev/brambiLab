@@ -2,7 +2,7 @@
 // (public/brand/originals/brambilab-logo-*.svg, text already converted to outlines); nothing is
 // redrawn. Colors follow the surface through CSS tokens (app.css): on light surfaces the kit's
 // dark version; on dark surfaces the kit's white text, with the navy stem shown in light ink
-// because #0A1E3F on the bench background is 1.15:1 (optical variant, pending Gustavo's review).
+// because #0A1E3F on navy and deep navy is 1.0–1.15:1 (optical variant, #45).
 //
 // Decorative inside a link: the accessible name is on the link ("BrambiLab"), the SVG is hidden.
 

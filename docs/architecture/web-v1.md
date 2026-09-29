@@ -234,20 +234,40 @@ Slugs editables por idioma; cambio publicado conserva redirect permanente evitan
 Diseño adaptable a móvil, navegación por teclado, contraste legible, alt de imágenes y formularios etiquetados.
 Homepage: presentación, proyectos destacados, últimos avances, artículos y contacto. Panel administra también bio, enlaces y selección de destacados.
 La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo definitivo ni sustituirlo por un render.
-**Dirección visual «cuaderno de laboratorio»** (elegida por Gustavo el 2026-09-27):
-- Fondo papel y texto tinta; ámbar como señal (enlaces, foco, estado activo) y tinta para las acciones principales. Modo oscuro en grafito con ámbar encendido.
-- IBM Plex Sans para leer e IBM Plex Mono para datos (fechas, versiones, identificadores), incluidas en el propio sitio (OFL).
-- Retícula milimetrada decorativa sólo en portada y login.
-- Logotipo modular (#45): tres piezas que forman una «b» y el texto «BrambiLab», del kit en `platform/web/public/brand/originals/` (copia sin modificar con `SHA256SUMS`). El kit es una reconstrucción (texto en DejaVu Sans Bold) y requiere revisión visual de Gustavo antes de producción.
+**Sitio público: dirección «ingeniería editorial»** (WEB-009, [#47](https://github.com/Codelab-ai-dev/brambiLab/issues/47); decidida por Gustavo el 2026-09-28). Sustituye a la dirección «cuaderno de laboratorio» y al hero «banco de pruebas vivo» en el sitio público; el panel privado conserva la anterior.
+- Mezcla: 70 % ingeniería industrial, 20 % producto tecnológico, 10 % experimental. Prioridad: tipografía → composición → fotografía → información técnica → animación. Sin SaaS genérico, tarjetas flotantes repetidas, glassmorphism excesivo, gradientes morados ni efectos gaming.
+- Color:
+  - base navy profundo `#06111F` y hero y CTA en navy `#0A1E3F`;
+  - secciones editoriales en papel `#F4F4F1`;
+  - una sola banda cyan `#1EC8FF` con texto oscuro;
+  - el cyan marca palabras clave, CTA, cifras, estado activo y foco.
+  - El sitio público no sigue la preferencia clara/oscura del sistema: cada sección elige su superficie. No hay selector de tema.
+- Tokens: los mismos nombres semánticos del panel se redefinen dentro de `.bl-site` y de las superficies `.bl-navy`, `.bl-light` y `.bl-signal` (`platform/web/app/app.css`), así el rediseño no llega al panel.
+  - Contraste medido par a par, incluidos los tokens propios de la superficie clara (texto secundario `#4F5B6B`, enlace `#006A8E`), porque el gris `#8B98A8` (2,66:1) y el cyan (1,77:1) no sirven sobre papel.
+  - Las líneas decorativas (cyan al 15 %) nunca sustituyen un borde de control ni el foco.
+- Tipografía:
+  - Space Grotesk variable (OFL, servida por el sitio) para titulares e interfaz, IBM Plex Mono para metadatos e IBM Plex Sans sólo para el texto largo (`.bl-prose`), porque Space Grotesk no tiene cursiva.
+  - Titular del hero ajustado al ancho de su columna (unidades de contenedor) para que cada línea quepa entera; titulares de sección `clamp(2.5rem, 7vw, 8rem)`, con un mínimo inferior al del issue porque «Construyamos» mide 6,6 em.
+  - Retícula de 12, 6 y 1 columnas, con marco de hasta 100rem. Radios de 0–4 px.
+- Imágenes:
+  - Las portadas en bloques editoriales se muestran desaturadas por CSS (el archivo conserva su color), con hover de hasta `scale(1.03)`. El detalle y el visor de #41 muestran el color real.
+  - Sin foto propia autorizada, el hero y las áreas usan ilustraciones SVG originales, estáticas y marcadas como conceptuales. Nunca se usa el rover del mockup.
+- Contenido: sólo datos del API público.
+  - Sin proyectos, cifras, coordenadas, revisiones ni capacidades inventadas.
+  - Los metadatos aparecen sólo si el campo existe.
+  - La cifra de proyectos es el total público del idioma y sólo se muestra a partir de 3.
+  - Las áreas se presentan como enfoque, no como proyectos.
+- Movimiento: sólo transiciones CSS de hover; nada oculta contenido en SSR ni sin JavaScript. Con `prefers-reduced-motion` no se mueve nada.
+- Navegación: cabecera fija translúcida, con el menú móvil como botón desplegable (`aria-expanded`; Escape cierra y devuelve el foco). Sin JavaScript, el mismo control enlaza a la navegación del pie. Los enlaces de perfil del pie son sólo los configurados.
+- Logotipo modular (#45): tres piezas que forman una «b» y el texto «BrambiLab», del kit en `platform/web/public/brand/originals/` (copia sin modificar con `SHA256SUMS`).
   - Componente único `BrambiLabLogo` con los trazados del kit sin alterar, `viewBox` 1220×380 y altura fija: sin distorsión ni salto de layout. Es decorativo (`aria-hidden`); el enlace que lo contiene se llama «BrambiLab» y lleva a la portada del idioma.
-  - Superficie clara: colores originales. Superficie oscura (cabecera banco, modo oscuro): texto blanco y **variante óptica** del segmento #0A1E3F → #ECE7DC, porque el original da 1,15:1 sobre grafito. Variante pendiente de aprobación explícita de Gustavo; los tokens `--logo-stem` y `--logo-ink` la revierten en una línea.
+  - Superficie clara: colores originales. Superficies navy: texto blanco y **variante óptica** del segmento #0A1E3F → #ECE7DC, porque el original desaparece sobre navy (1,0–1,15:1). Tokens `--logo-stem` y `--logo-ink`.
   - Favicon SVG con alternativa ICO y `apple-touch-icon`; sin manifest ni PWA.
-- Tokens semánticos en `platform/web/app/app.css`: contraste AA en texto y 3:1 en bordes de controles, comprobados par a par.
-- **Portada «banco de pruebas vivo»** (elegida por Gustavo el 2026-09-28): hero y cabecera pública siempre oscuros, como un instrumento, con las secciones de debajo en papel.
-  - Osciloscopio SVG cuya traza pasa de senoidal a cuadrada (analógico → digital).
-  - Las 5 áreas como chips conectados por pistas con un pulso; retícula que se ilumina bajo el cursor.
-  - Sin JavaScript o con `prefers-reduced-motion`, todo queda estático y completo. Lo decorativo es `aria-hidden`.
-  - Sólo contenido real del repositorio.
+
+**Panel privado: dirección «cuaderno de laboratorio»** (elegida por Gustavo el 2026-09-27):
+- Fondo papel y texto tinta; ámbar como señal (enlaces, foco, estado activo) y tinta para las acciones principales. Modo oscuro en grafito con ámbar encendido, según el sistema.
+- IBM Plex Sans para leer e IBM Plex Mono para datos, incluidas en el propio sitio (OFL). Retícula milimetrada decorativa en el login.
+- Tokens semánticos en `@theme` de `platform/web/app/app.css`: contraste AA en texto y 3:1 en bordes de controles, comprobados par a par.
 
 ### 9.1 Implementación WEB-006 (#30)
 **Una sola regla pública.**
