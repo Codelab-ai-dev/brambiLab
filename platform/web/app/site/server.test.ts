@@ -50,3 +50,11 @@ describe("sitemap XML", () => {
     expect(xml.match(/xhtml:link/g)?.length).toBe(2);
   });
 });
+
+describe("SEO description fallback", () => {
+  it("tolerates a stored document without content (was a 500)", async () => {
+    const { firstText } = await import("./detail.server");
+    expect(firstText({ body: { type: "doc" } as never })).toBe("");
+    expect(firstText({ body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hola  mundo" }] }] } as never })).toBe("Hola mundo");
+  });
+});

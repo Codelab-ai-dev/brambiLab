@@ -40,7 +40,7 @@ export type ImportResult = { doc: Doc; warnings: ImportWarning[] };
 
 /** Serializes a canonical document. Empty paragraphs (visual spacing only) are not exported. */
 export function docToMarkdown(doc: Doc): string {
-  const root: M.Root = { type: "root", children: doc.content.flatMap(blockToMdast) as M.RootContent[] };
+  const root: M.Root = { type: "root", children: (doc.content ?? []).flatMap(blockToMdast) as M.RootContent[] };
   return toMarkdown(root, {
     extensions: [gfmTableToMarkdown(), directiveToMarkdown()],
     bullet: "-",

@@ -38,13 +38,45 @@ describe("DocumentView", () => {
     const html = renderToStaticMarkup(
       <DocumentView doc={fixture("media")} locale="es" assets={{ "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11": { width: 1200, height: 800, bytes: 1 }, "0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c14": { width: null, height: null, bytes: 2_500_000 } }} />,
     );
+    // Compact card: a real link to the file (works without JS), lazy thumbnail with reserved size.
+    expect(html).toContain('href="/media/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11"');
     expect(html).toContain('<img src="/media/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c11" alt="Placa de control, cara frontal" width="1200" height="800" loading="lazy"');
+    expect(html).toContain("object-contain");
     expect(html).toContain("<figcaption");
     expect(html).toMatch(/<video src="\/media\/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c12" poster="\/media\/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c13"[^>]*controls="" preload="metadata"/);
     expect(html).toContain('href="/media/0b8f3a3e-5d2c-4c1a-9a57-3f0e2b6d9c14/download"');
     expect(html).toContain("2.4 MB");
     // Label text is escaped, never HTML.
     expect(html).toContain("Soporte STL v1 &quot;beta&quot;");
+  });
+
+  it("renders a stored document without content as empty instead of failing", () => {
+    expect(renderToStaticMarkup(<DocumentView doc={{ type: "doc" } as unknown as Doc} locale="es" />)).toBe('<div class="space-y-4 leading-relaxed"></div>');
+  });
+
+  it("groups only consecutive images, keeps editorial order and numbers figures", () => {
+    const img = (id: string, caption?: string) => ({ type: "image", attrs: { assetId: id, alt: `alt ${id}`, ...(caption ? { caption } : {}) } });
+    const p = (text: string) => ({ type: "paragraph", content: [{ type: "text", text }] });
+    const doc = { type: "doc", content: [p("antes"), img("a1", "Placa vertical"), img("a2"), img("a3"), p("entre"), img("b1"), { type: "blockquote", content: [img("c1"), img("c2")] }] } as Doc;
+    const html = renderToStaticMarkup(<DocumentView doc={doc} locale="es" />);
+    const galleries = [...html.matchAll(/data-gallery="(\d+)"/g)].map((m) => m[1]);
+    expect(galleries).toEqual(["3", "1", "2"]);
+    // Text stays where it was: before the first gallery, between the first and the second.
+    expect(html.indexOf("antes")).toBeLessThan(html.indexOf("a1"));
+    expect(html.indexOf("a3")).toBeLessThan(html.indexOf("entre"));
+    expect(html.indexOf("entre")).toBeLessThan(html.indexOf("b1"));
+    expect(html).toContain("FIG. 01");
+    expect(html).toContain("FIG. 06");
+    expect(html).toContain("Placa vertical");
+    expect(html).toContain("Ampliar imagen");
+  });
+
+  it("never links an image that is not servable on public pages", () => {
+    const doc = { type: "doc", content: [{ type: "image", attrs: { assetId: "ok", alt: "Visible" } }, { type: "image", attrs: { assetId: "gone", alt: "Revocada" } }] } as Doc;
+    const html = renderToStaticMarkup(<DocumentView doc={doc} locale="en" publicOnly assets={{ ok: { width: 800, height: 600, bytes: 1 } }} />);
+    expect(html).toContain('href="/media/ok"');
+    expect(html).not.toContain("/media/gone");
+    expect(html).toContain("This file is no longer publicly available.");
   });
 
   it("keeps wide tables in a scrollable, focusable region", () => {
