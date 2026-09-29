@@ -1,0 +1,11 @@
+# Test-only override: backups go to a local directory standing in for the off-site destination
+# (rclone "local" remote), with a test passphrase. Never use it in Coolify.
+#   docker compose -f compose.yaml -f compose.e2e.yaml -f compose.backup-test.yaml ...
+services:
+  backup:
+    environment:
+      BACKUP_REMOTE: dest:/remote
+      BACKUP_PASSPHRASE: test-only-backup-passphrase
+      RCLONE_CONFIG_DEST_TYPE: local
+    volumes:
+      - ./.backup-remote:/remote

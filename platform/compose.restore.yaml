@@ -1,0 +1,53 @@
+# Isolated restore environment (web-v1.md §15.2). Use ONLY with a separate project name so every
+# volume is new:  docker compose -p brambilab-restore -f compose.yaml -f compose.restore.yaml ...
+# Background jobs off, contact disabled, fake GitHub for the login check, its own port.
+services:
+  fakegithub:
+    build:
+      context: ./api
+      target: fakegithub
+    environment:
+      GITHUB_CLIENT_ID: restore-client
+      GITHUB_CLIENT_SECRET: restore-secret
+      FAKE_USER_ID: ${RESTORE_OWNER_ID:-1001}
+      FAKE_USER_LOGIN: restore-owner
+    ports:
+      - "127.0.0.1:9997:9999"
+    networks: [public]
+
+  api:
+    environment:
+      PUBLIC_ORIGIN: http://localhost:8100
+      BACKGROUND_JOBS: "off"
+      CONTACT_ENABLED: "false"
+      RESEND_API_KEY: ""
+      ADMIN_GITHUB_USER_ID: ${RESTORE_OWNER_ID:-1001}
+      GITHUB_CLIENT_ID: restore-client
+      GITHUB_CLIENT_SECRET: restore-secret
+      GITHUB_AUTHORIZE_URL: http://localhost:9997/login/oauth/authorize
+      GITHUB_TOKEN_URL: http://fakegithub:9999/login/oauth/access_token
+      GITHUB_USER_URL: http://fakegithub:9999/user
+    depends_on:
+      fakegithub:
+        condition: service_started
+
+  web:
+    environment:
+      PUBLIC_ORIGIN: http://localhost:8100
+
+  proxy:
+    ports: !override
+      - "127.0.0.1:8100:8000"
+
+  # Used only for "run --rm backup /ops/restore.sh": writes into this project's new media volume.
+  backup:
+    entrypoint: ["/ops/restore.sh"]
+    restart: "no"
+    environment:
+      BACKUP_REMOTE: ${RESTORE_REMOTE:-dest:/remote}
+      BACKUP_PASSPHRASE: ${RESTORE_PASSPHRASE:-}
+      RCLONE_CONFIG_DEST_TYPE: ${RESTORE_RCLONE_TYPE:-local}
+    volumes: !override
+      - media_data:/data/media
+      - backup_work:/work
+      - ${RESTORE_LOCAL_REMOTE:-./.backup-remote}:/remote:ro

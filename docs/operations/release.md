@@ -48,7 +48,7 @@ Sólo para pruebas, y **no deben existir** en producción (el preflight las rech
 ## 4. Cada release
 1. **Congelar la versión:** despliega un commit concreto (`git rev-parse HEAD`) y anota ese commit y los digests de las imágenes construidas (`docker image inspect --format '{{.Id}}' <imagen>`).
 2. **Preflight** sin imprimir secretos: `docker run --rm --env-file <variables de api> <imagen-api> preflight`, o desde la terminal de Coolify en un contenedor de la imagen nueva: `/server preflight`. Cualquier `FAIL` bloquea la release.
-3. **Backup verificado antes de cambios de esquema** (guía de backup, siguiente entrega de WEB-008). Todas las migraciones de v1 (00001–00009) son aditivas: una API anterior sigue funcionando con el esquema nuevo.
+3. **Backup verificado antes de cambios de esquema:** `docker exec <backup> /ops/backup.sh` debe terminar en `backup succeeded` ([backup.md](backup.md)). Todas las migraciones de v1 (00001–00009) son aditivas: una API anterior sigue funcionando con el esquema nuevo.
 4. **Comprobaciones tras desplegar** (sustituye `$O` por `PUBLIC_ORIGIN`):
    ```sh
    curl -fsS $O/api/v1/health/ready            # {"status":"ready"}

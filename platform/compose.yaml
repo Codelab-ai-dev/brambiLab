@@ -103,6 +103,38 @@ services:
         condition: service_healthy
     networks: [public]
 
+  # Daily encrypted off-site backup (ops/backup, web-v1.md §15.2). Idle until BACKUP_REMOTE and
+  # BACKUP_PASSPHRASE are set. The destination is an rclone remote named "dest" configured with
+  # RCLONE_CONFIG_DEST_* variables (e.g. an S3-compatible bucket). Needs egress: public network.
+  backup:
+    build: ./ops/backup
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      <<: *pg-client
+      MEDIA_ROOT: /data/media
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+      BACKUP_TIME_UTC: ${BACKUP_TIME_UTC:-09:00}
+      BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
+      BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
+      BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-3}
+      BACKUP_COMMIT: ${BACKUP_COMMIT:-}
+      RCLONE_CONFIG_DEST_TYPE: ${RCLONE_CONFIG_DEST_TYPE:-}
+      RCLONE_CONFIG_DEST_PROVIDER: ${RCLONE_CONFIG_DEST_PROVIDER:-}
+      RCLONE_CONFIG_DEST_ENDPOINT: ${RCLONE_CONFIG_DEST_ENDPOINT:-}
+      RCLONE_CONFIG_DEST_REGION: ${RCLONE_CONFIG_DEST_REGION:-}
+      RCLONE_CONFIG_DEST_ACCESS_KEY_ID: ${RCLONE_CONFIG_DEST_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_DEST_SECRET_ACCESS_KEY: ${RCLONE_CONFIG_DEST_SECRET_ACCESS_KEY:-}
+    volumes:
+      # Read-only: a backup never changes media.
+      - media_data:/data/media:ro
+      - backup_work:/work
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal, public]
+
   # Single public entry: /api/v1/* and /media/* go to api, the rest to web (proxy/Caddyfile).
   # In Coolify, attach the domain to this service only.
   proxy:
@@ -119,6 +151,7 @@ services:
 volumes:
   postgres_data:
   media_data:
+  backup_work:
 
 networks:
   internal:

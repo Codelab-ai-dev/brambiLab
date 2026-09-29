@@ -477,6 +477,14 @@ Gate de lanzamiento: restaurar DB y archivos en entorno separado y comprobar log
 
 **Logs.** Rotación json-file de 10 MB × 5 por servicio.
 
+### 15.2 Backup y restauración (WEB-008)
+- Servicio `backup` (imagen `ops/backup`: `postgres:18-alpine` con GnuPG y rclone, así que `pg_dump` coincide con la versión de la base) con un programador diario propio. Queda inactivo sin `BACKUP_REMOTE` y clave.
+- Consistencia por mantenimiento con acuse (§15.1). Se registra cada ejecución en `ops_backup_runs` (migración 00010), con una sola en marcha a la vez.
+- Cada copia se verifica localmente y en el destino antes de aplicar la retención (7 diarias, 4 semanales y 3 mensuales).
+- La restauración sólo va a una base y un volumen vacíos, y verifica checksum, integridad del cifrado y manifiesto. `ops/restore-test.sh` ensaya un entorno aislado con tareas desactivadas, contacto apagado y sesiones revocadas.
+- CI ejecuta los casos de fallo (`ops/backup-test.sh`) y el simulacro contra un destino local simulado.
+- Operación y conciliación tras restaurar: [docs/operations/backup.md](../operations/backup.md).
+
 ## 16. Entregas y aceptación
 | Tarea | Resultado verificable |
 |---|---|

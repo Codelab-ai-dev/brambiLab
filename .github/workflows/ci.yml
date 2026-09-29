@@ -67,10 +67,12 @@ jobs:
       run:
         working-directory: platform
     env:
-      COMPOSE_FILE: compose.yaml:compose.e2e.yaml
+      COMPOSE_FILE: compose.yaml:compose.e2e.yaml:compose.backup-test.yaml
     steps:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
+      # Local stand-in for the off-site backup destination (compose.backup-test.yaml).
+      - run: mkdir -p .backup-remote
       - run: docker compose up --build -d --wait
       - name: Smoke test through the proxy
         run: |
@@ -95,6 +97,12 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
           BASE_URL=http://localhost:8000 npm run e2e
+      - name: Backup failure modes (maintenance, verification, retention, integrity)
+        run: ops/backup-test.sh
+      - name: Isolated restore drill from the stand-in destination
+        run: |
+          docker compose exec -T backup /ops/backup.sh
+          RESTORE_PASSPHRASE=test-only-backup-passphrase ops/restore-test.sh latest
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -104,7 +112,7 @@ jobs:
       - name: Secrets never reach logs
         run: |
           grep -q "POSTGRES_PASSWORD='change-me@local/#1'" .env
-          for secret in 'change-me@local' 'e2e-secret' 're_e2e_fake' 'access_token' 'csrf_token' 'bl_session=' 'MARCA-' 'ana@example.org'; do
+          for secret in 'change-me@local' 'e2e-secret' 're_e2e_fake' 'test-only-backup-passphrase' 'access_token' 'csrf_token' 'bl_session=' 'MARCA-' 'ana@example.org'; do
             if docker compose logs 2>&1 | grep -qF "$secret"; then
               echo "found in logs: $secret"; exit 1
             fi
