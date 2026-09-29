@@ -24,7 +24,8 @@ Anteriores: FND-001 (commit inicial `332e5f0`) y FND-002 (licencias, [ADR-007](.
 
 ## Entregas web
 2026-09-28 · WEB-008 entrega 1 (configuración de producción, mantenimiento, preflight y runbook de release). [Handoff](../docs/handoffs/2026-09-28-web-008-config.md); gates en [lanzamiento.md](../docs/operations/lanzamiento.md). Unida (#38).
-2026-09-28 · WEB-008 entrega 2 (backup cifrado externo y restauración aislada, probados contra un destino simulado). [Handoff](../docs/handoffs/2026-09-28-web-008-backup.md); runbook [backup.md](../docs/operations/backup.md). Sigue alertas y runbooks; destino real pendiente de Gustavo.
+2026-09-28 · WEB-008 entrega 2 (backup cifrado externo y restauración aislada, probados contra un destino simulado). [Handoff](../docs/handoffs/2026-09-28-web-008-backup.md); runbook [backup.md](../docs/operations/backup.md). Unida (#39).
+2026-09-28 · WEB-008 entrega 3 (chequeos, avisos por webhook desactivados, página «Operación», incidentes, medición de carga y lista de lanzamiento). [Handoff](../docs/handoffs/2026-09-28-web-008-alerts.md). Parte reproducible completa; el resto espera acceso y decisiones de Gustavo ([gates](../docs/operations/lanzamiento.md)).
 
 2026-09-28 · WEB-007 PR 1 (recepción, antispam, cola y adaptador Resend; contacto desactivado hasta configurarlo). [Handoff](../docs/handoffs/2026-09-28-web-007-api.md); guía [contacto-resend.md](../docs/operations/contacto-resend.md). PR 1 #35 unido; PR 2 #36 (formulario, panel y e2e; [handoff](../docs/handoffs/2026-09-28-web-007-form.md)) unido. WEB-007 terminada; Resend real pendiente (gate de WEB-008).
 

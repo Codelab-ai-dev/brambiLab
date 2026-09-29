@@ -34,6 +34,8 @@ Secretos sólo en Coolify, nunca en Git ni en chats.
 | `CONTACT_RATE_PER_CLIENT`, `CONTACT_RATE_GLOBAL`, `CONTACT_RETENTION_DAYS` | api | no | no | 5 / 100 / 30 por defecto. |
 | `MEDIA_MAX_IMAGE_BYTES`, `MEDIA_MAX_VIDEO_BYTES`, `MEDIA_MAX_RESOURCE_BYTES`, `MEDIA_FREE_RESERVE_BYTES` | api | no | no | 20 MiB / 250 MiB / 100 MiB / 512 MiB. Subir el de vídeo por encima de 256 MiB exige cambiar también Caddy. |
 | `BACKGROUND_JOBS` | api | no | no | **Nunca `off` en producción**: sólo en restauraciones aisladas. |
+| `ALERT_WEBHOOK_URL` | api | no | **sí** | Canal de avisos aprobado (https). Vacía: sólo logs y página «Operación». |
+| `BACKUP_*`, `RCLONE_CONFIG_DEST_*` | backup | no | passphrase y claves **sí** | Ver [backup.md](backup.md). |
 | `INTERNAL_API_URL` | web | fija | no | `http://api:8080` (red privada). |
 
 Sólo para pruebas, y **no deben existir** en producción (el preflight las rechaza): `GITHUB_AUTHORIZE_URL`, `GITHUB_TOKEN_URL`, `GITHUB_USER_URL`, `RESEND_API_URL`, `FAKE_*`, `TEST_DATABASE_URL`, `AUTHTEST_LOGS`. Los servicios `fakegithub` y `fakeresend` sólo existen en `compose.e2e.yaml`: nunca se usa ese archivo en Coolify.
@@ -59,7 +61,7 @@ Sólo para pruebas, y **no deben existir** en producción (el preflight las rech
    curl -s $O/api/v1/public/contact             # {"available":false,...} hasta activar Resend
    curl -sI $O/admin | grep -i 'x-robots-tag: noindex'
    ```
-   Luego, en el navegador: login como propietario y logout; una cuenta de GitHub distinta debe ser rechazada.
+   Luego, en el navegador: login como propietario y logout; una cuenta de GitHub distinta debe ser rechazada. Por último, `docker exec <api> /server ops-check` (código 0) y la página `/admin/operacion` sin chequeos críticos.
 
 ## 5. Reversión
 - **Sólo aplicación:** vuelve a desplegar el commit anterior. Es seguro mientras las migraciones sean aditivas, como todas las de v1.

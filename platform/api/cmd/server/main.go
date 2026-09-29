@@ -4,6 +4,7 @@
 //	server migrate    apply database migrations and exit (release task)
 //	server healthcheck probe the local liveness endpoint (for distroless images)
 //	server preflight  validate the production configuration (names only, never values)
+//	server ops-check  run the operational checks (exit 1 if any is critical)
 package main
 
 import (
@@ -66,6 +67,9 @@ func run(cmd string, logger *slog.Logger) error {
 		return migrations.Up(ctx, dbCfg.ConnConfig, logger)
 	case "healthcheck":
 		return healthcheck(cfg)
+	case "ops-check":
+		// Operational checks for cron/monitoring: exit 1 on any critical check.
+		return opsCheck(ctx, cfg, logger)
 	case "preflight":
 		// Production configuration check before a release; prints names, never values.
 		results := preflight.Check(os.Getenv, preflight.Writable)
@@ -134,6 +138,16 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		go contactStore.RunPurge(ctx, time.Hour, logger)
 	}
 
+	checker := ops.NewChecker(pool, cfg.MediaRoot, contactCfg.Enabled, !maintenance.BackgroundDisabled())
+	webhook, err := ops.WebhookURL(os.Getenv("ALERT_WEBHOOK_URL"))
+	if err != nil {
+		return err
+	}
+	if webhook == "" {
+		logger.Warn("alert notifications disabled: ALERT_WEBHOOK_URL is not set (problems are still logged)")
+	}
+	go ops.NewMonitor(checker, webhook, authCfg.PublicOrigin, logger).Run(ctx, 5*time.Minute)
+
 	siteStore := site.NewStore(pool)
 	publisher := publishing.NewService(pool)
 	publisher.Gate = gate
@@ -150,6 +164,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			site.NewHandler(siteStore, logger, authHandler.RequireOwner, auth.Actor),
 			public.NewHandler(pool, siteStore, logger),
 			contactHandler,
+			ops.NewAdminHandler(checker, pool, authHandler.RequireOwner, webhook != ""),
 			contact.NewAdminHandler(contactStore, contactHandler, authHandler.RequireOwner, auth.Actor),
 		),
 		ReadHeaderTimeout: 10 * time.Second,
@@ -177,6 +192,28 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		}
 		return nil
 	}
+}
+
+func opsCheck(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
+	dbCfg, err := db.Config(cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, dbCfg)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	contactCfg := contact.LoadConfig(os.Getenv)
+	m := ops.NewMaintenance(pool, logger, os.Getenv)
+	r := ops.NewChecker(pool, cfg.MediaRoot, contactCfg.Enabled, !m.BackgroundDisabled()).Run(ctx)
+	for _, c := range r.Checks {
+		fmt.Printf("%-8s %s: %s\n", c.Status, c.Name, c.Detail)
+	}
+	if r.Status == ops.StatusCritical {
+		return errors.New("critical operational checks")
+	}
+	return nil
 }
 
 func healthcheck(cfg config.Config) error {

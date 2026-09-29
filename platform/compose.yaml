@@ -80,6 +80,8 @@ services:
       MEDIA_FREE_RESERVE_BYTES: ${MEDIA_FREE_RESERVE_BYTES:-}
       # "off" only in isolated restores: publications, contact and cleanups never run.
       BACKGROUND_JOBS: ${BACKGROUND_JOBS:-}
+      # Approved alert channel (https webhook; its URL is a secret). Empty: problems are only logged.
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
     volumes:
       - media_data:/data/media
     # Graceful shutdown: HTTP drains up to 15 s; workers stop between passes.

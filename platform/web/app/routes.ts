@@ -47,6 +47,7 @@ export default [
     route("sitio", "routes/admin/site.tsx"),
     route("contacto", "routes/admin/contact-messages.tsx"),
     route("contacto/:id", "routes/admin/contact-message.tsx"),
+    route("operacion", "routes/admin/operations.tsx"),
   ]),
   ...site,
 ] satisfies RouteConfig;

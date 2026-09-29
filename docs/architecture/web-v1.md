@@ -485,6 +485,14 @@ Gate de lanzamiento: restaurar DB y archivos en entorno separado y comprobar log
 - CI ejecuta los casos de fallo (`ops/backup-test.sh`) y el simulacro contra un destino local simulado.
 - Operación y conciliación tras restaurar: [docs/operations/backup.md](../operations/backup.md).
 
+### 15.3 Chequeos, avisos y carga (WEB-008)
+- `internal/ops` evalúa la base, el backup (vencido a las 26 h o fallido), el disco del volumen de medios (menos de 2 GiB avisa, menos de 512 MiB es crítico), el mantenimiento prolongado, `BACKGROUND_JOBS`, y las tareas de publicación y contacto atrasadas o fallidas.
+- Los mismos chequeos alimentan `server ops-check` (código 1 si hay algo crítico), la página privada `/admin/operacion` y el monitor de la API, que corre cada 5 min y registra en el log.
+- Sólo con `ALERT_WEBHOOK_URL` (https, un canal aprobado) avisa cuando cambia el conjunto de problemas, incluida la recuperación, y reintenta si el canal falla. Por defecto no envía nada.
+- La caída del propio servicio necesita un monitor externo de `/api/v1/health/ready` (pendiente de elegir).
+- `cmd/loadprobe` mide latencias con carga acotada (16 clientes y 120 s como máximo; sólo localhost salvo `-allow-remote`). No es una promesa de capacidad.
+- Guías: [docs/operations/incidentes.md](../operations/incidentes.md).
+
 ## 16. Entregas y aceptación
 | Tarea | Resultado verificable |
 |---|---|
