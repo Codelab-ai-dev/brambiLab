@@ -51,7 +51,8 @@ Criterios completos en la sección 16 de la especificación. Los IDs siguientes 
 | WEB-008 | Coolify, backups y validación de lanzamiento | Cerrada con excepciones ([#37](https://github.com/Codelab-ai-dev/brambiLab/issues/37)); pendientes en [#43](https://github.com/Codelab-ai-dev/brambiLab/issues/43) | WEB-007 |
 | UI-45 | Logo modular en cabecera, pie y favicon | Terminada ([#45](https://github.com/Codelab-ai-dev/brambiLab/issues/45) cerrado, PR #46) | Kit de marca de Gustavo |
 | WEB-009 | Rediseño editorial del sitio público (navy, cyan, tipografía grande) | Terminada ([#47](https://github.com/Codelab-ai-dev/brambiLab/issues/47) cerrado; #48, #50, #51 en `main`); despliegue pendiente de autorización | UI-45 |
-| UI-52 | Animaciones sutiles del diseño editorial | En PR ([#52](https://github.com/Codelab-ai-dev/brambiLab/issues/52)) | WEB-009 |
+| UI-52 | Animaciones sutiles del diseño editorial | Terminada ([#52](https://github.com/Codelab-ai-dev/brambiLab/issues/52), PR #54) | WEB-009 |
+| UI-53 | Hero 3D (nube de percepción con Three.js) | En PR ([#53](https://github.com/Codelab-ai-dev/brambiLab/issues/53)); sustituye el pulso de UI-52 | UI-52 |
 
 Seguimiento de la revisión de Codex a WEB-001 ([comentario](https://github.com/Codelab-ai-dev/brambiLab/pull/5#issuecomment-5861621351)):
 - Credenciales PostgreSQL con caracteres reservados: corregido en `fix/WEB-001-db-credentials` con variables `PG*` y prueba de integración.

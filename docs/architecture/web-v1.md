@@ -263,7 +263,16 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
   - Secciones (`data-reveal` y `useReveal`): sólo se ocultan las que siguen bajo el pliegue al hidratar, así no hay destello. Cada una aparece una vez y no se vuelve a ocultar. El foco de teclado la muestra al instante. Sin JavaScript, sin IntersectionObserver o con movimiento reducido, nada se oculta.
   - Fotos de bloques editoriales: zoom de 1 a 1,03 dentro de su marco, sólo con `hover: hover` o con el foco. Las flechas avanzan 4 px en 220 ms con hover y con foco, y el área clicable no se mueve. Enlaces y botones cambian de color en 220 ms.
   - Navegación: el fondo pasa de navy a navy profundo translúcido al salir del inicio de la página. Lo detecta un centinela observado, sin listener de scroll; la altura no cambia.
-  - Visual técnico único: un pulso lento recorre la cresta iluminada del relieve del hero. Sólo se anima tras hidratar, a partir de 48rem y sin movimiento reducido, con botón «Pausar/Reanudar animación» (ES/EN), y se detiene fuera de pantalla o con la pestaña oculta. En los demás casos queda estático.
+  - Visual técnico único ([#53](https://github.com/Codelab-ai-dev/brambiLab/issues/53), sustituye al pulso del relieve de #52, así nunca hay dos visuales protagonistas): una escena Three.js con React Three Fiber, una «nube de percepción» conceptual con anillos de barrido en el suelo, una caja, un pilar y un muro, y en cyan los anillos y el campo de visión del sensor.
+    - Rotación lenta y respuesta leve al cursor; sin cifras, escaneos ni estados que aparenten datos reales.
+    - El HTML SSR siempre trae la imagen estática: la misma nube proyectada con la misma cámara (`perception.ts`).
+    - El *chunk* 3D (`HeroScene`, unos 236 KB comprimidos) se carga sólo en la home, tras el evento `load` y con el navegador ocioso. Requisitos: escritorio con puntero fino y hover, WebGL disponible (prueba de capacidad, no de user-agent), sin movimiento reducido y sin ahorro de datos. Móvil y táctil usan la imagen estática.
+    - La imagen se mantiene hasta el primer fotograma y luego hay un fundido breve.
+    - Un fallo de descarga o de render, o la pérdida del contexto WebGL, devuelven la imagen. Un error boundary aísla la escena del resto de la página.
+    - Un canvas y un contexto, tres *draw calls*, DPR ≤ 1,5, sin posprocesado, sombras ni texturas.
+    - El bucle (`frameloop`) sólo corre mientras se reproduce. Pausa y reanudación con botón ES/EN, y se detiene fuera de pantalla o con la pestaña oculta.
+    - El canvas es `aria-hidden`, no enfocable y no recibe eventos de puntero.
+    - Las versiones van fijadas: `three` 0.182.0 (la 0.183+ hace que R3F 9.8 emita en consola el aviso de `THREE.Clock` obsoleto).
   - Con `prefers-reduced-motion` todo muestra su estado final, incluso si la preferencia cambia durante la visita. Sin scroll hijacking, parallax, cursor propio ni librerías de animación.
 - Páginas interiores (entrega 2):
   - cabecera navy con titular grande;
