@@ -3,8 +3,6 @@
 // decorative (aria-hidden). Generated from a fixed seed with integer coordinates, so the server
 // and the browser always produce the same markup.
 
-import { Fragment } from "react";
-
 type Props = { className?: string };
 
 /** mulberry32: small deterministic PRNG. */
@@ -19,43 +17,6 @@ function rng(seed: number) {
 }
 
 const r = Math.round;
-
-// Terrain ridgelines: stacked profiles, each filled with the surface so nearer ridges hide the
-// ones behind. One profile is lit in cyan; its open line carries the animated pulse (#52).
-const RIDGES = (() => {
-  const rand = rng(47);
-  const W = 400;
-  const out: { d: string; line: string; lit: boolean }[] = [];
-  const lines = 22;
-  for (let i = 0; i < lines; i++) {
-    const base = 150 + i * 21;
-    const phase = rand() * Math.PI * 2;
-    let d = `M0 ${base}`;
-    for (let x = 0; x <= W; x += 16) {
-      const u = x / W;
-      const massif = Math.exp(-((u - 0.58) ** 2) / 0.05) * (0.35 + 0.65 * (i / lines));
-      const y = base - massif * 120 - Math.sin(u * 9 + phase) * 7 - rand() * 6;
-      d += ` L${x} ${r(y)}`;
-    }
-    out.push({ d: `${d} L${W} 640 L0 640 Z`, line: d, lit: i === 14 });
-  }
-  return out;
-})();
-
-export function RidgeTexture({ className = "" }: Props) {
-  return (
-    <svg viewBox="0 0 400 640" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false" className={className}>
-      {RIDGES.map((p, i) => (
-        <Fragment key={i}>
-          <path d={p.d} fill="var(--color-surface)" stroke={p.lit ? "var(--color-signal)" : "rgb(139 152 168 / 0.45)"} strokeWidth={p.lit ? 1.5 : 1} />
-          {/* A short bright segment that travels along the lit ridge; hidden unless animating
-              (.bl-scan in app.css). Drawn here so nearer ridges still cover it. */}
-          {p.lit && <path className="bl-scan" d={p.line} pathLength={100} fill="none" stroke="var(--color-signal)" strokeWidth="3" strokeLinecap="round" strokeDasharray="6 94" />}
-        </Fragment>
-      ))}
-    </svg>
-  );
-}
 
 // Point cloud: a warped surface seen in perspective, drawn as one path of round dots.
 const CLOUD = (() => {

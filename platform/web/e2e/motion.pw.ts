@@ -54,39 +54,13 @@ test("keyboard focus inside a waiting section shows it at once", async ({ page }
   await expect(cta).toBeInViewport();
 });
 
-test("the relief animation can be paused, and stops out of view or with the tab hidden", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/es");
-  const figure = page.locator("figure[data-motion='on']");
-  const scan = figure.locator(".bl-scan");
-  const state = () => scan.evaluate((el) => el.getAnimations()[0]?.playState ?? "none");
-  await expect.poll(state).toBe("running");
-  await page.getByRole("button", { name: "Pausar animación" }).click();
-  await expect.poll(state).toBe("paused");
-  await page.getByRole("button", { name: "Reanudar animación" }).click();
-  await expect.poll(state).toBe("running");
-  // Out of view.
-  await page.getByRole("heading", { name: "Cómo se documenta" }).scrollIntoViewIfNeeded();
-  await expect(figure).toHaveAttribute("data-paused", "true");
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await expect.poll(state).toBe("running");
-  // Hidden tab.
-  await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
-  await expect(figure).toHaveAttribute("data-paused", "true");
-  // English label.
-  await page.goto("/en");
-  await expect(page.getByRole("button", { name: "Pause animation" })).toBeVisible();
-});
-
 test("phones and touch: static visual, no pause control, no hover zoom", async ({ browser }) => {
+  // The animated visual itself (the 3D scene of #53) is covered in scene.pw.ts.
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const page = await ctx.newPage();
   await page.goto("/es");
   await expect(page.getByRole("button", { name: "Pausar animación" })).toBeHidden();
-  expect(await page.locator(".bl-scan").evaluate((el) => el.getAnimations().length)).toBe(0);
+  await expect(page.locator("figure[data-scene] canvas")).toHaveCount(0);
   expect(await page.evaluate(() => matchMedia("(hover: hover)").matches)).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
   await ctx.close();

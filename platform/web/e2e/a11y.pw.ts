@@ -74,8 +74,8 @@ test("with motion on, the home settles into the same accessible state", async ({
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y < height; y += 400) await page.mouse.wheel(0, 400);
   await expect.poll(() => page.evaluate(() => document.querySelectorAll("[data-reveal-pending]").length)).toBe(0);
-  // Wait for entrances and reveals to finish (the relief's pulse loops and is excluded).
-  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && !(a.effect as KeyframeEffect | null)?.target?.classList?.contains("bl-scan")).length)).toBe(0);
+  // Wait for entrances and reveals to finish.
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running").length)).toBe(0);
   const { violations } = await axe(page);
   expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 });

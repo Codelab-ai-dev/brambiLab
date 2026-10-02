@@ -412,18 +412,5 @@ html:has(.bl-site) {
   [data-reveal][data-reveal-pending] { opacity: 1; transform: none; }
 }
 
-/* The one animated technical visual: a slow pulse along the lit ridge of the hero relief. It
-   runs only once JavaScript can pause it (data-motion="on"), on wide screens, and stops when the
-   viewer pauses it, scrolls it out of view or hides the tab. Static otherwise. */
-.bl-scan { opacity: 0; }
-@media (min-width: 48rem) and (prefers-reduced-motion: no-preference) {
-  [data-motion="on"] .bl-scan {
-    opacity: 1;
-    animation: bl-scan 9s linear infinite;
-  }
-  [data-motion="on"][data-paused] .bl-scan { animation-play-state: paused; }
-}
-@keyframes bl-scan {
-  to { stroke-dashoffset: -100; }
-}
+
 }
