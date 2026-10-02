@@ -55,11 +55,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
       <section aria-labelledby="projects-title">
         <Frame className="grid gap-12 py-20 sm:py-28 lg:grid-cols-12 lg:gap-8">
-          <div className="lg:col-span-8">
+          <div data-reveal className="lg:col-span-8">
             <SectionHeader id="projects-title" index={index(1)} label={t(locale, "nav.projects")} title={t(locale, featured ? "home.featured" : "home.projects")} />
             {projects.length === 0 && <p className="mt-10 max-w-xl text-lg text-text-muted">{t(locale, "home.noneProjects")}</p>}
           </div>
-          <div className="flex flex-col justify-end gap-8 lg:col-span-4">
+          <div data-reveal className="flex flex-col justify-end gap-8 lg:col-span-4">
             {projects.length > 1 && <ProjectNavigation locale={locale} cards={projects} />}
             {projectTotal > 0 && (
               <a
@@ -90,11 +90,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       <Latest locale={locale} logs={home.latest_logs} articles={home.latest_articles} />
 
       <section aria-labelledby="method-title" className="bl-light">
+        {/* The paper surface stays put; only its content appears. */}
         <Frame className="grid gap-12 py-20 sm:py-28 lg:grid-cols-12 lg:gap-8">
-          <div className="lg:col-span-6">
+          <div data-reveal className="lg:col-span-6">
             <SectionHeader id="method-title" index={index(4)} label={t(locale, "method.label")} title={t(locale, "site.method.title")} />
           </div>
-          <ol className="self-end border-t border-border lg:col-span-6">
+          <ol data-reveal className="self-end border-t border-border lg:col-span-6">
             {(["site.method.hypothesis", "site.method.failures", "site.method.evidence"] as MessageKey[]).map((m, i) => (
               <li key={m} className="flex items-baseline gap-6 border-b border-border py-6">
                 <span className="font-mono text-sm text-accent">{index(i + 1)}</span>
@@ -119,7 +120,7 @@ function Latest({ locale, logs, articles }: { locale: Locale; logs: Card[]; arti
     { id: "articles", title: "home.articles" as MessageKey, cards: articles, more: { href: sectionPath(locale, "articles"), label: "home.allArticles" as MessageKey } },
   ].filter((c) => c.cards.length > 0);
   return (
-    <section aria-labelledby="latest-title" className="border-t border-border">
+    <section data-reveal aria-labelledby="latest-title" className="border-t border-border">
       <Frame className="py-20 sm:py-28">
         <SectionHeader id="latest-title" index={index(3)} label={t(locale, "kind.log")} title={t(locale, "home.latest")} />
         {columns.length === 0 ? (

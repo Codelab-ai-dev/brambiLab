@@ -53,18 +53,20 @@ before=$(count)
 backup -e BACKUP_REMOTE=dest:/remote/missing/../../nope -e RCLONE_CONFIG_DEST_TYPE=s3 -e RCLONE_CONFIG_DEST_ENDPOINT=http://127.0.0.1:1 -e RCLONE_CONFIG_DEST_PROVIDER=Other -e RCLONE_RETRIES=1 -e RCLONE_LOW_LEVEL_RETRIES=1 -e RCLONE_CONTIMEOUT=2s; code=$?
 [ $code -ne 0 ] && [ "$(last)" = "failed|upload" ] && [ "$(count)" = "$before" ] && maint_off && ok "unreachable destination fails, nothing deleted" || bad "unreachable destination: exit $code, $(last), files $(count)"
 
-# 7. Retention: 7 daily, 4 weekly, 3 monthly (fake old copies with real names).
-for d in 20260101 20260115 20260201 20260301 20260601 20260801 20260901 20260907 20260914 20260915 20260916 20260917 20260918 20260919 20260920 20260921 20260922 20260923 20260924; do
+# 7. Retention: 7 daily, 4 weekly, 3 monthly (fake old copies with real names). The fakes are in
+# 2020 so the real copy made today never shares a day, an ISO week or a month with them: the
+# expected result does not depend on the date the test runs. Today's copy takes one slot of each.
+for d in 20200101 20200115 20200201 20200301 20200601 20200801 20200901 20200907 20200914 20200915 20200916 20200917 20200918 20200919 20200920 20200921 20200922 20200923 20200924; do
   cp "$good" "$REMOTE/brambilab-${d}T090000Z.tar.gpg"; echo x >"$REMOTE/brambilab-${d}T090000Z.tar.gpg.sha256"
 done
 backup && [ "$(last)" = "succeeded|done" ] || bad "retention run failed: $(last)"
-kept=$(ls "$REMOTE" | grep -o 'brambilab-2026[0-9]*' | sort -u | tr '\n' ' ')
-# Newest 7 days (today + 6 fakes 0924..0919), 4 ISO weeks, and the newest copy of 3 months
-# (Sep = today, Aug = 0801, Jun = 0601); older months are pruned.
-for gone in 20260101 20260115 20260201 20260301; do
+kept=$(ls "$REMOTE" | grep -o 'brambilab-2020[0-9]*' | sort -u | tr '\n' ' ')
+# Daily: today + the 6 newest fakes (0924..0919). Weekly: today + the weeks of 0924, 0920 and
+# 0907. Monthly: today + September (0924) and August (0801). Everything older is pruned.
+for gone in 20200101 20200115 20200201 20200301 20200601; do
   echo "$kept" | grep -q "brambilab-$gone" && bad "retention kept $gone"
 done
-for kept_d in 20260924 20260919 20260801 20260601; do
+for kept_d in 20200924 20200919 20200907 20200801; do
   echo "$kept" | grep -q "brambilab-$kept_d" || bad "retention deleted $kept_d"
 done
 [ "$failed" = 0 ] && ok "retention prunes by day/week/month after a verified copy"

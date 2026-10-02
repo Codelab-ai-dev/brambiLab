@@ -1,7 +1,7 @@
 // Public navigation (WEB-009): sticky, translucent deep navy. On phones the sections fold into a
-// disclosure menu (button with aria-expanded, Escape closes and returns focus). Without
-// JavaScript the same control is a link to the footer navigation, so every section stays reachable.
-import { useEffect, useRef, useState } from "react";
+// disclosure menu (a button with aria-expanded; Escape closes and returns focus). Without
+// JavaScript the same element is a link to the footer navigation, so every section stays reachable.
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { BrambiLabLogo } from "~/components/brand/BrambiLabLogo";
 import { t, type Locale, type MessageKey } from "~/i18n";
 import { homePath, sectionPath, type Section } from "~/site/paths";
@@ -27,8 +27,19 @@ export function Navigation({ locale, pathname, switcher }: { locale: Locale; pat
   // First render (server and hydration) is the no-JS version; the effect upgrades the control.
   const [enhanced, setEnhanced] = useState(false);
   const [open, setOpen] = useState(false);
-  const button = useRef<HTMLButtonElement>(null);
+  const button = useRef<HTMLAnchorElement>(null);
+  // Background change once the page leaves the top (#52): one observed 1 px sentinel, no scroll
+  // listener and no render per scrolled pixel.
+  const sentinel = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => setEnhanced(true), []);
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -42,7 +53,13 @@ export function Navigation({ locale, pathname, switcher }: { locale: Locale; pat
 
   const toggle = "inline-flex min-h-11 items-center gap-2 rounded-sm border border-border-strong px-3 font-mono text-xs tracking-[0.12em] uppercase md:hidden";
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-[rgb(6_17_31/0.9)] backdrop-blur-sm">
+    <>
+    <div ref={sentinel} aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px" />
+    {/* At the top it continues the navy page header; scrolled, it becomes translucent deep navy. */}
+    <header
+      data-scrolled={scrolled || undefined}
+      className="sticky top-0 z-40 border-b border-border bg-navy transition-[background-color] duration-(--motion-fast) ease-(--ease-out) data-scrolled:bg-[rgb(6_17_31/0.9)] data-scrolled:backdrop-blur-sm"
+    >
       <Frame className="flex min-h-16 items-center justify-between gap-6">
         <a href={homePath(locale)} aria-label="BrambiLab" className={`shrink-0 rounded-sm ${focusRing}`}>
           <BrambiLabLogo className="h-7 sm:h-8" />
@@ -63,7 +80,7 @@ export function Navigation({ locale, pathname, switcher }: { locale: Locale; pat
                     className={
                       contact
                         ? `flex min-h-12 items-center text-2xl text-text md:min-h-10 md:rounded-sm md:border md:border-border-strong md:px-4 md:text-sm md:hover:border-signal ${focusRing}`
-                        : `flex min-h-12 items-center text-2xl text-text-muted underline-offset-8 hover:text-text aria-[current=page]:text-text aria-[current=page]:underline aria-[current=page]:decoration-signal md:min-h-10 md:text-sm ${focusRing}`
+                        : `flex min-h-12 items-center text-2xl text-text-muted underline decoration-transparent decoration-1 underline-offset-8 hover:text-text hover:decoration-border-strong aria-[current=page]:text-text aria-[current=page]:decoration-signal md:min-h-10 md:text-sm ${focusRing}`
                     }
                   >
                     {t(locale, n.label)}
@@ -82,17 +99,32 @@ export function Navigation({ locale, pathname, switcher }: { locale: Locale; pat
           >
             {other}
           </a>
-          {enhanced ? (
-            <button ref={button} type="button" aria-expanded={open} aria-controls="site-nav" onClick={() => setOpen((o) => !o)} className={`${toggle} ${focusRing}`}>
-              {open ? t(locale, "nav.close") : t(locale, "nav.menu")}
-            </button>
-          ) : (
-            <a href="#footer-nav" className={`${toggle} ${focusRing}`}>
-              {t(locale, "nav.menu")}
-            </a>
-          )}
+          {/* One element before and after hydration, so focus is never lost when JavaScript
+              arrives: a link to the footer navigation that, enhanced, acts as the menu button. */}
+          <a
+            ref={button}
+            href="#footer-nav"
+            {...(enhanced && {
+              role: "button",
+              "aria-expanded": open,
+              "aria-controls": "site-nav",
+              onClick: (e: ReactMouseEvent) => {
+                e.preventDefault();
+                setOpen((o) => !o);
+              },
+              onKeyDown: (e: ReactKeyboardEvent) => {
+                if (e.key !== " ") return; // a button also activates with Space
+                e.preventDefault();
+                setOpen((o) => !o);
+              },
+            })}
+            className={`${toggle} ${focusRing}`}
+          >
+            {open ? t(locale, "nav.close") : t(locale, "nav.menu")}
+          </a>
         </nav>
       </Frame>
     </header>
+    </>
   );
 }

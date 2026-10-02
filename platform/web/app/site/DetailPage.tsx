@@ -121,7 +121,7 @@ export function DetailPage({ data }: { data: DetailData }) {
       </article>
 
       {logs && (
-        <section id="bitacora" aria-labelledby="log-title" className="border-b border-border">
+        <section id="bitacora" data-reveal aria-labelledby="log-title" className="border-b border-border">
           <Frame className="py-16 sm:py-24">
             <h2 id="log-title" className="bl-h-project">
               {t(locale, "project.log")} <span className="font-mono text-lg font-normal tracking-normal text-text-muted">({logs.total})</span>

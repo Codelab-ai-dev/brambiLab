@@ -17,7 +17,7 @@ export function Areas({ locale, index }: { locale: Locale; index: string }) {
   return (
     <section aria-labelledby="areas-title" className="border-t border-border">
       <Frame className="py-20 sm:py-28">
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div data-reveal className="grid gap-8 lg:grid-cols-12">
           <div className="lg:col-span-8">
             <SectionHeader id="areas-title" index={index} label={t(locale, "hero.focus")} title={t(locale, "areas.title")} />
           </div>
@@ -25,7 +25,7 @@ export function Areas({ locale, index }: { locale: Locale; index: string }) {
         </div>
         <ol className="mt-16">
           {areas.map(({ key, Visual }, i) => (
-            <li key={key} className="grid gap-8 border-t border-border py-12 sm:grid-cols-6 lg:grid-cols-12 lg:gap-8">
+            <li key={key} data-reveal className="grid gap-8 border-t border-border py-12 sm:grid-cols-6 lg:grid-cols-12 lg:gap-8">
               <div className="min-w-0 sm:col-span-6 lg:col-span-5">
                 <Eyebrow index={String(i + 1).padStart(2, "0")}>{t(locale, k(key, "short"))}</Eyebrow>
                 <h3 className="mt-5 text-[clamp(2rem,4vw,4rem)] leading-[0.98] font-bold tracking-[-0.03em] [overflow-wrap:break-word]">{t(locale, k(key, "title"))}</h3>

@@ -104,6 +104,24 @@ test("mobile menu: disclosure with Escape; without JavaScript it leads to the fo
   await wide.close();
 });
 
+test("focus on the menu control survives hydration (#52 regression)", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 800 } });
+  const page = await ctx.newPage();
+  // Hold the client entry back, focus the control while it is still the plain link, then let
+  // React hydrate: the same element becomes the button and keeps the focus.
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  await page.route(/entry\.client[^/]*\.js$/, async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto("/es", { waitUntil: "domcontentloaded" });
+  await page.getByRole("link", { name: "Menú" }).focus();
+  release();
+  await expect(page.getByRole("button", { name: "Menú" })).toBeFocused();
+  await ctx.close();
+});
+
 test("the public redesign does not reach the private panel", async ({ browser }) => {
   const ctx = await browser.newContext({ colorScheme: "light" });
   const page = await ctx.newPage();
