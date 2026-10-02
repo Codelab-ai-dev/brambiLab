@@ -258,7 +258,13 @@ La identidad visual utiliza assets aprobados por Gustavo; no inventar un logo de
   - La cifra de proyectos es el total público del idioma y sólo se muestra a partir de 3.
   - Las áreas se presentan como enfoque, no como proyectos.
 - Accesibilidad (entrega 3): anillo de foco por defecto en todo elemento interactivo público; `e2e/a11y.pw.ts` ejecuta axe (WCAG 2.2 A/AA) en todas las rutas, recorre el foco con teclado y comprueba zoom y texto al 200 %. Complementa, no sustituye, la revisión con lector de pantalla.
-- Movimiento: sólo transiciones CSS de hover; nada oculta contenido en SSR ni sin JavaScript. Con `prefers-reduced-motion` no se mueve nada.
+- Movimiento ([#52](https://github.com/Codelab-ai-dev/brambiLab/issues/52)), mejora progresiva sobre HTML SSR completo. Duraciones, easing (ease-out sin rebote) y desplazamiento en tokens de `app.css` (`--motion-*`, `--ease-out`); sólo `transform` y `opacity`.
+  - Hero: entrada por bloques (título, subtítulo, CTA, metadatos y visual) de 550 ms con desfase de 85 ms y 16 px como máximo (8 px en móvil). El título, que es el elemento LCP, sólo se desplaza y nunca es transparente. Un bloque enfocado deja de animarse.
+  - Secciones (`data-reveal` y `useReveal`): sólo se ocultan las que siguen bajo el pliegue al hidratar, así no hay destello. Cada una aparece una vez y no se vuelve a ocultar. El foco de teclado la muestra al instante. Sin JavaScript, sin IntersectionObserver o con movimiento reducido, nada se oculta.
+  - Fotos de bloques editoriales: zoom de 1 a 1,03 dentro de su marco, sólo con `hover: hover` o con el foco. Las flechas avanzan 4 px en 220 ms con hover y con foco, y el área clicable no se mueve. Enlaces y botones cambian de color en 220 ms.
+  - Navegación: el fondo pasa de navy a navy profundo translúcido al salir del inicio de la página. Lo detecta un centinela observado, sin listener de scroll; la altura no cambia.
+  - Visual técnico único: un pulso lento recorre la cresta iluminada del relieve del hero. Sólo se anima tras hidratar, a partir de 48rem y sin movimiento reducido, con botón «Pausar/Reanudar animación» (ES/EN), y se detiene fuera de pantalla o con la pestaña oculta. En los demás casos queda estático.
+  - Con `prefers-reduced-motion` todo muestra su estado final, incluso si la preferencia cambia durante la visita. Sin scroll hijacking, parallax, cursor propio ni librerías de animación.
 - Páginas interiores (entrega 2):
   - cabecera navy con titular grande;
   - índices y búsqueda como filas editoriales (`<article>` con título enlazado, fecha, tipo, estado, tecnologías, términos y miniatura desaturada), con filtros GET y paginación;

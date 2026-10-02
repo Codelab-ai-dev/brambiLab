@@ -21,7 +21,7 @@ export function ProjectFeature({ locale, card, position, total }: { locale: Loca
   const titleId = `${featureId(card)}-title`;
 
   return (
-    <article id={featureId(card)} aria-labelledby={titleId} className="group grid gap-10 border-t border-border py-14 first:border-t-0 sm:py-20 lg:grid-cols-12 lg:gap-8">
+    <article data-reveal id={featureId(card)} aria-labelledby={titleId} className="group grid gap-10 border-t border-border py-14 first:border-t-0 sm:py-20 lg:grid-cols-12 lg:gap-8">
       <div className={`flex min-w-0 flex-col ${card.cover ? "lg:col-span-5" : "lg:col-span-8"}`}>
         <Eyebrow index={pad(position)}>{card.category?.label ?? t(locale, "kind.project")}</Eyebrow>
         <h3 id={titleId} className="bl-h-project mt-6">

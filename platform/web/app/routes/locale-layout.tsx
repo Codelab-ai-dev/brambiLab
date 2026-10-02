@@ -9,6 +9,7 @@ import { localeOf } from "~/site/loader.server";
 import { homePath, localeOfPath } from "~/site/paths";
 import type { PublicSite, SiteLink, Switcher } from "~/site/types";
 import { forwardHeaders } from "~/site/seo";
+import { useReveal } from "~/site/useReveal";
 
 export const headers = forwardHeaders;
 
@@ -41,6 +42,7 @@ export default function LocaleLayout({ loaderData }: Route.ComponentProps) {
   const { pathname } = useLocation();
   const locale = localeOfPath(pathname);
   const other: Locale = locale === "es" ? "en" : "es";
+  useReveal(pathname);
   return (
     <SiteChrome locale={locale} pathname={pathname} switcher={useSwitcher(locale, other)} links={loaderData.links} year={loaderData.year}>
       <Outlet />
@@ -76,7 +78,7 @@ export function ErrorBoundary() {
 
 function SiteChrome({ locale, pathname, switcher, links = [], year, children }: { locale: Locale; pathname: string; switcher: Switcher; links?: SiteLink[]; year: number; children: ReactNode }) {
   return (
-    <div className="bl-site flex min-h-screen flex-col">
+    <div className="bl-site relative flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-sm focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-contrast focus:outline-2 focus:outline-offset-2 focus:outline-white">
         {t(locale, "nav.skip")}
       </a>

@@ -274,6 +274,11 @@ html:has(.bl-site) {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
+  /* Links and buttons change colour smoothly (#52); never their size or position. */
+  .bl-site :is(a[href], button) {
+    transition: color var(--motion-fast) var(--ease-out), background-color var(--motion-fast) var(--ease-out),
+      border-color var(--motion-fast) var(--ease-out), text-decoration-color var(--motion-fast) var(--ease-out);
+  }
 }
 
 /* Type scale (WEB-009 §2). */
@@ -329,37 +334,96 @@ html:has(.bl-site) {
   line-height: 1.15;
 }
 
-/* Photographs on editorial blocks: desaturated presentation (the file keeps its colours; the
-   detail page and the image viewer show them as they are). Hover: up to scale(1.03). */
-.bl-photo {
-  filter: grayscale(1) contrast(1.05);
-  transition: transform 600ms cubic-bezier(0.2, 0.6, 0.2, 1), filter 600ms ease;
+/*
+ * Motion (#52). Subtle and functional: one entrance for the hero, sections that appear once, photo
+ * and arrow micro-interactions, the navigation background and one animated technical visual.
+ * Durations and easing live here; only transform and opacity are animated (the visual's pulse
+ * animates a stroke offset on one short SVG path). Smooth ease-out, no overshoot or bounce.
+ * Everything is visible without JavaScript; with prefers-reduced-motion nothing moves (the global
+ * rule above shortens any transition, and every rule here is gated on no-preference).
+ */
+.bl-site {
+  --motion-fast: 220ms; /* colours, arrows, navigation */
+  --motion-base: 550ms; /* hero entrance and section reveals */
+  --motion-photo: 600ms; /* photo zoom */
+  --motion-stagger: 85ms; /* between hero blocks */
+  --motion-shift: 16px; /* maximum travel */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
-.group:hover .bl-photo,
-.group:focus-within .bl-photo {
-  transform: scale(1.03);
-  filter: grayscale(0.2) contrast(1.02);
-}
-.bl-arrow {
-  transition: transform 400ms cubic-bezier(0.2, 0.6, 0.2, 1);
-}
-.group:hover .bl-arrow,
-a:hover > .bl-arrow,
-a:focus-visible > .bl-arrow {
-  transform: translate(4px, -4px);
-}
-.group:hover .bl-arrow[data-dir="right"],
-a:hover > .bl-arrow[data-dir="right"],
-a:focus-visible > .bl-arrow[data-dir="right"] {
-  transform: translateX(6px);
-}
-/* Reduced motion: images and arrows stay put (the colour change on hover remains as feedback). */
-@media (prefers-reduced-motion: reduce) {
-  .bl-photo,
-  .bl-arrow {
-    transition: none;
-    transform: none !important;
-  }
+@media (max-width: 47.99rem) {
+  .bl-site { --motion-shift: 8px; } /* less movement on phones */
 }
 
+/* Photographs on editorial blocks: desaturated presentation (the file keeps its colours; the
+   detail page and the image viewer show them as they are). The zoom stays inside the frame
+   (overflow hidden on the container) and only where hover exists; keyboard focus gets it too. */
+.bl-photo {
+  filter: grayscale(1) contrast(1.05);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bl-photo { transition: transform var(--motion-photo) var(--ease-out); }
+  .bl-arrow { transition: transform var(--motion-fast) var(--ease-out); }
+  .group:focus-within .bl-photo { transform: scale(1.03); }
+  /* Arrows follow hover and keyboard focus alike; the clickable area never moves. */
+  .group:focus-visible .bl-arrow,
+  a:focus-visible > .bl-arrow { transform: translate(4px, -4px); }
+  .group:focus-visible .bl-arrow[data-dir="right"],
+  a:focus-visible > .bl-arrow[data-dir="right"] { transform: translateX(4px); }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .group:hover .bl-photo { transform: scale(1.03); }
+  .group:hover .bl-arrow,
+  a:hover > .bl-arrow { transform: translate(4px, -4px); }
+  .group:hover .bl-arrow[data-dir="right"],
+  a:hover > .bl-arrow[data-dir="right"] { transform: translateX(4px); }
+}
+
+/* Hero entrance: blocks, never letters, in a short cascade. The title (the LCP element) only
+   travels; it is never transparent. A block that receives focus stops animating at once. */
+@media (prefers-reduced-motion: no-preference) {
+  .bl-enter {
+    animation: bl-enter var(--motion-base) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger));
+  }
+  .bl-enter-shift { animation-name: bl-enter-shift; }
+  .bl-enter:focus-within,
+  .bl-enter:focus-visible { animation: none; }
+}
+@keyframes bl-enter {
+  from { opacity: 0; transform: translateY(var(--motion-shift)); }
+}
+@keyframes bl-enter-shift {
+  from { transform: translateY(var(--motion-shift)); }
+}
+
+/* Section reveals: only sections still below the fold when the page becomes interactive are
+   marked pending (by useReveal), so nothing visible ever disappears. They appear once and stay. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
+  }
+  [data-reveal][data-reveal-pending] {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-shift) + 4px));
+  }
+  [data-reveal][data-reveal-instant] { transition: none; }
+}
+@media print {
+  [data-reveal][data-reveal-pending] { opacity: 1; transform: none; }
+}
+
+/* The one animated technical visual: a slow pulse along the lit ridge of the hero relief. It
+   runs only once JavaScript can pause it (data-motion="on"), on wide screens, and stops when the
+   viewer pauses it, scrolls it out of view or hides the tab. Static otherwise. */
+.bl-scan { opacity: 0; }
+@media (min-width: 48rem) and (prefers-reduced-motion: no-preference) {
+  [data-motion="on"] .bl-scan {
+    opacity: 1;
+    animation: bl-scan 9s linear infinite;
+  }
+  [data-motion="on"][data-paused] .bl-scan { animation-play-state: paused; }
+}
+@keyframes bl-scan {
+  to { stroke-dashoffset: -100; }
+}
 }
