@@ -30,3 +30,6 @@ local.properties
 .vscode/
 .idea/
 Thumbs.db
+# Firmware: credenciales locales y volcados de flash (pueden llevar secretos)
+secrets.h
+projects/001-ai-rover/firmware/backup/*.bin

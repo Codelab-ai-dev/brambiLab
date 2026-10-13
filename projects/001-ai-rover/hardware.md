@@ -6,9 +6,9 @@ No completar modelos por parecido visual. Los elementos usan los mismos nombres 
 | Chasis | Declarado por Gustavo | Dimensiones, fijaciones, fotos actuales |
 | Ruedas y transmisión | Pendiente | Tipo (ruedas u orugas), reductora, encoders si existen |
 | Motores | Pendiente | Modelo, tensión y cantidad confirmada |
-| Driver de motores | Pendiente | Modelo y cableado |
-| Placa de control actual | Pendiente | Referencia exacta y fotos de ambos lados |
-| ESP32 | Pendiente | Si existe: variante y placa (DevKit, S3, C3…). No asumir que es la placa actual |
+| Driver de motores | L298N, declarado por Gustavo | Confirmar modulo concreto y estado de los jumpers ENA/ENB |
+| Placa de control actual | ESP32-CAM, verificada por lectura del chip 2026-10-09 | Fotos de ambos lados |
+| ESP32 | ESP32-CAM AI-Thinker (ESP32-D0WD-V3 rev3.1, 4 MB flash, OV2640), MAC 3c:8a:1f:c2:40:d4 | Confirmar que la serigrafia dice AI-Thinker |
 | Control remoto actual | Pendiente | Mando, receptor o app con que se maneja hoy; o indicar que no existe |
 | Batería | Pendiente | Química, tensión nominal, capacidad y conector |
 | Cargador | Pendiente | Modelo y compatibilidad con la química de la batería |
