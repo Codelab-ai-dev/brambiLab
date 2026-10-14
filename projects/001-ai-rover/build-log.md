@@ -29,3 +29,20 @@ a mano. `analogWrite()` habría podido quedarse con el timer 0 y tumbar la image
 Siguiente: cablear el L298N, cargar el firmware y ejecutar las pruebas de
 [validation.md](validation.md) con las ruedas en el aire. Queda por verificar
 qué lado es cuál y si los motores arrancan por debajo de `MOTOR_MIN_DUTY`.
+
+## 2026-10-09 — Primera conducción en el suelo (registrada el 2026-10-13)
+Objetivo: comprobar el firmware `rover_esp32cam` con los motores alimentados.
+
+Realizado: Gustavo condujo el rover en el suelo con una batería de litio desde
+la página de control. Avance, retroceso y giros correctos sin invertir ningún
+lado; para al soltar y con STOP; sin reinicios al acelerar; con la velocidad
+mínima del deslizador las ruedas giran.
+
+Evidencia: informe verbal de Gustavo; sin vídeo ni fotos.
+
+Aprendizaje: el pinout del instructivo TSCINBUNY y los sentidos por defecto
+coinciden con el cableado real.
+
+Siguiente: grabar vídeo de una prueba completa (arranque, conducción, caída del
+WiFi), anotar la batería y la alimentación del ESP32, e instalar el interruptor
+de potencia.

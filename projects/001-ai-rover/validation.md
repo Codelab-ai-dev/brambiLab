@@ -11,7 +11,7 @@ cámara; **no** verifica nada mecánico.
 |---|---|---|---|
 | Estado V0 | Registrar control existente | Funcionamiento observado o fallo reproducible | **Pasa** — la placa traía el `CameraWebServer` de fábrica, sin control de motores |
 | Arranque | Encender con ruedas levantadas | No hay movimiento espontáneo | **Parcial** — `/status` da `l:0,r:0` nada más arrancar; falta repetirlo con motores alimentados |
-| Direcciones | Enviar cada comando | Sentido y parada corresponden a la orden | **Pendiente** — necesita batería y ruedas en el aire |
+| Direcciones | Enviar cada comando | Sentido y parada corresponden a la orden | **Pasa en ronda 2 (informe de Gustavo)** |
 | Comando inválido | Enviar dato fuera de contrato | Rechazo sin actuación inesperada | **Pasa** — `l=999`, `l=-300`, `l=abc`, `l=10x`, falta de `r` y query vacía devuelven 400, y `/status` sigue en `0,0` |
 | Pérdida de enlace | Interrumpir envío | Parada dentro del timeout especificado | **Pasa** — tras `l=150,r=-150` y 0,8 s en silencio, `/status` vuelve a `0,0` |
 | Reinicio | Reiniciar controlador durante ensayo | Regresa a estado parado | **Parcial** — arranca parado tras el reset; falta con motores alimentados |
@@ -24,12 +24,27 @@ Medidas de la misma ronda:
   configurado. Confirma que usar `LEDC_TIMER_1` no interfiere con el XCLK.
 - RSSI −20 a −23 dBm, heap libre ~145 kB, sin reinicios durante el ensayo.
 
-## Ronda 2 — pendiente, con batería y ruedas en el aire
+## Ronda 2 — 2026-10-09, firmware `rover_esp32cam`, en el suelo con batería
 
-Lo que queda por probar, en este orden: arranque sin movimiento espontáneo,
-sentido de giro de cada lado por separado, parada por timeout observada en los
-motores, umbral real de `MOTOR_MIN_DUTY`, comportamiento al caer el WiFi y
-estabilidad de alimentación al acelerar (buscando brownout).
+Informe verbal de Gustavo, registrado el 2026-10-13. **Sin vídeo ni fotos.**
+Rover en el suelo, alimentado con una batería de litio; conducido desde la
+página de control (`/`). Firmware sin cambios respecto al de la ronda 1
+(`LEFT_INVERT` y `RIGHT_INVERT` en 0, `MOTOR_MIN_DUTY` 70). No se probó antes
+con las ruedas en el aire, como pedía el plan.
+
+| Prueba | Estado |
+|---|---|
+| Direcciones | **Pasa (informe)** — avance, retroceso y giros corresponden a la orden, sin invertir ningún lado |
+| Parada al soltar | **Pasa (informe)** — se detiene al soltar el control y con el botón STOP |
+| Brownout | **Pasa (informe)** — sin reinicios al acelerar |
+| Velocidad mínima | **Pasa (informe)** — con el deslizador al mínimo (80) las ruedas giran |
+| Arranque con motores | **Sin dato** — no se observó explícitamente |
+| Pérdida de enlace con motores | **Sin dato** — solo verificada en `/status` (ronda 1) |
+| Cierre de pestaña o caída del WiFi | **Sin dato** |
+| Corte físico | **Pendiente** — el interruptor todavía no existe |
+
+Queda por anotar: química y tensión exactas de la batería, si el ESP32 se
+alimenta del regulador del L298N o aparte, y evidencia en vídeo para BL-001-004.
 
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de
