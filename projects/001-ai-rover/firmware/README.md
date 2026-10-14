@@ -1,8 +1,10 @@
 # firmware
 
 `rover_esp32cam/` — cámara en streaming y conducción diferencial sobre
-ESP32-CAM + L298N. Compila, pero **todavía no se ha probado sobre el rover**:
-ninguna de las pruebas de [validación](../validation.md) está ejecutada.
+ESP32-CAM + L298N. Gustavo lo condujo en el suelo el 2026-10-09 con batería
+de litio: direcciones, parada al soltar y STOP correctos, sin reinicios
+(informe verbal, sin vídeo). Detalle y huecos en [validación](../validation.md),
+rondas 1 y 2.
 
 ## Placa
 
