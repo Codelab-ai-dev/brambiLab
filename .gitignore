@@ -33,3 +33,5 @@ Thumbs.db
 # Firmware: credenciales locales y volcados de flash (pueden llevar secretos)
 secrets.h
 projects/001-ai-rover/firmware/backup/*.bin
+# Copias locales de backups cifrados de producción (nunca al repo público)
+platform/.backup-remote*/

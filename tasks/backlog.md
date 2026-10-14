@@ -6,17 +6,17 @@ Estado: done (2026-09-27, commit `332e5f0`; remoto público Codelab-ai-dev/bramb
 Aceptación: revisar alcance y convenciones; crear commit local; registrar hash y elegir posteriormente remoto/visibilidad. Evidencia: hash real. No crear historial ficticio.
 
 ## BL-001-001 — Inventario y estado inicial V0
-Estado: in-progress (plantilla lista; espera datos físicos de Gustavo, ver [current.md](current.md)). Dependencia: ninguna técnica.
+Estado: in-progress (2026-10-13). Hecho: placa de control identificada por lectura del chip (ESP32-CAM, ESP32-D0WD-V3) con volcado del flash de fábrica; control previo observado (`CameraWebServer` de ejemplo, sin control de motores); driver L298N declarado por Gustavo. Faltan fotos, motores, batería, cargador, dimensiones y la prueba V0 con motores (ver [current.md](current.md)). Dependencia: ninguna técnica.
 Alcance: completar hardware.md, bom.md y build-log.md con datos observados.
 Aceptación: identificar placa, driver, motores y alimentación; documentar control actual; fotos referenciadas; dimensiones de montaje; cada desconocido explícito; descripción de una prueba del estado inicial o bloqueo que impide ejecutarla.
 Fuera: comprar componentes, diseñar electrónica nueva, implementar firmware.
 
 ## BL-001-002 — Arquitectura del primer control y parada
-Estado: backlog. Depende: BL-001-001.
+Estado: in-progress (2026-10-13, [PR #56](https://github.com/Codelab-ai-dev/brambiLab/pull/56)). Depende: BL-001-001, que sigue abierta; Gustavo adelantó el trabajo con el hardware ya identificado. Hecho: comandos y estados, timeout de 500 ms y parada al caer el WiFi, plan de prueba con ruedas levantadas ([validation.md](../projects/001-ai-rover/validation.md)). Falta: pinout verificado (hoy sale del instructivo del kit), límites de potencia con fichas técnicas, diagrama de conexiones y ADR si corresponde.
 Aceptación: diagrama de conexiones con pinout verificado; límites de potencia sustentados en fichas técnicas; comandos y estados; timeout y parada definidos; plan de prueba con ruedas levantadas. Registrar ADR cuando corresponda.
 
 ## BL-001-003 — Control ESP32 mínimo
-Estado: backlog. Depende: BL-001-002.
+Estado: in-progress (2026-10-13, adelantada en [PR #56](https://github.com/Codelab-ai-dev/brambiLab/pull/56)). Depende: BL-001-002. Hecho: firmware `rover_esp32cam` compilable con `arduino-cli`; ronda 1 sin potencia en motores: rechazo de comandos inválidos y parada por pérdida de enlace observados en `/status`. Falta: ronda 2 con batería y ruedas en el aire (sentido de giro, arranque parado con motores, umbral de `MOTOR_MIN_DUTY`) y evidencia física de Gustavo.
 Aceptación: firmware compilable con placa/toolchain registrados; avance, retroceso, giro y parada; arranque parado; rechazo de comandos inválidos; pérdida de enlace lleva a parada dentro del timeout acordado; evidencia de prueba física por Gustavo. Elegir transporte de prueba en la especificación previa.
 
 ## BL-001-004 — Documentar primer hito reproducible
