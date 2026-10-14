@@ -1,5 +1,5 @@
 # BL-001 — BrambiLab AI Rover
-Estado: V0 · inventario pendiente. Categorías: robótica, embedded, Android, IA.
+Estado: firmware ESP32-CAM escrito · ronda 1 de validación sin potencia en motores. Categorías: robótica, embedded, Android, IA.
 
 ## Objetivo
 Evolucionar un rover existente hacia una plataforma experimental de control y visión, documentando cada incremento de forma reproducible.
@@ -19,4 +19,13 @@ Identificar componentes y funcionamiento actual. Después lograr movimiento y pa
 - [Validación](validation.md)
 
 ## Resultado actual
-Especificación documental inicial. No hay mediciones, autonomía, detección de objetos ni firmware nuevo demostrado por esta entrega.
+Control con el ESP32-CAM y un L298N; el Arduino UNO Q quedó fuera del proyecto
+(2026-10-09). El firmware [`rover_esp32cam`](firmware/rover_esp32cam/) da vídeo
+y conducción diferencial desde el navegador, con parada a los 500 ms sin
+órdenes.
+
+Probado solo con la batería de motores **desconectada** (ronda 1 de
+[validación](validation.md)): rechazo de órdenes inválidas y parada por pérdida
+de enlace, ambos observados en `/status`. **El rover todavía no se ha movido con
+este firmware**: sentido de giro, umbral de arranque y corte físico siguen
+pendientes. No hay autonomía ni detección de objetos.
