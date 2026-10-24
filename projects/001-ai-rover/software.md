@@ -1,8 +1,10 @@
 # Software
 
 Firmware ESP32: implementado en [`firmware/rover_esp32cam/`](firmware/README.md).
-Aplicación Android: pendiente. El control de v1 se hace desde el navegador
-contra el propio ESP32, sin app intermedia.
+Aplicación Android: fase 1 (conexión Wi-Fi y vídeo MJPEG, sin control de
+motores) en [`mobile/`](mobile/README.md), Flutter, sin probar todavía en un
+teléfono. El control sigue haciéndose desde el navegador contra el propio
+ESP32.
 
 ## Firmware
 

@@ -15,6 +15,7 @@ Identificar componentes y funcionamiento actual. Después lograr movimiento y pa
 - [Hardware](hardware.md)
 - [Materiales](bom.md)
 - [Software](software.md)
+- [App Android](mobile/README.md)
 - [Bitácora](build-log.md)
 - [Validación](validation.md)
 
