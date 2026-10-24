@@ -68,3 +68,32 @@ lo explica.
 
 Siguiente: ejecutar las pruebas de [mobile/README.md](mobile/README.md#probar-en-un-teléfono-android-real)
 en un teléfono real; después, issue de control de motores.
+
+## 2026-10-23 — App Android en el teléfono real (ROVER-MOBILE-001, ronda 1)
+Objetivo: probar la app de [#58](https://github.com/Codelab-ai-dev/brambiLab/issues/58)
+en el CMF Phone 1 contra el rover.
+
+Realizado: instalada por ADB inalámbrico en el Nothing A015 (Android 16).
+Primero no había vídeo por tres causas ajenas a la app, en este orden: el
+teléfono estaba en la red de 5 GHz; el cableado del rover estaba mal tras los
+intentos de carga (un lado de ruedas girando, corregido por Gustavo); y la
+antena IPEX del ESP32-CAM estaba suelta (−80 a −88 dBm, 1–7 kB/s). Con todo
+corregido: vídeo a 10–16 fps con −38 a −44 dBm.
+
+La prueba destapó fallos de la app, corregidos en un PR de seguimiento:
+`rover.local` resolvía para `/status` y no para el vídeo; la pista de «un solo
+stream» salía en casos que no correspondían; la primera imagen tenía solo 4 s;
+el RSSI no se actualizaba; y la cámara va girada 90°, así que se añadió giro y
+espejo guardados en el teléfono.
+
+Intento de recargar el firmware sin éxito: la placa arranca en modo normal
+(`boot:0x13`) en vez de entrar en modo de carga. El firmware actual sigue igual.
+
+Evidencia: capturas de pantalla del teléfono por ADB y medidas de `/status` y
+`/capture` desde el Mac, sin versionar.
+
+Aprendizaje: en un ESP32-CAM con conector IPEX, una señal muy baja con el router
+cerca apunta a la antena antes que a la distancia.
+
+Siguiente: pruebas AC 3–5 (Wi-Fi caído, segundo plano y panel web) y revisar la
+placa MB para poder cargar firmware.

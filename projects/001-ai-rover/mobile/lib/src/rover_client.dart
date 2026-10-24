@@ -66,16 +66,50 @@ class RoverException implements Exception {
   String toString() => 'RoverException($kind): $message';
 }
 
+/// Resuelve un nombre a direcciones IP; en la app, [InternetAddress.lookup].
+typedef HostLookup = Future<List<InternetAddress>> Function(String host);
+
+Future<List<InternetAddress>> _lookupIPv4(String host) =>
+    InternetAddress.lookup(host, type: InternetAddressType.IPv4);
+
 /// Cliente de la API de control (puerto 80). En esta fase solo lee `/status`;
 /// `/drive` y `/stop` quedan para el issue de control de motores.
 class RoverClient {
   RoverClient({
     http.Client? httpClient,
+    HostLookup? lookup,
     this.timeout = const Duration(seconds: 4),
-  }) : _http = httpClient ?? http.Client();
+  }) : _http = httpClient ?? http.Client(),
+       _lookup = lookup ?? _lookupIPv4;
 
   final http.Client _http;
+  final HostLookup _lookup;
   final Duration timeout;
+
+  /// Resuelve el nombre una vez y devuelve la dirección fijada a esa IP.
+  ///
+  /// En Android la resolución de `.local` (mDNS) es intermitente: en la prueba
+  /// del 2026-10-23 `/status` resolvió `rover.local` y el vídeo, segundos
+  /// después, no. Con la IP fijada, `/status` y `/stream` van al mismo sitio.
+  Future<RoverAddress> resolve(RoverAddress address) async {
+    if (address.isIp) return address;
+    List<InternetAddress> found;
+    try {
+      found = await _lookup(address.host).timeout(timeout);
+    } on TimeoutException {
+      found = const [];
+    } on SocketException {
+      found = const [];
+    }
+    final ipv4 = found.where((a) => a.type == InternetAddressType.IPv4);
+    if (ipv4.isEmpty) {
+      throw RoverException(
+        RoverErrorKind.unreachable,
+        _lookupMessage(address.host),
+      );
+    }
+    return address.pinTo(ipv4.first.address);
+  }
 
   Future<RoverStatus> fetchStatus(RoverAddress address) async {
     final http.Response response;
@@ -119,13 +153,17 @@ class RoverClient {
 
   void close() => _http.close();
 
+  static String _lookupMessage(String host) {
+    final hint = host.endsWith('.local')
+        ? ' Algunos Android no resuelven nombres .local: prueba con la IP '
+              'que el rover imprime por el puerto serie.'
+        : '';
+    return 'No se pudo resolver $host.$hint';
+  }
+
   static String _socketMessage(RoverAddress address, SocketException e) {
     if (e.message.contains('host lookup')) {
-      final hint = address.host.endsWith('.local')
-          ? ' Algunos Android no resuelven nombres .local: prueba con la IP '
-                'que el rover imprime por el puerto serie.'
-          : '';
-      return 'No se pudo resolver ${address.host}.$hint';
+      return _lookupMessage(address.host);
     }
     return 'No se pudo conectar con ${address.host}. '
         'Comprueba la IP y que el teléfono esté en la misma red Wi-Fi.';

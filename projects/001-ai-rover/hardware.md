@@ -9,6 +9,7 @@ No completar modelos por parecido visual. Los elementos usan los mismos nombres 
 | Driver de motores | L298N, declarado por Gustavo | Confirmar modulo concreto y estado de los jumpers ENA/ENB |
 | Placa de control actual | ESP32-CAM, verificada por lectura del chip 2026-10-09 | Fotos de ambos lados |
 | ESP32 | ESP32-CAM AI-Thinker (ESP32-D0WD-V3 rev3.1, 4 MB flash, OV2640), MAC 3c:8a:1f:c2:40:d4 | Confirmar que la serigrafia dice AI-Thinker |
+| Antena WiFi | Externa por conector IPEX (2026-10-23: suelta daba −80 a −88 dBm; conectada, −38 a −44 dBm) | Foto de la antena y de la resistencia de selección |
 | Control remoto actual | Pendiente | Mando, receptor o app con que se maneja hoy; o indicar que no existe |
 | Batería | Pendiente | Química, tensión nominal, capacidad y conector |
 | Cargador | Pendiente | Modelo y compatibilidad con la química de la batería |

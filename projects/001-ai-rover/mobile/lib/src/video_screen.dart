@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'host_store.dart';
 import 'mjpeg.dart';
 import 'rover_address.dart';
 import 'rover_client.dart';
@@ -19,18 +20,31 @@ class VideoScreen extends StatefulWidget {
     required this.address,
     required this.mjpeg,
     required this.client,
+    this.store,
     this.initialStatus,
+    this.firstFrameTimeout = const Duration(seconds: 10),
     this.stallTimeout = const Duration(seconds: 4),
+    this.statusInterval = const Duration(seconds: 5),
   });
 
   final RoverAddress address;
   final MjpegClient mjpeg;
   final RoverClient client;
+
+  /// Donde se guarda la orientación; sin él no se recuerda entre sesiones.
+  final HostStore? store;
   final RoverStatus? initialStatus;
 
-  /// Sin fotogramas durante este tiempo se da el vídeo por perdido: es lo que
-  /// pasa al caerse el Wi-Fi, porque el socket no siempre avisa.
+  /// Margen para el primer fotograma. Con poca señal un JPEG VGA (~11 kB)
+  /// puede tardar varios segundos en llegar.
+  final Duration firstFrameTimeout;
+
+  /// Con el vídeo ya en marcha, sin fotogramas durante este tiempo se da por
+  /// perdido: es lo que pasa al caerse el Wi-Fi, porque el socket no avisa.
   final Duration stallTimeout;
+
+  /// Cada cuánto se relee `/status` en vivo para mantener el RSSI al día.
+  final Duration statusInterval;
 
   @override
   State<VideoScreen> createState() => _VideoScreenState();
@@ -51,18 +65,38 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
   String? _error;
   bool _probing = false;
   RoverStatus? _status;
+  VideoOrientation _orientation = const VideoOrientation();
+  bool _statusInFlight = false;
 
   int _framesThisSecond = 0;
   int _ticksThisSecond = 0;
   int _fps = 0;
   int _ticksWithoutFrame = 0;
+  int _ticksSinceStatus = 0;
 
   @override
   void initState() {
     super.initState();
     _status = widget.initialStatus;
     WidgetsBinding.instance.addObserver(this);
+    _loadOrientation();
     _start();
+  }
+
+  Future<void> _loadOrientation() async {
+    final store = widget.store;
+    if (store == null) return;
+    try {
+      final orientation = await store.loadOrientation();
+      if (mounted) setState(() => _orientation = orientation);
+    } catch (_) {
+      // Sin preferencias legibles se muestra tal cual llega.
+    }
+  }
+
+  void _setOrientation(VideoOrientation orientation) {
+    setState(() => _orientation = orientation);
+    widget.store?.saveOrientation(orientation).catchError((_) {});
   }
 
   @override
@@ -115,9 +149,14 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
           },
           onError: (Object error) {
             if (generation != _generation) return;
-            _fail(
-              error is MjpegException ? error.message : 'Se cortó el vídeo.',
-            );
+            if (error is MjpegException) {
+              _fail(
+                error.message,
+                maybeBusy: error.kind == MjpegErrorKind.timeout,
+              );
+            } else {
+              _fail('Se cortó el vídeo.');
+            }
           },
           onDone: () {
             if (generation != _generation) return;
@@ -130,13 +169,21 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
   void _onTick(int generation) {
     if (generation != _generation) return;
     _ticksWithoutFrame++;
-    if (_tick * _ticksWithoutFrame >= widget.stallTimeout) {
+    final live = _state == VideoState.live;
+    final limit = live ? widget.stallTimeout : widget.firstFrameTimeout;
+    if (_tick * _ticksWithoutFrame >= limit) {
       _fail(
-        _state == VideoState.live
-            ? 'No llega vídeo desde hace ${widget.stallTimeout.inSeconds} s.'
-            : 'El vídeo no empezó en ${widget.stallTimeout.inSeconds} s.',
+        live
+            ? 'No llega vídeo desde hace ${limit.inSeconds} s.'
+            : 'El vídeo no empezó en ${limit.inSeconds} s.',
+        // Conectó pero nunca llegó imagen: otro cliente puede tener el vídeo.
+        maybeBusy: !live,
       );
       return;
+    }
+    if (live && _tick * ++_ticksSinceStatus >= widget.statusInterval) {
+      _ticksSinceStatus = 0;
+      _refreshStatus(generation);
     }
     if (++_ticksThisSecond * _tick.inMilliseconds >= 1000) {
       final fps = _framesThisSecond;
@@ -146,9 +193,27 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Cierra el stream y consulta `/status` para explicar el fallo: si el
-  /// rover responde, lo más probable es que otro cliente tenga el vídeo.
-  Future<void> _fail(String message) async {
+  Future<void> _refreshStatus(int generation) async {
+    if (_statusInFlight) return;
+    _statusInFlight = true;
+    try {
+      final status = await widget.client.fetchStatus(widget.address);
+      if (mounted && generation == _generation) {
+        setState(() => _status = status);
+      }
+    } on RoverException {
+      // Si el enlace se cae, lo detecta la falta de fotogramas.
+    } finally {
+      _statusInFlight = false;
+    }
+  }
+
+  /// Cierra el stream y consulta `/status` para explicar el fallo.
+  ///
+  /// [maybeBusy]: la conexión de vídeo se aceptó pero no llegó imagen. Si
+  /// además `/status` responde, lo probable es que otro cliente tenga el
+  /// vídeo, porque el ESP32-CAM sirve uno solo a la vez.
+  Future<void> _fail(String message, {bool maybeBusy = false}) async {
     _closeStream();
     final generation = _generation;
     setState(() {
@@ -162,10 +227,12 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
     RoverStatus? status;
     try {
       status = await widget.client.fetchStatus(widget.address);
-      detail =
-          'El rover responde en /status pero no envía vídeo. El ESP32-CAM '
-          'sirve un solo stream a la vez: cierra el panel web u otra app que lo '
-          'esté mostrando y reconecta.';
+      detail = maybeBusy
+          ? 'El rover responde en /status pero no envía vídeo. El ESP32-CAM '
+                'sirve un solo stream a la vez: cierra el panel web u otra app '
+                'que lo esté mostrando y reconecta. Si no hay otro visor, '
+                'puede ser poca señal Wi-Fi.'
+          : 'El rover sigue respondiendo en /status: pulsa Reconectar.';
     } on RoverException catch (e) {
       detail = e.message;
     }
@@ -184,6 +251,7 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
     _subscription?.cancel();
     _subscription = null;
     _ticksWithoutFrame = 0;
+    _ticksSinceStatus = 0;
     _framesThisSecond = 0;
     _ticksThisSecond = 0;
   }
@@ -193,8 +261,31 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(widget.address.host),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.address.name),
+            if (widget.address.name != widget.address.host)
+              Text(
+                widget.address.host,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+          ],
+        ),
         actions: [
+          IconButton(
+            key: const Key('rotateAction'),
+            tooltip: 'Girar imagen 90°',
+            onPressed: () => _setOrientation(_orientation.rotated()),
+            icon: const Icon(Icons.rotate_90_degrees_cw_outlined),
+          ),
+          IconButton(
+            key: const Key('mirrorAction'),
+            tooltip: 'Voltear en espejo',
+            isSelected: _orientation.mirror,
+            onPressed: () => _setOrientation(_orientation.mirrored()),
+            icon: const Icon(Icons.flip),
+          ),
           IconButton(
             key: const Key('reconnectAction'),
             tooltip: 'Reconectar',
@@ -209,13 +300,21 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
             Expanded(
               child: Center(
                 child: AspectRatio(
-                  aspectRatio: 4 / 3,
+                  // El sensor da 4:3; girado 90° queda en vertical.
+                  aspectRatio: _orientation.quarterTurns.isOdd ? 3 / 4 : 4 / 3,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _VideoView(
-                        frame: _frame,
-                        dimmed: _state != VideoState.live,
+                      RotatedBox(
+                        key: const Key('videoRotation'),
+                        quarterTurns: _orientation.quarterTurns,
+                        child: Transform.flip(
+                          flipX: _orientation.mirror,
+                          child: _VideoView(
+                            frame: _frame,
+                            dimmed: _state != VideoState.live,
+                          ),
+                        ),
                       ),
                       if (_state != VideoState.live) _overlay(context),
                     ],

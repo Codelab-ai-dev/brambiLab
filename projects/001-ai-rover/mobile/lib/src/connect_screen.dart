@@ -60,9 +60,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
   Future<void> _connect() async {
     if (_checking) return;
 
-    final RoverAddress address;
+    final RoverAddress typed;
     try {
-      address = RoverAddress.parse(_controller.text);
+      typed = RoverAddress.parse(_controller.text);
     } on FormatException catch (e) {
       setState(() {
         _fieldError = e.message;
@@ -78,9 +78,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
     });
 
     try {
+      final address = await widget.client.resolve(typed);
       final status = await widget.client.fetchStatus(address);
       try {
-        await widget.store.save(address.host);
+        // Se guarda lo escrito (rover.local), no la IP del momento.
+        await widget.store.save(typed.name);
       } catch (_) {
         // No guardar el host no impide conectar.
       }
@@ -92,6 +94,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             address: address,
             mjpeg: widget.mjpeg,
             client: widget.client,
+            store: widget.store,
             initialStatus: status,
           ),
         ),

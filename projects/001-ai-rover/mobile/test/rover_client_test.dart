@@ -13,6 +13,8 @@ const statusJson =
     '{"l":0,"r":0,"age_ms":1234,"timeout_ms":500,"rssi":-58,"heap":123456,"uptime_s":42}';
 
 void main() {
+  group('resolve', resolveTests);
+
   final address = RoverAddress.parse('192.168.1.50');
 
   Matcher throwsRover(RoverErrorKind kind) =>
@@ -112,6 +114,61 @@ void main() {
     expect(
       client.fetchStatus(address),
       throwsRover(RoverErrorKind.unreachable),
+    );
+  });
+}
+
+void resolveTests() {
+  RoverClient withLookup(HostLookup lookup) => RoverClient(
+    httpClient: MockClient((_) async => http.Response(statusJson, 200)),
+    lookup: lookup,
+    timeout: const Duration(milliseconds: 50),
+  );
+
+  test('una IP no se resuelve', () async {
+    var looked = false;
+    final client = withLookup((_) async {
+      looked = true;
+      return [];
+    });
+    final address = await client.resolve(RoverAddress.parse('192.168.0.108'));
+    expect(address.host, '192.168.0.108');
+    expect(looked, isFalse);
+  });
+
+  test('rover.local se fija a su IPv4 y conserva el nombre', () async {
+    final client = withLookup(
+      (_) async => [
+        InternetAddress('fe80::1'),
+        InternetAddress('192.168.0.108'),
+      ],
+    );
+    final address = await client.resolve(RoverAddress.parse('rover.local'));
+    expect(address.host, '192.168.0.108');
+    expect(address.name, 'rover.local');
+    expect(address.streamUri.toString(), 'http://192.168.0.108:81/stream');
+  });
+
+  test('un .local que no resuelve sugiere la IP', () async {
+    final client = withLookup(
+      (_) async =>
+          throw const SocketException("Failed host lookup: 'rover.local'"),
+    );
+    await expectLater(
+      client.resolve(RoverAddress.parse('rover.local')),
+      throwsA(
+        isA<RoverException>()
+            .having((e) => e.kind, 'kind', RoverErrorKind.unreachable)
+            .having((e) => e.message, 'message', contains('IP')),
+      ),
+    );
+  });
+
+  test('una búsqueda que no termina es un nombre sin resolver', () {
+    final client = withLookup((_) => Completer<List<InternetAddress>>().future);
+    expect(
+      client.resolve(RoverAddress.parse('rover.local')),
+      throwsA(isA<RoverException>()),
     );
   });
 }

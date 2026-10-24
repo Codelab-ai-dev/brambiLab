@@ -13,15 +13,20 @@ telemetría avanzada.
 1. **Conectar**: escribes la IP (`192.168.0.108`) o el nombre (`rover.local`)
    y la app consulta `GET http://<host>/status` (puerto 80). Solo si responde
    con el JSON del rover guarda el host en el teléfono y abre el vídeo. Un
-   equipo distinto en esa IP (router, otra web) se rechaza.
+   equipo distinto en esa IP (router, otra web) se rechaza. Un nombre se
+   resuelve **una vez** al conectar y la sesión usa esa IP para `/status` y el
+   vídeo: en Android la resolución de `.local` es intermitente.
 2. **Vídeo**: abre `GET http://<host>:81/stream` (MJPEG) y muestra los
-   fotogramas con su tasa (fps) y el RSSI del último `/status`.
-3. **Estados**: *Conectando*, *En vivo*, *Sin conexión* (con la causa y botón
+   fotogramas con su tasa (fps) y el RSSI, que se relee de `/status` cada 5 s.
+3. **Orientación**: botones para **girar 90°** y **voltear en espejo**, por si
+   la cámara va de lado o invertida en el soporte. Se guarda en el teléfono.
+4. **Estados**: *Conectando*, *En vivo*, *Sin conexión* (con la causa y botón
    **Reconectar**) y *En pausa*.
-4. **Pérdida de enlace**: si pasan 4 s sin fotogramas (caída del Wi-Fi, rover
-   apagado), cierra el stream, consulta `/status` para explicar la causa y
-   ofrece reconectar sin reiniciar la app.
-5. **Ciclo de vida**: el stream solo está abierto con la pantalla de vídeo
+5. **Pérdida de enlace**: la primera imagen tiene 10 s para llegar; con el
+   vídeo en marcha, 4 s sin fotogramas (caída del Wi-Fi, rover apagado) cierran
+   el stream. La app consulta `/status` para explicar la causa y ofrece
+   reconectar sin reiniciar la app.
+6. **Ciclo de vida**: el stream solo está abierto con la pantalla de vídeo
    visible. Se cierra al volver atrás o al pasar la app a segundo plano
    (`hidden`/`paused`) y se reabre al volver (`resumed`). Bajar la persiana de
    notificaciones (`inactive`) no lo corta.
@@ -113,12 +118,21 @@ servidores simulados, no el ESP32-CAM.
 
 ## Limitaciones conocidas
 
-- Sin probar en teléfono ni contra el rover real (ver tabla anterior).
-- `rover.local` depende de que Android resuelva mDNS, lo que varía según versión
-  y fabricante. La IP siempre funciona; el firmware la imprime por serie.
-- El umbral de 4 s sin fotogramas es una estimación; si el Wi-Fi del rover
-  tiene cortes cortos puede dar falsos *Sin conexión*. Ajustar con datos reales
-  (`stallTimeout` en `VideoScreen`).
+- Probada en un Nothing A015 con Android 16 (ronda 1 en
+  [validation.md](../validation.md)): conexión por IP y vídeo pasan; pérdida
+  de enlace, segundo plano y panel web siguen pendientes.
+- `rover.local` no resolvió en ese teléfono. Depende de la versión de Android y
+  del fabricante; la IP siempre funciona y el firmware la imprime por serie. Si
+  el router cambia la IP del rover, hay que volver a conectar.
+- El teléfono tiene que estar en la red de **2,4 GHz** del rover: el ESP32 no
+  usa 5 GHz y algunos routers no comunican las dos bandas.
+- La app necesita buena señal en el rover: con la antena suelta (−80 dBm) cada
+  fotograma de 11 kB tardaba segundos y no había vídeo.
+- Los umbrales de 10 s (primera imagen) y 4 s (corte) son estimaciones;
+  `firstFrameTimeout` y `stallTimeout` en `VideoScreen`.
+- La orientación se corrige solo en la app: el panel web sigue mostrando la
+  imagen girada. Para arreglar ambos habría que tocar `set_vflip`/`set_hmirror`
+  en el firmware, fuera del alcance de #58.
 - Tras una caída brusca del Wi-Fi, el ESP32 puede tardar unos segundos en
   notar que el cliente anterior se fue (envío bloqueado hasta el timeout del
   socket). Durante ese tiempo una reconexión puede fallar y hay que repetirla.

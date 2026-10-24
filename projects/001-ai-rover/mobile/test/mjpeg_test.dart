@@ -178,6 +178,22 @@ void main() {
       expect(tracking.closed, isTrue);
     });
 
+    test('el error de conexión no enseña el texto del sistema', () async {
+      final client = MjpegClient(
+        clientFactory: () => MockClient.streaming((_, _) async {
+          throw const SocketException("Failed host lookup: 'rover.local'");
+        }),
+      );
+      await expectLater(
+        client.frames(uri).first,
+        throwsA(
+          isA<MjpegException>()
+              .having((e) => e.kind, 'kind', MjpegErrorKind.unreachable)
+              .having((e) => e.message, 'message', isNot(contains('lookup'))),
+        ),
+      );
+    });
+
     test('HTTP distinto de 200 es error', () {
       final client = MjpegClient(
         clientFactory: () => MockClient.streaming(
@@ -228,7 +244,16 @@ void main() {
         ),
         connectTimeout: const Duration(milliseconds: 50),
       );
-      expect(client.frames(uri).first, throwsA(isA<MjpegException>()));
+      expect(
+        client.frames(uri).first,
+        throwsA(
+          isA<MjpegException>().having(
+            (e) => e.kind,
+            'kind',
+            MjpegErrorKind.timeout,
+          ),
+        ),
+      );
     });
   });
 }
