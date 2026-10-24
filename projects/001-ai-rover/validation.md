@@ -46,6 +46,25 @@ con las ruedas en el aire, como pedía el plan.
 Queda por anotar: química y tensión exactas de la batería, si el ESP32 se
 alimenta del regulador del L298N o aparte, y evidencia en vídeo para BL-001-004.
 
+## App Android, fase 1 — ROVER-MOBILE-001 (#58), pendiente
+
+App Flutter de [`mobile/`](mobile/README.md): conexión por `/status` y vídeo de
+`:81/stream`. Firmware sin cambios. Verificado solo en el ordenador
+(2026-10-23): `flutter analyze` sin avisos, 48 pruebas automáticas con
+servidores simulados y build de los APK debug y release. **No se ha instalado
+en un teléfono ni conectado al rover.**
+
+| Prueba | Aceptación | Estado |
+|---|---|---|
+| Conexión y host guardado | Valida `/status` y recuerda el host (AC 1) | **Pendiente** |
+| Vídeo sin panel web | Stream MJPEG en la app (AC 2) | **Pendiente** |
+| Wi-Fi caído o rover apagado | La UI lo indica y *Reconectar* recupera (AC 3) | **Pendiente** |
+| Segundo plano y salir del vídeo | El panel web recibe vídeo, la app lo soltó (AC 4) | **Pendiente** |
+| Panel web y firmware intactos | Funcionan igual tras las pruebas (AC 5) | **Pendiente** — el firmware no se tocó; falta comprobarlo en uso |
+
+Procedimiento detallado en [mobile/README.md](mobile/README.md#probar-en-un-teléfono-android-real).
+Anotar modelo y versión de Android del teléfono.
+
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de
 estas pruebas de prototipo.

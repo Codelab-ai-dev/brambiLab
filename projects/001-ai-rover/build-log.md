@@ -46,3 +46,25 @@ coinciden con el cableado real.
 Siguiente: grabar vídeo de una prueba completa (arranque, conducción, caída del
 WiFi), anotar la batería y la alimentación del ESP32, e instalar el interruptor
 de potencia.
+
+## 2026-10-23 — App Android, fase 1: conexión y vídeo (ROVER-MOBILE-001)
+Objetivo: primera versión de ROVER Control en Flutter que valide el rover por
+`/status` y muestre el vídeo de `:81/stream`, sin tocar el firmware ([#58](https://github.com/Codelab-ai-dev/brambiLab/issues/58)).
+
+Realizado: proyecto Android en [`mobile/`](mobile/README.md) con pantalla de
+conexión (host guardado), vídeo MJPEG decodificado en la app, estados de
+conexión, error y reconexión, y cierre del stream al salir o pasar a segundo
+plano. Permisos y HTTP sin TLS documentados.
+
+Evidencia: `flutter analyze` sin avisos, 48 pruebas automáticas (incluida una
+contra un socket local que comprueba que el servidor ve el cierre al cancelar),
+APK debug y release compilados. Sin teléfono conectado: no hay prueba en
+dispositivo ni contra el rover.
+
+Aprendizaje: el servidor de vídeo del ESP32 atiende un solo cliente, así que
+la app y el panel web se excluyen mutuamente; por eso la app suelta el stream
+siempre que no está a la vista y, si no recibe vídeo pero `/status` responde,
+lo explica.
+
+Siguiente: ejecutar las pruebas de [mobile/README.md](mobile/README.md#probar-en-un-teléfono-android-real)
+en un teléfono real; después, issue de control de motores.
