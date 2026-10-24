@@ -46,24 +46,43 @@ con las ruedas en el aire, como pedía el plan.
 Queda por anotar: química y tensión exactas de la batería, si el ESP32 se
 alimenta del regulador del L298N o aparte, y evidencia en vídeo para BL-001-004.
 
-## App Android, fase 1 — ROVER-MOBILE-001 (#58), pendiente
+## App Android, fase 1 — ROVER-MOBILE-001 (#58)
 
 App Flutter de [`mobile/`](mobile/README.md): conexión por `/status` y vídeo de
-`:81/stream`. Firmware sin cambios. Verificado solo en el ordenador
-(2026-10-23): `flutter analyze` sin avisos, 48 pruebas automáticas con
-servidores simulados y build de los APK debug y release. **No se ha instalado
-en un teléfono ni conectado al rover.**
+`:81/stream`. Firmware sin cambios (`7ebbc22`).
+
+### Ronda 1 — 2026-10-23, teléfono real
+
+Nothing A015 (CMF Phone 1), Android 16 (API 36), instalada por ADB inalámbrico.
+Rover en `192.168.0.108`, alimentado. Gustavo manejando el rover; capturas de
+pantalla del teléfono tomadas por ADB durante la sesión (no versionadas).
 
 | Prueba | Aceptación | Estado |
 |---|---|---|
-| Conexión y host guardado | Valida `/status` y recuerda el host (AC 1) | **Pendiente** |
-| Vídeo sin panel web | Stream MJPEG en la app (AC 2) | **Pendiente** |
+| Conexión por IP | Valida `/status` y abre el vídeo (AC 1) | **Pasa** — `192.168.0.108` |
+| Nombre `rover.local` | Resuelve o explica que no | **No resuelve en este teléfono.** La primera versión resolvió para `/status` y falló al abrir el vídeo, con una pista equivocada; corregido fijando la IP al conectar |
+| Vídeo sin panel web | Stream MJPEG en la app (AC 2) | **Pasa** — 10–16 fps con RSSI −38 a −44 dBm |
+| Orientación | Imagen derecha | **Corregido en la app** — la cámara va girada 90° en el rover; botón de giro, guardado en el teléfono |
 | Wi-Fi caído o rover apagado | La UI lo indica y *Reconectar* recupera (AC 3) | **Pendiente** |
 | Segundo plano y salir del vídeo | El panel web recibe vídeo, la app lo soltó (AC 4) | **Pendiente** |
 | Panel web y firmware intactos | Funcionan igual tras las pruebas (AC 5) | **Pendiente** — el firmware no se tocó; falta comprobarlo en uso |
 
-Procedimiento detallado en [mobile/README.md](mobile/README.md#probar-en-un-teléfono-android-real).
-Anotar modelo y versión de Android del teléfono.
+Hallazgos de la misma sesión, fuera de la app:
+- **Bandas Wi-Fi.** Con el teléfono en la red de 5 GHz y el rover en la de
+  2,4 GHz no se veían. El ESP32 solo funciona en 2,4 GHz: el teléfono tiene que
+  estar en esa misma red.
+- **Antena desconectada.** El ESP32-CAM usa el conector IPEX y la antena estaba
+  suelta: RSSI −80 a −88 dBm, `/capture` a 1–7 kB/s (11 kB por fotograma) y la
+  app sin imagen. Con la antena conectada: −38 a −44 dBm y vídeo fluido.
+- **Ruedas girando al alimentar.** Un lado giraba sin parar con el ESP32 sin
+  responder. Causa: cableado mal conectado (Gustavo), corregido. Muestra un
+  riesgo de diseño: si el firmware no corre, IO15 (IN3) queda en alto por su
+  pull-up de arranque y ese lado se mueve. Propuesta: 10 kΩ de cada IN a GND,
+  además del interruptor de potencia pendiente.
+- **Carga de firmware bloqueada.** `arduino-cli upload` no entra en modo de
+  carga: la placa arranca con `boot:0x13` (IO0 en alto) con el reset
+  automático y manteniendo el botón IO0. Sin confirmar si se probó el puente
+  IO0–GND. Pendiente de revisar la placa MB. No afecta al firmware actual, que funciona.
 
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de

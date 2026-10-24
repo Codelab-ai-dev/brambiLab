@@ -4,14 +4,30 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+enum MjpegErrorKind {
+  /// Conectó pero no llegaron cabeceras a tiempo: típico de un servidor de
+  /// vídeo ocupado con otro cliente.
+  timeout,
+
+  /// No se pudo abrir la conexión (nombre sin resolver, puerto cerrado…).
+  unreachable,
+
+  /// Respondió algo que no es el vídeo del rover.
+  badResponse,
+
+  /// El vídeo empezó y se cortó.
+  interrupted,
+}
+
 class MjpegException implements Exception {
-  const MjpegException(this.message);
+  const MjpegException(this.message, [this.kind = MjpegErrorKind.badResponse]);
 
   /// Texto para la interfaz, en español.
   final String message;
+  final MjpegErrorKind kind;
 
   @override
-  String toString() => 'MjpegException: $message';
+  String toString() => 'MjpegException($kind): $message';
 }
 
 /// Separa un cuerpo `multipart/x-mixed-replace` en fotogramas JPEG.
@@ -230,16 +246,17 @@ class MjpegClient {
         fail(
           MjpegException(
             'El vídeo no respondió en ${connectTimeout.inSeconds} s.',
+            MjpegErrorKind.timeout,
           ),
         );
         return;
       } on SocketException catch (e) {
         current.close();
-        fail(MjpegException('No se pudo abrir el vídeo: ${e.message}'));
+        fail(_unreachable(e.message));
         return;
       } on http.ClientException catch (e) {
         current.close();
-        fail(MjpegException('No se pudo abrir el vídeo: ${e.message}'));
+        fail(_unreachable(e.message));
         return;
       }
 
@@ -268,12 +285,20 @@ class MjpegClient {
               fail(
                 error is MjpegException
                     ? error
-                    : const MjpegException('Se cortó el vídeo.'),
+                    : const MjpegException(
+                        'Se cortó el vídeo.',
+                        MjpegErrorKind.interrupted,
+                      ),
               );
             },
             onDone: () {
               current.close();
-              fail(const MjpegException('El rover cerró el vídeo.'));
+              fail(
+                const MjpegException(
+                  'El rover cerró el vídeo.',
+                  MjpegErrorKind.interrupted,
+                ),
+              );
             },
             cancelOnError: true,
           );
@@ -294,4 +319,13 @@ class MjpegClient {
     );
     return controller.stream;
   }
+
+  /// El detalle del sistema (`Failed host lookup: …`) no se muestra: solo
+  /// se distingue si falló el nombre o la conexión.
+  static MjpegException _unreachable(String detail) => MjpegException(
+    detail.contains('host lookup')
+        ? 'No se pudo resolver el nombre del rover para abrir el vídeo.'
+        : 'No se pudo abrir la conexión de vídeo.',
+    MjpegErrorKind.unreachable,
+  );
 }

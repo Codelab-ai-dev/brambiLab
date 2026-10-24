@@ -28,8 +28,26 @@ class FakeRoverClient implements RoverClient {
   Future<RoverStatus> Function() onFetch = () async => roverStatus;
   final List<RoverAddress> calls = [];
 
+  /// IP a la que se resuelve un nombre; null simula un nombre que no resuelve.
+  String? resolvesTo = '192.168.1.50';
+  final List<RoverAddress> resolved = [];
+
   @override
   Duration get timeout => const Duration(seconds: 4);
+
+  @override
+  Future<RoverAddress> resolve(RoverAddress address) async {
+    resolved.add(address);
+    if (address.isIp) return address;
+    final ip = resolvesTo;
+    if (ip == null) {
+      throw RoverException(
+        RoverErrorKind.unreachable,
+        'No se pudo resolver ${address.host}.',
+      );
+    }
+    return address.pinTo(ip);
+  }
 
   @override
   Future<RoverStatus> fetchStatus(RoverAddress address) {
@@ -67,12 +85,20 @@ class FakeHostStore implements HostStore {
   FakeHostStore([this.saved]);
 
   String? saved;
+  VideoOrientation orientation = const VideoOrientation();
 
   @override
   Future<String?> load() async => saved;
 
   @override
   Future<void> save(String host) async => saved = host;
+
+  @override
+  Future<VideoOrientation> loadOrientation() async => orientation;
+
+  @override
+  Future<void> saveOrientation(VideoOrientation value) async =>
+      orientation = value;
 }
 
 /// Deja terminar la transición de ruta sin avanzar el reloj hasta el corte

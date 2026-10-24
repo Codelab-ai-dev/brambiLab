@@ -4,13 +4,23 @@
 /// Los puertos son fijos en el firmware (`httpd.cpp`), así que solo se
 /// configura el host.
 class RoverAddress {
-  const RoverAddress._(this.host);
+  const RoverAddress._(this.host, [String? name]) : name = name ?? host;
 
   static const int controlPort = 80;
   static const int streamPort = 81;
 
-  /// Host tal como se resolverá: IP (`192.168.1.50`) o nombre (`rover.local`).
+  /// Host al que se conecta: IP (`192.168.1.50`) o nombre (`rover.local`).
   final String host;
+
+  /// Lo que escribió el usuario. Igual que [host] salvo tras [pinTo].
+  final String name;
+
+  /// true si [host] ya es una IPv4 y no hay que resolver nada.
+  bool get isIp => RegExp(r'^\d{1,3}(\.\d{1,3}){3}$').hasMatch(host);
+
+  /// La misma dirección conectando a [ip], conservando el nombre para la
+  /// interfaz. Sirve para resolver `rover.local` una sola vez por sesión.
+  RoverAddress pinTo(String ip) => RoverAddress._(ip, name);
 
   Uri get statusUri =>
       Uri(scheme: 'http', host: host, port: controlPort, path: '/status');
@@ -74,5 +84,5 @@ class RoverAddress {
   int get hashCode => host.hashCode;
 
   @override
-  String toString() => host;
+  String toString() => name == host ? host : '$name ($host)';
 }

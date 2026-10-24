@@ -123,4 +123,36 @@ void main() {
     expect(mjpeg.openCount, 0);
     expect(find.byKey(const Key('connectButton')), findsOneWidget);
   });
+
+  testWidgets('rover.local se resuelve una vez y se guarda el nombre', (
+    tester,
+  ) async {
+    client.resolvesTo = '192.168.0.108';
+    final store = FakeHostStore();
+    await pumpApp(tester, store);
+    await tester.tap(find.byKey(const Key('connectButton')));
+    await settleRoute(tester);
+
+    expect(client.resolved.single.host, 'rover.local');
+    expect(client.calls.single.host, '192.168.0.108');
+    expect(mjpeg.uris.single.toString(), 'http://192.168.0.108:81/stream');
+    expect(store.saved, 'rover.local');
+  });
+
+  testWidgets('si el nombre no resuelve lo dice sin llamar a /status', (
+    tester,
+  ) async {
+    client.resolvesTo = null;
+    await pumpApp(tester, FakeHostStore());
+    await tester.tap(find.byKey(const Key('connectButton')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('connectError')), findsOneWidget);
+    expect(
+      find.textContaining('No se pudo resolver rover.local'),
+      findsOneWidget,
+    );
+    expect(client.calls, isEmpty);
+    expect(find.byType(VideoScreen), findsNothing);
+  });
 }
