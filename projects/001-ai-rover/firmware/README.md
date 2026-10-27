@@ -110,7 +110,7 @@ arduino-cli upload  -b esp32:esp32:esp32cam:PartitionScheme=huge_app \
 ```
 
 Core `esp32:esp32` 3.3.12. Ocupa 1.060.013 bytes, el 33 % de `huge_app`
-(con `/light`, 2026-10-27; sin cargar todavía en la placa).
+(con `/light`, cargado en la placa el 2026-10-27).
 El adaptador USB-serie de esta placa maneja DTR/RTS, así que entra en
 bootloader solo: no hay que puentear IO0 a masa.
 

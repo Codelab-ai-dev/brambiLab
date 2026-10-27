@@ -87,7 +87,8 @@ Hallazgos de la sesión del 2026-10-23, fuera de la app:
 - **Carga de firmware bloqueada.** `arduino-cli upload` no entra en modo de
   carga: la placa arranca con `boot:0x13` (IO0 en alto) con el reset
   automático y manteniendo el botón IO0. Sin confirmar si se probó el puente
-  IO0–GND. Pendiente de revisar la placa MB. No afecta al firmware actual, que funciona.
+  IO0–GND. Pendiente de revisar la placa MB. El 2026-10-27 la carga funcionó
+  a la primera con el ESP32 solo por USB; sin anotar qué cambió. No afecta al firmware actual, que funciona.
 
 ## App Android, fase 2: conducción — ROVER-MOBILE-002 (#62), pendiente
 
@@ -105,7 +106,11 @@ rover ni en el teléfono**: ninguno de los dos estaba en la red.
 | D12 Panel web | Igual que antes (AC 7) | **Pendiente** — el firmware no se tocó |
 | En el suelo | D2–D7 sobre el suelo | **Pendiente** — tras pasar en el aire y con interruptor de potencia |
 
-| L1–L4 Luz | Niveles, sin bandas, sin reinicios, temperatura (AC 8) | **Pendiente** — firmware con `/light` compilado (1.060.013 bytes) pero **sin cargar**: la placa no entra en modo de carga. Con el firmware actual, el botón de luz muestra el aviso de versión nueva (`/light` → 404), comprobado en el teléfono el 2026-10-27 |
+| Carga del firmware con `/light` | Arranca y responde | **Pasa (2026-10-27)** — `arduino-cli upload` (commit `4d05057`) entró en modo de carga esta vez; escritura verificada. Arranca con `"light":0`, RSSI −27 a −29 dBm, sin reinicios |
+| Contrato de `/light` | Niveles válidos se aplican; el resto, 400 | **Pasa (2026-10-27, `curl`)** — `v=64/128/255/0` devuelven ese `light`; `v=256`, `-1`, `abc` y sin `v` → 400. `/drive?l=999` sigue en 400 y `/capture` responde |
+| L1 Niveles visibles | Cada nivel más brillante (AC 8) | **Pendiente** — falta que Gustavo vea el LED; con luz ambiente la exposición automática compensa y la captura no lo muestra |
+| L2 Bandas | Sin bandas con luz *Alta* (AC 8) | **Sin bandas visibles** en una captura 640×480 con `v=255` (2026-10-27); falta mirarlo en el vídeo en vivo |
+| L3–L4 Consumo y temperatura | Sin reinicio con luz *Alta* y motores; LED no quema (AC 8) | **Pendiente** — la carga fue con la batería de motores desconectada |
 
 Procedimiento en [mobile/README.md](mobile/README.md#prueba-física-de-conducción).
 
