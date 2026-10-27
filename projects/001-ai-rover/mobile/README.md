@@ -118,9 +118,10 @@ servidores simulados, no el ESP32-CAM.
 
 ## Limitaciones conocidas
 
-- Probada en un Nothing A015 con Android 16 (ronda 1 en
-  [validation.md](../validation.md)): conexión por IP y vídeo pasan; pérdida
-  de enlace, segundo plano y panel web siguen pendientes.
+- Probada en un Nothing A015 con Android 16 ([validation.md](../validation.md)):
+  conexión por IP y vídeo medidos el 2026-10-23; pérdida de enlace, segundo
+  plano y panel web pasan según informe de Gustavo del 2026-10-27, sin
+  capturas.
 - `rover.local` no resolvió en ese teléfono. Depende de la versión de Android y
   del fabricante; la IP siempre funciona y el firmware la imprime por serie. Si
   el router cambia la IP del rover, hay que volver a conectar.

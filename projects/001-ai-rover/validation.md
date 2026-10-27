@@ -46,7 +46,7 @@ con las ruedas en el aire, como pedía el plan.
 Queda por anotar: química y tensión exactas de la batería, si el ESP32 se
 alimenta del regulador del L298N o aparte, y evidencia en vídeo para BL-001-004.
 
-## App Android, fase 1 — ROVER-MOBILE-001 (#58)
+## App Android, fase 1 — ROVER-MOBILE-001 (#58), cerrada el 2026-10-27
 
 App Flutter de [`mobile/`](mobile/README.md): conexión por `/status` y vídeo de
 `:81/stream`. Firmware sin cambios (`7ebbc22`).
@@ -63,11 +63,16 @@ pantalla del teléfono tomadas por ADB durante la sesión (no versionadas).
 | Nombre `rover.local` | Resuelve o explica que no | **No resuelve en este teléfono.** La primera versión resolvió para `/status` y falló al abrir el vídeo, con una pista equivocada; corregido fijando la IP al conectar |
 | Vídeo sin panel web | Stream MJPEG en la app (AC 2) | **Pasa** — 10–16 fps con RSSI −38 a −44 dBm |
 | Orientación | Imagen derecha | **Corregido en la app** — la cámara va girada 90° en el rover; botón de giro, guardado en el teléfono |
-| Wi-Fi caído o rover apagado | La UI lo indica y *Reconectar* recupera (AC 3) | **Pendiente** |
-| Segundo plano y salir del vídeo | El panel web recibe vídeo, la app lo soltó (AC 4) | **Pendiente** |
-| Panel web y firmware intactos | Funcionan igual tras las pruebas (AC 5) | **Pendiente** — el firmware no se tocó; falta comprobarlo en uso |
+| Wi-Fi caído o rover apagado | La UI lo indica y *Reconectar* recupera (AC 3) | **Pasa (informe de Gustavo, 2026-10-27)** |
+| Segundo plano y salir del vídeo | El panel web recibe vídeo, la app lo soltó (AC 4) | **Pasa (informe de Gustavo, 2026-10-27)** |
+| Panel web y firmware intactos | Funcionan igual tras las pruebas (AC 5) | **Pasa (informe de Gustavo, 2026-10-27)** — el firmware no cambió (`7ebbc22`) |
 
-Hallazgos de la misma sesión, fuera de la app:
+Las filas AC 3–5 son informe verbal de Gustavo del 2026-10-27, que hizo las
+pruebas 5–11 de [mobile/README.md](mobile/README.md#probar-en-un-teléfono-android-real)
+sin capturas ni medidas guardadas. `rover.local` no se volvió a probar con la
+versión corregida (#60).
+
+Hallazgos de la sesión del 2026-10-23, fuera de la app:
 - **Bandas Wi-Fi.** Con el teléfono en la red de 5 GHz y el rover en la de
   2,4 GHz no se veían. El ESP32 solo funciona en 2,4 GHz: el teléfono tiene que
   estar en esa misma red.
