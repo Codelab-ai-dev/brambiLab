@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rover_control/src/drive_mix.dart';
 import 'package:rover_control/src/host_store.dart';
 import 'package:rover_control/src/mjpeg.dart';
 import 'package:rover_control/src/rover_address.dart';
@@ -12,15 +13,22 @@ void main() {
   late FakeMjpegClient mjpeg;
   late FakeRoverClient client;
   late FakeHostStore store;
+  late FakeDriveLink link;
   final address = RoverAddress.parse('192.168.1.50');
 
   setUp(() {
     mjpeg = FakeMjpegClient();
     client = FakeRoverClient();
     store = FakeHostStore();
+    link = FakeDriveLink();
   });
 
-  Future<void> pumpVideo(WidgetTester tester, {RoverAddress? at}) async {
+  Future<void> pumpVideo(
+    WidgetTester tester, {
+    RoverAddress? at,
+    bool landscape = false,
+  }) async {
+    usePhoneScreen(tester, landscape: landscape);
     await tester.pumpWidget(
       MaterialApp(
         home: VideoScreen(
@@ -28,6 +36,7 @@ void main() {
           mjpeg: mjpeg,
           client: client,
           store: store,
+          driveLink: link,
           initialStatus: roverStatus,
         ),
       ),
@@ -285,8 +294,12 @@ void main() {
           builder: (context) => TextButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) =>
-                    VideoScreen(address: address, mjpeg: mjpeg, client: client),
+                builder: (_) => VideoScreen(
+                  address: address,
+                  mjpeg: mjpeg,
+                  client: client,
+                  driveLink: link,
+                ),
               ),
             ),
             child: const Text('abrir'),
@@ -304,5 +317,207 @@ void main() {
 
     expect(find.byType(VideoScreen), findsNothing);
     expect(mjpeg.openCount, 0);
+  });
+
+  group('conducción', () {
+    Finder pad(DriveKey key) => find.byKey(Key('drive-${key.name}'));
+
+    Future<TestGesture> hold(WidgetTester tester, DriveKey key) async {
+      final gesture = await tester.startGesture(tester.getCenter(pad(key)));
+      await tester.pump();
+      return gesture;
+    }
+
+    String driveStatus(WidgetTester tester) =>
+        tester.widget<Text>(find.byKey(const Key('driveStatus'))).data!;
+
+    testWidgets('sin vídeo en vivo los controles no envían nada', (
+      tester,
+    ) async {
+      await pumpVideo(tester);
+      expect(driveStatus(tester), contains('solo con vídeo en vivo'));
+
+      final g = await hold(tester, DriveKey.forward);
+      await g.up();
+      await tester.pump();
+      expect(link.drives, isEmpty);
+    });
+
+    testWidgets('mantener avanzar conduce y soltar para', (tester) async {
+      link.autoReply = true;
+      await pumpVideo(tester);
+      await sendFrame(tester);
+
+      final g = await hold(tester, DriveKey.forward);
+      expect(link.drives.single.left, defaultSpeed);
+      expect(driveStatus(tester), contains('Rover: 120 / 120'));
+
+      await g.up();
+      await tester.pump();
+      expect(link.last.isStop, isTrue);
+      expect(driveStatus(tester), contains('Parado'));
+    });
+
+    testWidgets('dos dedos: avanzar y derecha trazan curva', (tester) async {
+      link.autoReply = true;
+      await pumpVideo(tester);
+      await sendFrame(tester);
+
+      final a = await hold(tester, DriveKey.forward);
+      final b = await hold(tester, DriveKey.right);
+      expect((link.last.left, link.last.right), (186, 54));
+
+      await a.up();
+      await b.up();
+      await tester.pump();
+      expect(link.last.isStop, isTrue);
+    });
+
+    testWidgets('un gesto cancelado por el sistema cuenta como soltar', (
+      tester,
+    ) async {
+      link.autoReply = true;
+      await pumpVideo(tester);
+      await sendFrame(tester);
+
+      final g = await hold(tester, DriveKey.back);
+      expect(link.last.left, -defaultSpeed);
+      await g.cancel();
+      await tester.pump();
+      expect(link.last.isStop, isTrue);
+    });
+
+    testWidgets('STOP actúa al apoyar el dedo, con prioridad', (tester) async {
+      await pumpVideo(tester);
+      await sendFrame(tester);
+      final g = await hold(tester, DriveKey.forward);
+      final inFlight = link.last;
+
+      final stop = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('drive-stop'))),
+      );
+      await tester.pump();
+      expect(link.last.isStop, isTrue, reason: 'sin esperar a levantar');
+
+      inFlight.reply();
+      await tester.pump();
+      expect(link.stops, hasLength(2), reason: '/stop de cierre');
+
+      // El dedo de avanzar sigue apoyado: no vuelve a moverse.
+      link.replyAll();
+      await tester.pump(const Duration(seconds: 1));
+      expect(link.drives, hasLength(1));
+      await stop.up();
+      await g.up();
+    });
+
+    testWidgets('si se pierde el vídeo, para y desactiva los controles', (
+      tester,
+    ) async {
+      link.autoReply = true;
+      await pumpVideo(tester);
+      await sendFrame(tester);
+      final g = await hold(tester, DriveKey.forward);
+
+      // Sin fotogramas: el vídeo cae a los 4 s. Las órdenes se siguen
+      // enviando hasta entonces porque el control (puerto 80) funciona.
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump();
+
+      expect(stateLabel(tester), 'Sin conexión');
+      expect(link.last.isStop, isTrue);
+      final count = link.sent.length;
+      await tester.pump(const Duration(seconds: 1));
+      expect(link.sent, hasLength(count));
+      expect(driveStatus(tester), contains('solo con vídeo en vivo'));
+      await g.up();
+    });
+
+    testWidgets('perder el foco para; al volver no arranca solo', (
+      tester,
+    ) async {
+      link.autoReply = true;
+      await pumpVideo(tester);
+      await sendFrame(tester);
+      final g = await hold(tester, DriveKey.forward);
+
+      await setLifecycle(tester, [AppLifecycleState.inactive]);
+      expect(link.last.isStop, isTrue);
+      expect(mjpeg.openCount, 1, reason: 'el vídeo sigue con la persiana');
+
+      await setLifecycle(tester, [AppLifecycleState.resumed]);
+      final count = link.drives.length;
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        link.drives,
+        hasLength(count),
+        reason: 'hace falta un toque nuevo',
+      );
+      await g.up();
+    });
+
+    testWidgets('salir de la pantalla manda /stop y cierra la conexión', (
+      tester,
+    ) async {
+      usePhoneScreen(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => VideoScreen(
+                    address: address,
+                    mjpeg: mjpeg,
+                    client: client,
+                    driveLink: link,
+                  ),
+                ),
+              ),
+              child: const Text('abrir'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('abrir'));
+      await settleRoute(tester);
+      await sendFrame(tester);
+      link.autoReply = true;
+      await hold(tester, DriveKey.forward);
+
+      await tester.pageBack();
+      await settleRoute(tester);
+      expect(link.last.isStop, isTrue);
+      expect(link.closed, isTrue);
+    });
+
+    testWidgets('el estado de la barra sale de las respuestas de /drive', (
+      tester,
+    ) async {
+      link.autoReply = true;
+      await pumpVideo(tester);
+      await sendFrame(tester);
+      expect(find.textContaining('RSSI -58 dBm'), findsOneWidget);
+
+      final g = await hold(tester, DriveKey.forward);
+      expect(find.textContaining('RSSI -44 dBm'), findsOneWidget);
+      await g.up();
+    });
+
+    testWidgets('en horizontal la cruceta va a la derecha del vídeo', (
+      tester,
+    ) async {
+      await pumpVideo(tester, landscape: true);
+      final video = tester.getRect(find.byKey(const Key('videoRotation')));
+      final stop = tester.getRect(find.byKey(const Key('drive-stop')));
+      expect(stop.left, greaterThanOrEqualTo(video.right));
+
+      // El botón de reconectar del vídeo sigue siendo pulsable.
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('reconnectButton')));
+      await tester.pump();
+      expect(mjpeg.opened, hasLength(2));
+    });
   });
 }

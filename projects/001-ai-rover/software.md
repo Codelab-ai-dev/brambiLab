@@ -3,7 +3,9 @@
 Firmware ESP32: implementado en [`firmware/rover_esp32cam/`](firmware/README.md).
 Aplicación Android: fase 1 (conexión Wi-Fi y vídeo MJPEG, sin control de
 motores) en [`mobile/`](mobile/README.md), Flutter, probada en un Nothing A015
-con Android 16 ([validación](validation.md)); #58 cerrada el 2026-10-27. El control sigue haciéndose desde el navegador contra el propio
+con Android 16 ([validación](validation.md)); #58 cerrada el 2026-10-27.
+Fase 2, conducción con `/drive` y `/stop` (#62): implementada y con pruebas
+automáticas, sin probar todavía en el rover. El control sigue haciéndose desde el navegador contra el propio
 ESP32.
 
 ## Firmware
