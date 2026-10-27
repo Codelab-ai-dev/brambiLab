@@ -20,11 +20,16 @@ const int pwmMax = 255;
 ///
 /// En parado, izquierda y derecha giran en sitio; en marcha solo corrigen
 /// (factor 0,55). Teclas opuestas se anulan.
-(int, int) mix(Set<DriveKey> held, int speed) {
+///
+/// [invertForward] cambia el sentido de avance sin tocar el giro: es lo que
+/// pasa si la cámara mira hacia la trasera eléctrica del rover. Un giro en
+/// sitio se ve igual desde cualquier lado, así que no se invierte.
+(int, int) mix(Set<DriveKey> held, int speed, {bool invertForward = false}) {
   final sp = speed.clamp(minSpeed, maxSpeed);
-  final vx =
+  final ahead =
       (held.contains(DriveKey.forward) ? 1 : 0) -
       (held.contains(DriveKey.back) ? 1 : 0);
+  final vx = invertForward ? -ahead : ahead;
   final wz =
       (held.contains(DriveKey.right) ? 1 : 0) -
       (held.contains(DriveKey.left) ? 1 : 0);

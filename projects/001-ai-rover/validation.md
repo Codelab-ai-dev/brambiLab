@@ -98,7 +98,7 @@ rover ni en el teléfono**: ninguno de los dos estaba en la red.
 
 | Prueba | Aceptación | Estado |
 |---|---|---|
-| D1–D5 Direcciones, curva y velocidad, ruedas en el aire | Se mueve mientras se pulsa y para al soltar (AC 1, AC 2) | **Pendiente** |
+| D1–D5 Direcciones, curva y velocidad, ruedas en el aire | Se mueve mientras se pulsa y para al soltar (AC 1, AC 2) | **Parcial (informe de Gustavo, 2026-10-27)** — conduce desde la app; ◀/▶ correctos; **▲/▼ invertidos**. Añadido el ajuste ⇅; falta confirmar que lo corrige |
 | D6 STOP con avance pulsado | Para y no vuelve a arrancar (AC 3) | **Pendiente** |
 | D7–D8 Pérdida de red | Para en ≤ 0,5 s; no arranca solo al volver (AC 4) | **Pendiente** |
 | D9–D11 Segundo plano, persiana, salir | Para (AC 5) | **Pendiente** |
@@ -106,6 +106,11 @@ rover ni en el teléfono**: ninguno de los dos estaba en la red.
 | En el suelo | D2–D7 sobre el suelo | **Pendiente** — tras pasar en el aire y con interruptor de potencia |
 
 Procedimiento en [mobile/README.md](mobile/README.md#prueba-física-de-conducción).
+
+Sin comprobar todavía si el panel web también avanza al revés. En la ronda 2
+(2026-10-09) el panel avanzaba bien; si ahora va al revés, el cableado cambió
+al corregir la conexión el 2026-10-23 y el arreglo correcto es en el rover
+(cableado o `LEFT_INVERT`/`RIGHT_INVERT`), no en la app.
 
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de

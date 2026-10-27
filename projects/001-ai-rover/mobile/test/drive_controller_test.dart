@@ -236,4 +236,20 @@ void main() {
       expect(link.closed, isTrue);
     });
   });
+
+  test('con avance invertido, ▲ envía velocidades negativas', () {
+    fakeAsync((async) {
+      link.autoReply = true;
+      drive.enabled = true;
+      drive.invertForward = true;
+      drive.press(DriveKey.forward);
+      async.flushMicrotasks();
+      expect((link.last.left, link.last.right), (-120, -120));
+
+      // Cambiarlo en marcha afecta a la siguiente orden.
+      drive.invertForward = false;
+      async.elapse(ms150);
+      expect((link.last.left, link.last.right), (120, 120));
+    });
+  });
 }

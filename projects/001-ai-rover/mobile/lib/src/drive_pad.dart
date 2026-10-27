@@ -5,9 +5,16 @@ import 'drive_mix.dart';
 
 /// Cruceta, STOP y velocidad, como el panel web del rover.
 class DrivePad extends StatelessWidget {
-  const DrivePad({super.key, required this.controller});
+  const DrivePad({
+    super.key,
+    required this.controller,
+    required this.onToggleInvertForward,
+  });
 
   final DriveController controller;
+
+  /// Cambia y guarda el ajuste de ▲/▼ invertidos.
+  final VoidCallback onToggleInvertForward;
 
   static const double _button = 64;
   static const double _gap = 8;
@@ -103,6 +110,13 @@ class DrivePad extends StatelessWidget {
                       key: const Key('speedValue'),
                       textAlign: TextAlign.end,
                     ),
+                  ),
+                  IconButton(
+                    key: const Key('invertForwardAction'),
+                    tooltip: 'Invertir adelante y atrás',
+                    isSelected: controller.invertForward,
+                    onPressed: onToggleInvertForward,
+                    icon: const Icon(Icons.swap_vert),
                   ),
                 ],
               ),

@@ -101,6 +101,14 @@ class FakeHostStore implements HostStore {
   @override
   Future<void> saveOrientation(VideoOrientation value) async =>
       orientation = value;
+
+  bool invertForward = false;
+
+  @override
+  Future<bool> loadInvertForward() async => invertForward;
+
+  @override
+  Future<void> saveInvertForward(bool value) async => invertForward = value;
 }
 
 /// Deja terminar la transición de ruta sin avanzar el reloj hasta el corte

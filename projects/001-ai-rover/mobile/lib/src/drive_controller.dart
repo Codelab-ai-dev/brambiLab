@@ -41,6 +41,7 @@ class DriveController extends ChangeNotifier {
 
   final Set<DriveKey> _held = {};
   int _speed = defaultSpeed;
+  bool _invertForward = false;
   bool _enabled = false;
   bool _disposed = false;
   bool _linkClosed = false;
@@ -57,6 +58,9 @@ class DriveController extends ChangeNotifier {
 
   Set<DriveKey> get held => Set.unmodifiable(_held);
   int get speed => _speed;
+
+  /// ▲ y ▼ invertidos respecto al firmware (ver [mix]).
+  bool get invertForward => _invertForward;
   bool get enabled => _enabled;
   DriveStatus get status => _status;
 
@@ -66,7 +70,13 @@ class DriveController extends ChangeNotifier {
   String? get error => _error;
 
   /// Lo que se enviaría ahora mismo.
-  (int, int) get command => mix(_held, _speed);
+  (int, int) get command => mix(_held, _speed, invertForward: _invertForward);
+
+  set invertForward(bool value) {
+    if (value == _invertForward) return;
+    _invertForward = value;
+    _notify();
+  }
 
   set speed(int value) {
     final clamped = value.clamp(minSpeed, maxSpeed);
@@ -126,7 +136,7 @@ class DriveController extends ChangeNotifier {
   void _tick() {
     if (!_enabled || _held.isEmpty || _inFlight) return;
     final epoch = _epoch;
-    final (left, right) = mix(_held, _speed);
+    final (left, right) = command;
     final watch = Stopwatch()..start();
     _inFlight = true;
     _link

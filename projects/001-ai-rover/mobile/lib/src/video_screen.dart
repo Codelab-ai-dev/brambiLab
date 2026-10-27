@@ -104,10 +104,20 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
     if (store == null) return;
     try {
       final orientation = await store.loadOrientation();
-      if (mounted) setState(() => _orientation = orientation);
+      final invertForward = await store.loadInvertForward();
+      if (!mounted) return;
+      setState(() => _orientation = orientation);
+      _drive.invertForward = invertForward;
     } catch (_) {
-      // Sin preferencias legibles se muestra tal cual llega.
+      // Sin preferencias legibles se muestra tal cual llega y se conduce
+      // con el sentido del firmware.
     }
+  }
+
+  void _toggleInvertForward() {
+    final value = !_drive.invertForward;
+    _drive.invertForward = value;
+    widget.store?.saveInvertForward(value).catchError((_) {});
   }
 
   void _setOrientation(VideoOrientation orientation) {
@@ -341,7 +351,10 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final video = _videoArea(context);
-                  final pad = DrivePad(controller: _drive);
+                  final pad = DrivePad(
+                    controller: _drive,
+                    onToggleInvertForward: _toggleInvertForward,
+                  );
                   // En horizontal la cruceta va al lado: debajo dejaría el
                   // vídeo sin altura.
                   if (constraints.maxWidth > constraints.maxHeight) {
