@@ -171,4 +171,14 @@ void resolveTests() {
       throwsA(isA<RoverException>()),
     );
   });
+
+  test('el campo light es opcional y, si viene, entero', () {
+    final base = jsonDecode(statusJson) as Map<String, Object?>;
+    expect(RoverStatus.fromJson(base).light, isNull);
+    expect(RoverStatus.fromJson({...base, 'light': 128}).light, 128);
+    expect(
+      () => RoverStatus.fromJson({...base, 'light': 'alta'}),
+      throwsFormatException,
+    );
+  });
 }

@@ -113,15 +113,31 @@ class DrivePad extends StatelessWidget {
                   ),
                 ],
               ),
-              // Con texto y marca: un icono que solo cambia de color no dejaba
-              // claro si estaba activo (prueba del 2026-10-27).
-              FilterChip(
-                key: const Key('invertForwardAction'),
-                label: const Text('▲▼ invertidos'),
-                tooltip: 'Invertir adelante y atrás',
-                selected: controller.invertForward,
-                onSelected: (_) => onToggleInvertForward(),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  // Con texto y marca: un icono que solo cambia de color no
+                  // dejaba claro si estaba activo (prueba del 2026-10-27).
+                  FilterChip(
+                    key: const Key('invertForwardAction'),
+                    label: const Text('▲▼ invertidos'),
+                    tooltip: 'Invertir adelante y atrás',
+                    selected: controller.invertForward,
+                    onSelected: (_) => onToggleInvertForward(),
+                  ),
+                  _LightButton(controller: controller),
+                ],
               ),
+              if (controller.lightError != null)
+                Text(
+                  controller.lightError!,
+                  key: const Key('lightError'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: scheme.error),
+                ),
             ],
           ),
         );
@@ -303,6 +319,33 @@ class _StopButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Luz del flash: cada toque pasa al nivel siguiente. Muestra el nivel que
+/// confirma el rover; con firmware sin `/light`, el pedido.
+class _LightButton extends StatelessWidget {
+  const _LightButton({required this.controller});
+
+  final DriveController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = controller.lightConfirmed ?? controller.light;
+    final on = level != LightLevel.off;
+    return FilledButton.tonalIcon(
+      key: const Key('lightAction'),
+      onPressed: controller.enabled && !controller.lightBusy
+          ? controller.cycleLight
+          : null,
+      icon: controller.lightBusy
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(on ? Icons.flashlight_on : Icons.flashlight_off),
+      label: Text('Luz: ${level.label}'),
     );
   }
 }

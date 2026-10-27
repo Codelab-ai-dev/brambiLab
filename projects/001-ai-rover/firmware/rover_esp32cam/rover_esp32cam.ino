@@ -6,6 +6,7 @@
 //   GET /stop                                parada inmediata
 //   GET /status                              estado en JSON
 //   GET /capture                             un JPEG suelto
+//   GET /light?v=<0..255>                    luz del flash (IO4)
 //   GET :81/stream                           video MJPEG
 // Arranca parado, rechaza lo que no cumpla el rango y para solo si deja de
 // recibir comandos (CMD_TIMEOUT_MS en config.h).
@@ -15,6 +16,7 @@
 #include "esp_camera.h"
 
 #include "config.h"
+#include "light.h"
 #include "motors.h"
 
 void start_web_servers();
@@ -104,6 +106,8 @@ void setup() {
   // Lo primero de todo: con el L298N conectado, cuanto antes queden las
   // cuatro entradas en nivel bajo, menos tirón da al arrancar.
   motors_begin();
+  // La luz usa su propio timer (no el 0 de la camara): se puede apagar ya.
+  light_begin();
 
   Serial.println();
   Serial.println("BL-001 rover");

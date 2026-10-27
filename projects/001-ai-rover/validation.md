@@ -105,6 +105,8 @@ rover ni en el teléfono**: ninguno de los dos estaba en la red.
 | D12 Panel web | Igual que antes (AC 7) | **Pendiente** — el firmware no se tocó |
 | En el suelo | D2–D7 sobre el suelo | **Pendiente** — tras pasar en el aire y con interruptor de potencia |
 
+| L1–L4 Luz | Niveles, sin bandas, sin reinicios, temperatura (AC 8) | **Pendiente** — firmware con `/light` compilado (1.060.013 bytes) pero **sin cargar**: la placa no entra en modo de carga. Con el firmware actual, el botón de luz muestra el aviso de versión nueva (`/light` → 404), comprobado en el teléfono el 2026-10-27 |
+
 Procedimiento en [mobile/README.md](mobile/README.md#prueba-física-de-conducción).
 
 Sin comprobar todavía si el panel web también avanza al revés. En la ronda 2

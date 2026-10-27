@@ -129,25 +129,33 @@ class SentCommand {
   final Completer<RoverStatus> _done = Completer();
 
   bool get isStop => path == '/stop';
+  bool get isLight => path == '/light';
   bool get pending => !_done.isCompleted;
 
   void reply() => _done.complete(
     RoverStatus(
-      left: isStop ? 0 : left,
-      right: isStop ? 0 : right,
+      left: isStop || isLight ? 0 : left,
+      right: isStop || isLight ? 0 : right,
       ageMs: 0,
       timeoutMs: 500,
       rssi: -44,
       heap: 100000,
       uptimeS: 60,
+      light: isLight ? left : null,
     ),
   );
+
+  void failWith(DriveException error) => _done.completeError(error);
 
   void fail([String message = '/drive no respondió en 400 ms.']) =>
       _done.completeError(DriveException(message));
 
   @override
-  String toString() => isStop ? '/stop' : '/drive($left,$right)';
+  String toString() => isStop
+      ? '/stop'
+      : isLight
+      ? '/light($left)'
+      : '/drive($left,$right)';
 }
 
 class FakeDriveLink implements DriveLink {
@@ -157,7 +165,9 @@ class FakeDriveLink implements DriveLink {
   /// Responde solo cada orden nueva en cuanto se envía.
   bool autoReply = false;
 
-  List<SentCommand> get drives => sent.where((c) => !c.isStop).toList();
+  List<SentCommand> get drives =>
+      sent.where((c) => !c.isStop && !c.isLight).toList();
+  List<SentCommand> get lights => sent.where((c) => c.isLight).toList();
   List<SentCommand> get stops => sent.where((c) => c.isStop).toList();
   SentCommand get last => sent.last;
 
@@ -181,6 +191,9 @@ class FakeDriveLink implements DriveLink {
 
   @override
   Future<RoverStatus> stop() => _record('/stop', 0, 0);
+
+  @override
+  Future<RoverStatus> light(int level) => _record('/light', level, 0);
 
   @override
   void close() => closed = true;

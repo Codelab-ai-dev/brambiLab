@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "index_html.h"
+#include "light.h"
 #include "motors.h"
 
 #define PART_BOUNDARY "rovercam"
@@ -55,9 +56,10 @@ static esp_err_t send_state(httpd_req_t *req) {
   char json[192];
   int n = snprintf(json, sizeof(json),
                    "{\"l\":%d,\"r\":%d,\"age_ms\":%lu,\"timeout_ms\":%d,"
-                   "\"rssi\":%d,\"heap\":%u,\"uptime_s\":%lu}",
+                   "\"rssi\":%d,\"heap\":%u,\"uptime_s\":%lu,\"light\":%d}",
                    left, right, motors_last_command_age(), CMD_TIMEOUT_MS,
-                   WiFi.RSSI(), (unsigned)ESP.getFreeHeap(), millis() / 1000);
+                   WiFi.RSSI(), (unsigned)ESP.getFreeHeap(), millis() / 1000,
+                   light_get());
 
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -88,6 +90,19 @@ static esp_err_t stop_handler(httpd_req_t *req) {
 }
 
 static esp_err_t status_handler(httpd_req_t *req) {
+  return send_state(req);
+}
+
+static esp_err_t light_handler(httpd_req_t *req) {
+  int level;
+  if (!query_int(req, "v", &level)) {
+    return reject(req, "falta v, o no es entero");
+  }
+  if (level < 0 || level > 255) {
+    return reject(req, "v va de 0 a 255");
+  }
+
+  light_set(level);
   return send_state(req);
 }
 
@@ -145,6 +160,7 @@ void start_web_servers() {
   httpd_uri_t stop_uri = {"/stop", HTTP_GET, stop_handler, NULL};
   httpd_uri_t status_uri = {"/status", HTTP_GET, status_handler, NULL};
   httpd_uri_t capture_uri = {"/capture", HTTP_GET, capture_handler, NULL};
+  httpd_uri_t light_uri = {"/light", HTTP_GET, light_handler, NULL};
   httpd_uri_t stream_uri = {"/stream", HTTP_GET, stream_handler, NULL};
 
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -157,6 +173,7 @@ void start_web_servers() {
     httpd_register_uri_handler(ctrl_httpd, &stop_uri);
     httpd_register_uri_handler(ctrl_httpd, &status_uri);
     httpd_register_uri_handler(ctrl_httpd, &capture_uri);
+    httpd_register_uri_handler(ctrl_httpd, &light_uri);
   }
 
   // Segundo servidor para el video: mientras un cliente consume el stream el

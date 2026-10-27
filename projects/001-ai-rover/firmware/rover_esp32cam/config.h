@@ -30,6 +30,17 @@
 // Si no entra un /drive nuevo dentro de esta ventana, el rover para solo.
 #define CMD_TIMEOUT_MS 500
 
+// ---------- Luz ----------
+// LED flash de la placa (IO4). Va por PWM con su propio timer: a la frecuencia
+// de los motores (1 kHz) el parpadeo se cruza con la lectura del sensor y
+// salen bandas en el video.
+#define PIN_LIGHT          4
+#define LIGHT_PWM_FREQ_HZ  20000
+// Tope del brillo, en la misma escala 0..255 que /light. El LED se calienta y
+// tira de la misma bateria que los motores. Provisional: subirlo solo tras
+// comprobar temperatura y que no hay reinicios con motores en marcha.
+#define LIGHT_MAX_DUTY     128
+
 // ---------- Camara AI-Thinker ----------
 #define PWDN_GPIO_NUM  32
 #define RESET_GPIO_NUM -1

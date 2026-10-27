@@ -18,7 +18,8 @@ ESP32.
 - **Transporte**: WiFi en modo estación, HTTP sobre la LAN. Control en el
   puerto 80, vídeo MJPEG en el 81.
 - **Protocolo**: `GET /drive?l=&r=` con enteros de −255 a 255, más `/stop`,
-  `/status` y `/capture`. Detallado en [firmware/README.md](firmware/README.md).
+  `/status`, `/capture` y `/light?v=` (luz del flash, 0..255; añadida en #62,
+  compilada y sin cargar en la placa). Detallado en [firmware/README.md](firmware/README.md).
 
 ## Contrato de control, ya concretado
 

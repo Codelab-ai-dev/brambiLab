@@ -54,3 +54,19 @@ resultado en `validation.md`.
 
 ## Material para revisión
 PR desde `feat/ROVER-MOBILE-002-drive`, vinculado a #62.
+
+## Actualización (2026-10-27, misma sesión)
+- **Primera prueba en el rover** (ruedas en el aire, informe de Gustavo y capturas):
+  conduce; ◀/▶ correctos; ▲/▼ salían invertidos. Añadido el ajuste
+  «▲▼ invertidos» (chip guardado en el teléfono); con él activo, ▲ manda
+  −120/−120 y el rover lo confirma en 29 ms. Sin comprobar si el panel web
+  también va al revés (si es así, el cableado cambió el 2026-10-23).
+- **Luz del flash**, añadida a #62 a petición de Gustavo (issue actualizado):
+  - Firmware: `light.cpp`/`light.h`, ruta `/light?v=0..255`, PWM en IO4 con
+    `LEDC_TIMER_2` a 20 kHz, tope `LIGHT_MAX_DUTY` 128 (provisional), apagada
+    al arrancar, `light` en el JSON. Compila (1.060.013 bytes). **Sin cargar**:
+    la placa no entra en modo de carga.
+  - App: botón Apagada/Baja/Media/Alta, apagada al salir, aviso si el firmware
+    no tiene `/light` (comprobado en el teléfono contra el rover: 404 → aviso).
+- Pruebas: 111 automáticas.
+- Pendiente: D4–D12, L1–L4 y resolver la carga de firmware.

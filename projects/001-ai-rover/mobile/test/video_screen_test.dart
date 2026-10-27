@@ -553,4 +553,23 @@ void main() {
     expect(link.last.left, -120);
     await g.up();
   });
+
+  testWidgets('el botón de luz recorre los niveles con vídeo en vivo', (
+    tester,
+  ) async {
+    link.autoReply = true;
+    await pumpVideo(tester);
+    final button = find.byKey(const Key('lightAction'));
+    expect(find.text('Luz: Apagada'), findsOneWidget);
+
+    await tester.tap(button);
+    await tester.pump();
+    expect(link.lights, isEmpty, reason: 'sin vídeo en vivo');
+
+    await sendFrame(tester);
+    await tester.tap(button);
+    await tester.pump();
+    expect(link.lights.single.left, 64);
+    expect(find.text('Luz: Baja'), findsOneWidget);
+  });
 }

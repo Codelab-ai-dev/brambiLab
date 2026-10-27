@@ -9,23 +9,29 @@ import 'rover_address.dart';
 import 'rover_client.dart';
 
 class DriveException implements Exception {
-  const DriveException(this.message);
+  const DriveException(this.message, {this.statusCode});
 
   /// Texto para la interfaz, en español.
   final String message;
+
+  /// Código HTTP si el rover respondió con error (404: ruta inexistente).
+  final int? statusCode;
 
   @override
   String toString() => 'DriveException: $message';
 }
 
-/// Órdenes de movimiento al rover: `/drive` y `/stop` (puerto 80).
+/// Órdenes al rover: `/drive`, `/stop` y `/light` (puerto 80).
 ///
-/// Ambas devuelven el mismo JSON que `/status` (`send_state()` en
+/// Todas devuelven el mismo JSON que `/status` (`send_state()` en
 /// `httpd.cpp`), así que no hace falta consultar `/status` mientras se
 /// conduce.
 abstract interface class DriveLink {
   Future<RoverStatus> drive(int left, int right);
   Future<RoverStatus> stop();
+
+  /// Luz del flash, 0..255. El firmware limita el brillo real.
+  Future<RoverStatus> light(int level);
   void close();
 }
 
@@ -74,6 +80,16 @@ class HttpDriveLink implements DriveLink {
       _send(address.statusUri.replace(port: port, path: '/stop'), stopTimeout);
 
   @override
+  Future<RoverStatus> light(int level) => _send(
+    address.statusUri.replace(
+      port: port,
+      path: '/light',
+      queryParameters: {'v': '${level.clamp(0, 255)}'},
+    ),
+    stopTimeout,
+  );
+
+  @override
   void close() => _http.close();
 
   Future<RoverStatus> _send(Uri uri, Duration timeout) async {
@@ -87,7 +103,11 @@ class HttpDriveLink implements DriveLink {
       );
       if (response.statusCode != 200) {
         throw DriveException(
-          'El rover rechazó ${uri.path} (HTTP ${response.statusCode}).',
+          response.statusCode == 404
+              ? 'El firmware del rover no tiene ${uri.path}: hay que cargar '
+                    'la versión nueva.'
+              : 'El rover rechazó ${uri.path} (HTTP ${response.statusCode}).',
+          statusCode: response.statusCode,
         );
       }
       return RoverStatus.fromJson(jsonDecode(response.body));

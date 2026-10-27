@@ -152,4 +152,45 @@ void main() {
       link.close();
     });
   });
+
+  group('luz', () {
+    test('construye /light, limita a 0..255 y lee el nivel', () async {
+      final urls = <String>[];
+      final link = HttpDriveLink(
+        address,
+        httpClient: MockClient((request) async {
+          urls.add(request.url.toString());
+          final v = request.url.queryParameters['v'];
+          return http.Response(
+            state(0, 0).replaceFirst('}', ',"light":$v}'),
+            200,
+          );
+        }),
+      );
+
+      expect((await link.light(128)).light, 128);
+      await link.light(999);
+      await link.light(-5);
+      expect(urls, [
+        'http://192.168.0.108/light?v=128',
+        'http://192.168.0.108/light?v=255',
+        'http://192.168.0.108/light?v=0',
+      ]);
+    });
+
+    test('un firmware sin /light (404) lo dice', () {
+      final link = HttpDriveLink(
+        address,
+        httpClient: MockClient((_) async => http.Response('Not Found', 404)),
+      );
+      expect(
+        link.light(64),
+        throwsA(
+          isA<DriveException>()
+              .having((e) => e.statusCode, 'statusCode', 404)
+              .having((e) => e.message, 'message', contains('versión nueva')),
+        ),
+      );
+    });
+  });
 }

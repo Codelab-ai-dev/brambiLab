@@ -16,6 +16,7 @@ class RoverStatus {
     required this.rssi,
     required this.heap,
     required this.uptimeS,
+    this.light,
   });
 
   final int left;
@@ -25,6 +26,9 @@ class RoverStatus {
   final int rssi;
   final int heap;
   final int uptimeS;
+
+  /// Nivel de la luz (0..255). null con firmware anterior a `/light`.
+  final int? light;
 
   /// Lanza [FormatException] si falta un campo o no es entero: así se
   /// distingue el rover de otro equipo que conteste en esa IP.
@@ -48,6 +52,11 @@ class RoverStatus {
       rssi: field('rssi'),
       heap: field('heap'),
       uptimeS: field('uptime_s'),
+      light: switch (json['light']) {
+        null => null,
+        final int v => v,
+        _ => throw const FormatException('/status con "light" no entero'),
+      },
     );
   }
 }
