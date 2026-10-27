@@ -98,7 +98,7 @@ rover ni en el teléfono**: ninguno de los dos estaba en la red.
 
 | Prueba | Aceptación | Estado |
 |---|---|---|
-| D1–D5 Direcciones, curva y velocidad, ruedas en el aire | Se mueve mientras se pulsa y para al soltar (AC 1, AC 2) | **Parcial (informe de Gustavo, 2026-10-27)** — conduce desde la app; ◀/▶ correctos; **▲/▼ invertidos**. Añadido el ajuste ⇅; falta confirmar que lo corrige |
+| D1–D5 Direcciones, curva y velocidad, ruedas en el aire | Se mueve mientras se pulsa y para al soltar (AC 1, AC 2) | **Parcial (informe de Gustavo, 2026-10-27)** — conduce desde la app; ◀/▶ correctos; ▲/▼ salían invertidos. Con el ajuste «▲▼ invertidos» activo, ▲ manda −120/−120 y el rover lo confirma en 29 ms (captura de pantalla); Gustavo lo da por resuelto. Curva, velocidades 80/255 y parada al soltar sin registrar |
 | D6 STOP con avance pulsado | Para y no vuelve a arrancar (AC 3) | **Pendiente** |
 | D7–D8 Pérdida de red | Para en ≤ 0,5 s; no arranca solo al volver (AC 4) | **Pendiente** |
 | D9–D11 Segundo plano, persiana, salir | Para (AC 5) | **Pendiente** |

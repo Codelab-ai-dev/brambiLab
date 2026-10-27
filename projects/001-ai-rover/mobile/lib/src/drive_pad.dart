@@ -111,14 +111,16 @@ class DrivePad extends StatelessWidget {
                       textAlign: TextAlign.end,
                     ),
                   ),
-                  IconButton(
-                    key: const Key('invertForwardAction'),
-                    tooltip: 'Invertir adelante y atrás',
-                    isSelected: controller.invertForward,
-                    onPressed: onToggleInvertForward,
-                    icon: const Icon(Icons.swap_vert),
-                  ),
                 ],
+              ),
+              // Con texto y marca: un icono que solo cambia de color no dejaba
+              // claro si estaba activo (prueba del 2026-10-27).
+              FilterChip(
+                key: const Key('invertForwardAction'),
+                label: const Text('▲▼ invertidos'),
+                tooltip: 'Invertir adelante y atrás',
+                selected: controller.invertForward,
+                onSelected: (_) => onToggleInvertForward(),
               ),
             ],
           ),

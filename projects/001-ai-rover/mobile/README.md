@@ -110,7 +110,7 @@ avance, retroceso y giro, **STOP** en el centro y velocidad.
   avanzando, corrigen (factor 0,55). Dos dedos a la vez trazan curva.
 - **Velocidad:** 80–255, como el deslizador del panel; **empieza en 120** (el
   panel, en 190).
-- **⇅ Invertir adelante y atrás:** junto a la velocidad, guardado en el
+- **▲▼ invertidos:** chip bajo la velocidad, guardado en el
   teléfono. Cambia el signo del avance y deja el giro igual: un giro en sitio
   se ve igual desde cualquier lado. Hace falta si la cámara mira hacia la
   trasera eléctrica del rover, o si el cableado invirtió los motores.
