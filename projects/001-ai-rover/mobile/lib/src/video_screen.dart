@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'drive_controller.dart';
+import 'drive_link.dart';
+import 'drive_pad.dart';
 import 'host_store.dart';
 import 'mjpeg.dart';
 import 'rover_address.dart';
@@ -10,10 +13,12 @@ import 'rover_client.dart';
 
 enum VideoState { connecting, live, error, paused }
 
-/// Vídeo en vivo de `:81/stream`.
+/// Vídeo en vivo de `:81/stream` y conducción (#62).
 ///
 /// El stream solo está abierto mientras la pantalla está visible: se cierra al
 /// salir de ella o al pasar la app a segundo plano y se reabre al volver.
+/// Los controles solo funcionan con vídeo en vivo y la app enfocada: no se
+/// conduce a ciegas.
 class VideoScreen extends StatefulWidget {
   const VideoScreen({
     super.key,
@@ -21,6 +26,7 @@ class VideoScreen extends StatefulWidget {
     required this.mjpeg,
     required this.client,
     this.store,
+    this.driveLink,
     this.initialStatus,
     this.firstFrameTimeout = const Duration(seconds: 10),
     this.stallTimeout = const Duration(seconds: 4),
@@ -33,6 +39,9 @@ class VideoScreen extends StatefulWidget {
 
   /// Donde se guarda la orientación; sin él no se recuerda entre sesiones.
   final HostStore? store;
+
+  /// Transporte de `/drive` y `/stop`; por defecto, HTTP al mismo host.
+  final DriveLink? driveLink;
   final RoverStatus? initialStatus;
 
   /// Margen para el primer fotograma. Con poca señal un JPEG VGA (~11 kB)
@@ -74,10 +83,17 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
   int _ticksWithoutFrame = 0;
   int _ticksSinceStatus = 0;
 
+  late final DriveController _drive;
+
+  /// false con la app sin foco (persiana, diálogo, multitarea) o al fondo.
+  bool _appActive = true;
+
   @override
   void initState() {
     super.initState();
     _status = widget.initialStatus;
+    _drive = DriveController(widget.driveLink ?? HttpDriveLink(widget.address))
+      ..addListener(_onDrive);
     WidgetsBinding.instance.addObserver(this);
     _loadOrientation();
     _start();
@@ -99,9 +115,26 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
     widget.store?.saveOrientation(orientation).catchError((_) {});
   }
 
+  void _onDrive() {
+    if (!mounted) return;
+    setState(() {
+      final reply = _drive.lastReply;
+      if (reply != null) _status = reply;
+    });
+  }
+
+  /// Única regla de habilitación: vídeo en vivo y app enfocada. Al dejar de
+  /// cumplirse, el controlador manda STOP.
+  void _syncDrive() {
+    _drive.enabled = _state == VideoState.live && _appActive;
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _drive
+      ..removeListener(_onDrive)
+      ..dispose();
     _closeStream();
     _frame.dispose();
     super.dispose();
@@ -109,6 +142,7 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appActive = state == AppLifecycleState.resumed;
     switch (state) {
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
@@ -120,10 +154,11 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         if (_state == VideoState.paused) _start();
       case AppLifecycleState.inactive:
-        // Persiana de notificaciones o diálogo del sistema: la app sigue a la
-        // vista, el vídeo puede seguir.
+        // Persiana de notificaciones o diálogo del sistema: el vídeo sigue,
+        // pero la conducción para (el dedo puede no llegar a soltar el botón).
         break;
     }
+    _syncDrive();
   }
 
   void _start() {
@@ -135,6 +170,7 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
       _probing = false;
       _fps = 0;
     });
+    _syncDrive();
     _subscription = widget.mjpeg
         .frames(widget.address.streamUri)
         .listen(
@@ -145,6 +181,7 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
             _frame.value = frame;
             if (_state != VideoState.live) {
               setState(() => _state = VideoState.live);
+              _syncDrive();
             }
           },
           onError: (Object error) {
@@ -194,7 +231,9 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshStatus(int generation) async {
-    if (_statusInFlight) return;
+    // Conduciendo, cada /drive ya trae el estado: otra petición al mismo
+    // servidor solo retrasaría las órdenes.
+    if (_statusInFlight || _drive.status == DriveStatus.driving) return;
     _statusInFlight = true;
     try {
       final status = await widget.client.fetchStatus(widget.address);
@@ -222,6 +261,7 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
       _probing = true;
       _fps = 0;
     });
+    _syncDrive();
 
     String detail;
     RoverStatus? status;
@@ -298,31 +338,59 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
         child: Column(
           children: [
             Expanded(
-              child: Center(
-                child: AspectRatio(
-                  // El sensor da 4:3; girado 90° queda en vertical.
-                  aspectRatio: _orientation.quarterTurns.isOdd ? 3 / 4 : 4 / 3,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      RotatedBox(
-                        key: const Key('videoRotation'),
-                        quarterTurns: _orientation.quarterTurns,
-                        child: Transform.flip(
-                          flipX: _orientation.mirror,
-                          child: _VideoView(
-                            frame: _frame,
-                            dimmed: _state != VideoState.live,
-                          ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final video = _videoArea(context);
+                  final pad = DrivePad(controller: _drive);
+                  // En horizontal la cruceta va al lado: debajo dejaría el
+                  // vídeo sin altura.
+                  if (constraints.maxWidth > constraints.maxHeight) {
+                    return Row(
+                      children: [
+                        Expanded(child: video),
+                        SizedBox(
+                          width: 280,
+                          child: SingleChildScrollView(child: pad),
                         ),
-                      ),
-                      if (_state != VideoState.live) _overlay(context),
+                      ],
+                    );
+                  }
+                  return Column(
+                    children: [
+                      Expanded(child: video),
+                      pad,
                     ],
-                  ),
-                ),
+                  );
+                },
               ),
             ),
             _StatusBar(state: _state, fps: _fps, status: _status),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _videoArea(BuildContext context) {
+    return Center(
+      child: AspectRatio(
+        // El sensor da 4:3; girado 90° queda en vertical.
+        aspectRatio: _orientation.quarterTurns.isOdd ? 3 / 4 : 4 / 3,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RotatedBox(
+              key: const Key('videoRotation'),
+              quarterTurns: _orientation.quarterTurns,
+              child: Transform.flip(
+                flipX: _orientation.mirror,
+                child: _VideoView(
+                  frame: _frame,
+                  dimmed: _state != VideoState.live,
+                ),
+              ),
+            ),
+            if (_state != VideoState.live) _overlay(context),
           ],
         ),
       ),
@@ -357,12 +425,8 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
             color: theme.colorScheme.error,
           ),
           const SizedBox(height: 12),
-          Text(
-            _error ?? 'Sin vídeo.',
-            key: const Key('videoError'),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
+          // La acción antes que la explicación: con poca altura (horizontal)
+          // el texto largo la dejaría fuera de la vista.
           if (_probing)
             const Text('Comprobando el rover…')
           else
@@ -372,6 +436,12 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
               icon: const Icon(Icons.refresh),
               label: const Text('Reconectar'),
             ),
+          const SizedBox(height: 12),
+          Text(
+            _error ?? 'Sin vídeo.',
+            key: const Key('videoError'),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
       VideoState.live => const SizedBox.shrink(),
@@ -461,9 +531,16 @@ class _StatusBar extends StatelessWidget {
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
           Text(label, key: const Key('stateLabel')),
-          const Spacer(),
-          if (details.isNotEmpty)
-            Text(details, style: TextStyle(color: scheme.onSurfaceVariant)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              details,
+              textAlign: TextAlign.end,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ),
         ],
       ),
     );

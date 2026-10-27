@@ -89,6 +89,24 @@ Hallazgos de la sesión del 2026-10-23, fuera de la app:
   automático y manteniendo el botón IO0. Sin confirmar si se probó el puente
   IO0–GND. Pendiente de revisar la placa MB. No afecta al firmware actual, que funciona.
 
+## App Android, fase 2: conducción — ROVER-MOBILE-002 (#62), pendiente
+
+Controles de `/drive` y `/stop` en la app ([mobile/README.md](mobile/README.md#conducir)).
+Firmware sin cambios. Verificado solo en el ordenador (2026-10-27):
+`flutter analyze` sin avisos y 96 pruebas automáticas. **No se ha probado en el
+rover ni en el teléfono**: ninguno de los dos estaba en la red.
+
+| Prueba | Aceptación | Estado |
+|---|---|---|
+| D1–D5 Direcciones, curva y velocidad, ruedas en el aire | Se mueve mientras se pulsa y para al soltar (AC 1, AC 2) | **Pendiente** |
+| D6 STOP con avance pulsado | Para y no vuelve a arrancar (AC 3) | **Pendiente** |
+| D7–D8 Pérdida de red | Para en ≤ 0,5 s; no arranca solo al volver (AC 4) | **Pendiente** |
+| D9–D11 Segundo plano, persiana, salir | Para (AC 5) | **Pendiente** |
+| D12 Panel web | Igual que antes (AC 7) | **Pendiente** — el firmware no se tocó |
+| En el suelo | D2–D7 sobre el suelo | **Pendiente** — tras pasar en el aire y con interruptor de potencia |
+
+Procedimiento en [mobile/README.md](mobile/README.md#prueba-física-de-conducción).
+
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de
 estas pruebas de prototipo.

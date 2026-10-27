@@ -1,12 +1,15 @@
 # mobile — ROVER Control (Android, Flutter)
 
-Fase 1 de la app Android del rover ([issue #58](https://github.com/Codelab-ai-dev/brambiLab/issues/58)):
-**conexión Wi-Fi y vídeo en vivo** del ESP32-CAM. Usa la API HTTP que ya sirve
-el firmware [`rover_esp32cam`](../firmware/README.md), sin cambiarlo. El panel
-web de la placa sigue siendo la referencia y no depende de esta app.
+App Android del rover. Usa la API HTTP que ya sirve el firmware
+[`rover_esp32cam`](../firmware/README.md), sin cambiarlo. El panel web de la
+placa sigue siendo la referencia y no depende de esta app.
 
-Fuera de esta fase: control de motores, Bluetooth/BLE, Arduino UNO Q, IA y
-telemetría avanzada.
+- Fase 1 ([#58](https://github.com/Codelab-ai-dev/brambiLab/issues/58), cerrada):
+  conexión Wi-Fi y vídeo en vivo.
+- Fase 2 ([#62](https://github.com/Codelab-ai-dev/brambiLab/issues/62)):
+  conducción con `/drive` y `/stop`. Ver [Conducir](#conducir).
+
+Fuera de alcance: Bluetooth/BLE, Arduino UNO Q, IA y telemetría avanzada.
 
 ## Qué hace
 
@@ -49,7 +52,11 @@ responde, lo dice: cierra el panel web u otro visor y pulsa *Reconectar*.
 | `lib/src/mjpeg.dart` | Decodificador `multipart/x-mixed-replace` y conexión del stream |
 | `lib/src/host_store.dart` | Último host válido (`shared_preferences`) |
 | `lib/src/connect_screen.dart` | Pantalla de conexión |
-| `lib/src/video_screen.dart` | Vídeo, estados y ciclo de vida |
+| `lib/src/video_screen.dart` | Vídeo, estados, ciclo de vida y cuándo se puede conducir |
+| `lib/src/drive_mix.dart` | Mezcla diferencial, copia de `mix()` del panel web |
+| `lib/src/drive_link.dart` | `/drive` y `/stop` por una sola conexión HTTP |
+| `lib/src/drive_controller.dart` | Envío periódico, STOP, pérdida de control |
+| `lib/src/drive_pad.dart` | Cruceta, STOP y velocidad |
 | `test/` | Pruebas unitarias y de widgets |
 
 Dependencias: `http` y `shared_preferences`. El MJPEG se decodifica en la
@@ -93,6 +100,73 @@ dominios), por eso es global; la app solo construye URL hacia el host
 configurado. Antes de usar el rover en redes compartidas habría que añadir
 autenticación o TLS en el firmware, en otro issue.
 
+## Conducir
+
+Los controles están debajo del vídeo (en horizontal, a su derecha): cruceta de
+avance, retroceso y giro, **STOP** en el centro y velocidad.
+
+- **Mezcla:** la misma que el panel web (`mix()` en `index_html.h`), probada
+  contra su salida en JavaScript. En parado, izquierda y derecha giran en sitio;
+  avanzando, corrigen (factor 0,55). Dos dedos a la vez trazan curva.
+- **Velocidad:** 80–255, como el deslizador del panel; **empieza en 120** (el
+  panel, en 190).
+- **Envío:** `/drive` al apoyar el dedo y cada **150 ms** mientras siga
+  apoyado, con una sola petición en vuelo. Al soltar, `/stop` y nada más:
+  la app no envía órdenes en reposo.
+- **Estado:** la línea sobre la cruceta muestra lo que **confirma el rover** en
+  la respuesta de cada `/drive` (`l / r` y latencia), no lo que la app cree
+  haber enviado. La barra inferior toma el RSSI de esas respuestas.
+
+### Seguridad
+
+| Situación | Qué hace la app |
+|---|---|
+| Arranque | Parada y con los controles desactivados |
+| Vídeo no está *En vivo* (conectando, error, pausa) | Controles desactivados y `/stop`: no se conduce a ciegas |
+| Soltar, o el sistema cancela el gesto | `/stop` |
+| **STOP** | Actúa al apoyar el dedo. Invalida lo que esté en vuelo, manda `/stop` y otro `/stop` de cierre cuando termina el `/drive` que viajaba |
+| `/drive` falla o no responde en **400 ms** | Pérdida de control: `/stop`, aviso en rojo y **no se vuelve a mover hasta soltar y pulsar de nuevo**, aunque vuelva la red |
+| Persiana de notificaciones, diálogo del sistema | `/stop`; el vídeo sigue |
+| Segundo plano, salir de la pantalla | `/stop` y cierre de la conexión |
+| Android mata la app | Nada que hacer desde la app: para el **watchdog del firmware a los 500 ms** |
+
+**Orden de las órdenes.** `/drive` y `/stop` van por **una sola conexión
+HTTP** (`maxConnectionsPerHost = 1`), así que llegan al ESP32 en el orden en
+que salieron: un `/stop` no adelanta a un `/drive` anterior. Hay una prueba
+contra un servidor local que falla si se permiten más conexiones. Un `/drive`
+que ya estaba en camino puede aplicarse hasta 500 ms tras STOP; el `/stop` de
+cierre lo neutraliza. Garantizarlo de forma estricta exigiría números de
+secuencia en el firmware.
+
+**Un solo controlador.** El firmware no distingue clientes: si el panel web y
+la app conducen a la vez, se pisan. No conduzcas desde los dos a la vez.
+
+### Prueba física de conducción
+
+**Con las ruedas en el aire** (el rover sobre una caja o un soporte) mientras
+no exista el interruptor de potencia ([validation.md](../validation.md)). Ten
+a mano el cable de la batería para desconectarla. Panel web **cerrado**.
+
+| # | Prueba | Cómo | Esperado (criterio de #62) |
+|---|---|---|---|
+| D1 | Arranque | Abrir la app y conectar | Ruedas quietas; controles desactivados hasta *En vivo* |
+| D2 | Avanzar | Mantener ▲ dos segundos y soltar | Las cuatro ruedas hacia delante; paran al soltar (AC 2) |
+| D3 | Direcciones | Igual con ▼, ◀ y ▶ | Atrás; giro en sitio a izquierda y derecha (AC 2) |
+| D4 | Curva | ▲ y ▶ a la vez | Un lado más rápido que el otro |
+| D5 | Velocidad | Repetir D2 a 80 y a 255 | A 80 giran (lento); a 255, al máximo |
+| D6 | STOP | Mantener ▲ y pulsar STOP con otro dedo, sin soltar ▲ | Paran y no vuelven a arrancar aunque ▲ siga pulsado (AC 3) |
+| D7 | Wi-Fi caído | Mantener ▲ y apagar el Wi-Fi del teléfono | Paran en ≤ 0,5 s (watchdog); aviso de pérdida; al volver la red no arrancan solas (AC 4) |
+| D8 | Rover sin red | Mantener ▲ y alejar el router o apagarlo | Igual que D7 |
+| D9 | Segundo plano | Mantener ▲ y pulsar Inicio | Paran (AC 5) |
+| D10 | Persiana | Mantener ▲ y bajar la persiana de notificaciones | Paran; el vídeo sigue |
+| D11 | Salir | Mantener ▲ y pulsar atrás | Paran (AC 5) |
+| D12 | Panel web | Cerrar la app y conducir desde `http://<ip>/` | Funciona igual que antes (AC 7) |
+
+Solo cuando D1–D11 pasen con las ruedas en el aire, y con el interruptor de
+potencia instalado, repetir D2–D7 en el suelo. Anota en
+[validation.md](../validation.md) el teléfono, el commit y qué pasó en cada
+fila, incluidos los fallos.
+
 ## Probar en un teléfono Android real
 
 Con el rover encendido y el firmware actual, teléfono y rover en la **misma
@@ -112,11 +186,23 @@ red Wi-Fi**. Apunta modelo y versión de Android, IP o nombre usado y el commit.
 | 10 | Cliente ocupado | Con el panel web mostrando vídeo, conectar desde la app | Mensaje de un solo stream a la vez; tras cerrar el panel, *Reconectar* funciona |
 | 11 | Panel web intacto | Usar el panel web tras las pruebas | Vídeo y conducción como antes (AC 5) |
 
-Registra el resultado en [validation.md](../validation.md). Hasta entonces
-estas pruebas cuentan como **pendientes**: las pruebas automáticas usan
+Estas son las pruebas de la fase 1 (vídeo). Las de conducción están en
+[Prueba física de conducción](#prueba-física-de-conducción). Registra el
+resultado en [validation.md](../validation.md): las pruebas automáticas usan
 servidores simulados, no el ESP32-CAM.
 
 ## Limitaciones conocidas
+
+- Conducción **sin probar todavía en el rover**: solo pruebas automáticas
+  (mezcla contra la salida del panel en JavaScript, controlador con reloj
+  simulado, transporte contra un servidor HTTP local y pantalla con gestos
+  simulados).
+- Con poca señal Wi-Fi, una sola respuesta de `/drive` por encima de 400 ms
+  cuenta como pérdida de control y obliga a soltar y volver a pulsar. Si pasa a
+  menudo con buena cobertura, revisar ese umbral (`driveTimeout` en
+  `HttpDriveLink`).
+- Los botones se mantienen pulsados con el dedo; TalkBack no permite mantener
+  pulsado, así que la conducción no es accesible con lector de pantalla.
 
 - Probada en un Nothing A015 con Android 16 ([validation.md](../validation.md)):
   conexión por IP y vídeo medidos el 2026-10-23; pérdida de enlace, segundo
