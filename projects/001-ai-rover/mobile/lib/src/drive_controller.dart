@@ -6,6 +6,30 @@ import 'drive_link.dart';
 import 'drive_mix.dart';
 import 'rover_client.dart';
 
+/// Niveles del botón de luz, en la escala de `/light` (0..255). El firmware
+/// limita el brillo real con `LIGHT_MAX_DUTY`.
+enum LightLevel {
+  off(0, 'Apagada'),
+  low(64, 'Baja'),
+  medium(128, 'Media'),
+  high(255, 'Alta');
+
+  const LightLevel(this.value, this.label);
+
+  final int value;
+  final String label;
+
+  LightLevel get next => values[(index + 1) % values.length];
+
+  /// El nivel cuyo valor coincide con lo que confirma el rover.
+  static LightLevel? fromValue(int? value) {
+    for (final level in values) {
+      if (level.value == value) return level;
+    }
+    return null;
+  }
+}
+
 enum DriveStatus {
   /// Sin teclas pulsadas; el rover debería estar parado.
   idle,
@@ -41,6 +65,7 @@ class DriveController extends ChangeNotifier {
 
   final Set<DriveKey> _held = {};
   int _speed = defaultSpeed;
+  bool _invertForward = false;
   bool _enabled = false;
   bool _disposed = false;
   bool _linkClosed = false;
@@ -55,8 +80,15 @@ class DriveController extends ChangeNotifier {
   int? _latencyMs;
   String? _error;
 
+  LightLevel _light = LightLevel.off;
+  bool _lightBusy = false;
+  String? _lightError;
+
   Set<DriveKey> get held => Set.unmodifiable(_held);
   int get speed => _speed;
+
+  /// ▲ y ▼ invertidos respecto al firmware (ver [mix]).
+  bool get invertForward => _invertForward;
   bool get enabled => _enabled;
   DriveStatus get status => _status;
 
@@ -65,8 +97,20 @@ class DriveController extends ChangeNotifier {
   int? get latencyMs => _latencyMs;
   String? get error => _error;
 
+  /// Nivel de luz pedido; [lightConfirmed] es el que aplicó el rover.
+  LightLevel get light => _light;
+  LightLevel? get lightConfirmed => LightLevel.fromValue(_lastReply?.light);
+  bool get lightBusy => _lightBusy;
+  String? get lightError => _lightError;
+
   /// Lo que se enviaría ahora mismo.
-  (int, int) get command => mix(_held, _speed);
+  (int, int) get command => mix(_held, _speed, invertForward: _invertForward);
+
+  set invertForward(bool value) {
+    if (value == _invertForward) return;
+    _invertForward = value;
+    _notify();
+  }
 
   set speed(int value) {
     final clamped = value.clamp(minSpeed, maxSpeed);
@@ -109,14 +153,44 @@ class DriveController extends ChangeNotifier {
   /// Botón STOP.
   void stop() => _halt();
 
+  /// Botón de luz: Apagada → Baja → Media → Alta → Apagada.
+  ///
+  /// Va por la misma conexión que `/drive`, en orden. Un fallo no cuenta como
+  /// pérdida de control: la conducción sigue.
+  Future<void> cycleLight() async {
+    if (!_enabled || _disposed || _lightBusy) return;
+    // Parte de lo que confirma el rover: si se reinició, la luz está apagada.
+    final target = (lightConfirmed ?? _light).next;
+    _lightBusy = true;
+    _lightError = null;
+    _notify();
+    try {
+      final reply = await _link.light(target.value);
+      _light = target;
+      _lastReply = reply;
+    } on DriveException catch (e) {
+      _lightError = e.statusCode == 404
+          ? 'Este firmware no tiene luz: hay que cargar la versión nueva.'
+          : 'La luz no respondió.';
+    } finally {
+      _lightBusy = false;
+      _notify();
+    }
+  }
+
   @override
   void dispose() {
     if (_disposed) return;
     _enabled = false;
     final stopped = _halt();
+    // Al salir de la pantalla de control la luz se apaga: nadie la ve y gasta
+    // batería. Va detrás del /stop por la misma conexión.
+    final lightOff = _light == LightLevel.off
+        ? Future<void>.value()
+        : _link.light(0).then((_) {}, onError: (_) {});
     _disposed = true;
     // Cerrar el cliente abortaría el /stop: se cierra cuando termina.
-    stopped.whenComplete(() {
+    Future.wait([stopped, lightOff]).whenComplete(() {
       _linkClosed = true;
       _link.close();
     });
@@ -126,7 +200,7 @@ class DriveController extends ChangeNotifier {
   void _tick() {
     if (!_enabled || _held.isEmpty || _inFlight) return;
     final epoch = _epoch;
-    final (left, right) = mix(_held, _speed);
+    final (left, right) = command;
     final watch = Stopwatch()..start();
     _inFlight = true;
     _link

@@ -110,6 +110,15 @@ avance, retroceso y giro, **STOP** en el centro y velocidad.
   avanzando, corrigen (factor 0,55). Dos dedos a la vez trazan curva.
 - **Velocidad:** 80–255, como el deslizador del panel; **empieza en 120** (el
   panel, en 190).
+- **Luz:** botón bajo la velocidad que recorre Apagada → Baja → Media → Alta
+  (64, 128 y 255 en la escala de `/light`; el firmware limita el brillo real).
+  Muestra el nivel que confirma el rover. Se apaga al salir de la pantalla de
+  control. Un fallo de la luz no corta la conducción, y con un firmware sin
+  `/light` la app avisa de que hay que cargar la versión nueva.
+- **▲▼ invertidos:** chip bajo la velocidad, guardado en el
+  teléfono. Cambia el signo del avance y deja el giro igual: un giro en sitio
+  se ve igual desde cualquier lado. Hace falta si la cámara mira hacia la
+  trasera eléctrica del rover, o si el cableado invirtió los motores.
 - **Envío:** `/drive` al apoyar el dedo y cada **150 ms** mientras siga
   apoyado, con una sola petición en vuelo. Al soltar, `/stop` y nada más:
   la app no envía órdenes en reposo.
@@ -161,6 +170,10 @@ a mano el cable de la batería para desconectarla. Panel web **cerrado**.
 | D10 | Persiana | Mantener ▲ y bajar la persiana de notificaciones | Paran; el vídeo sigue |
 | D11 | Salir | Mantener ▲ y pulsar atrás | Paran (AC 5) |
 | D12 | Panel web | Cerrar la app y conducir desde `http://<ip>/` | Funciona igual que antes (AC 7) |
+| L1 | Luz | Con el firmware nuevo, recorrer los cuatro niveles | Cada nivel más brillante; *Apagada* apaga (AC 8) |
+| L2 | Bandas | Luz *Alta* mirando una pared | El vídeo no muestra bandas horizontales (AC 8) |
+| L3 | Consumo | Luz *Alta* y ▲ a 255 durante 10 s | Sin reinicio: `uptime_s` sigue subiendo (AC 8) |
+| L4 | Temperatura | Luz *Alta* 2 minutos | El LED no quema al tacto; si quema, bajar `LIGHT_MAX_DUTY` |
 
 Solo cuando D1–D11 pasen con las ruedas en el aire, y con el interruptor de
 potencia instalado, repetir D2–D7 en el suelo. Anota en

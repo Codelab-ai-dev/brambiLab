@@ -18,13 +18,15 @@ class VideoOrientation {
       VideoOrientation(quarterTurns: quarterTurns, mirror: !mirror);
 }
 
-/// Guarda en el teléfono el último host que funcionó y la orientación.
+/// Guarda en el teléfono el último host que funcionó, la orientación y el
+/// sentido de avance.
 class HostStore {
   HostStore(this._prefs);
 
   static const String _key = 'rover_host';
   static const String _turnsKey = 'video_quarter_turns';
   static const String _mirrorKey = 'video_mirror';
+  static const String _invertForwardKey = 'drive_invert_forward';
 
   /// Valor inicial del campo: el nombre mDNS que anuncia el firmware.
   static const String defaultHost = 'rover.local';
@@ -44,4 +46,11 @@ class HostStore {
     await _prefs.setInt(_turnsKey, orientation.quarterTurns);
     await _prefs.setBool(_mirrorKey, orientation.mirror);
   }
+
+  /// Ajuste de conducción: ▲ y ▼ invertidos (ver `mix()`).
+  Future<bool> loadInvertForward() async =>
+      (await _prefs.getBool(_invertForwardKey)) ?? false;
+
+  Future<void> saveInvertForward(bool value) =>
+      _prefs.setBool(_invertForwardKey, value);
 }

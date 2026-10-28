@@ -142,4 +142,29 @@ void main() {
       expect(l.abs() <= pwmMax && r.abs() <= pwmMax, isTrue, reason: k);
     }
   });
+
+  group('invertir adelante y atrás', () {
+    (int, int) inv(String k, [int speed = 120]) =>
+        mix(keys(k), speed, invertForward: true);
+
+    test('▲ y ▼ intercambian el sentido', () {
+      expect(inv('f'), (-120, -120));
+      expect(inv('b'), (120, 120));
+    });
+
+    test('el giro en sitio no cambia', () {
+      expect(inv('l'), mix(keys('l'), 120));
+      expect(inv('r'), mix(keys('r'), 120));
+    });
+
+    test('en curva equivale a la tecla contraria sin invertir', () {
+      for (final (k, speed, _, _) in jsVectors) {
+        final swapped = k
+            .replaceAll('f', 'X')
+            .replaceAll('b', 'f')
+            .replaceAll('X', 'b');
+        expect(inv(k, speed), mix(keys(swapped), speed), reason: '"$k" $speed');
+      }
+    });
+  });
 }

@@ -44,9 +44,10 @@ libres mientras no se use tarjeta.
 - **ENA y ENB se quedan con sus jumpers puestos.** La velocidad se hace por PWM
   sobre las propias entradas IN, así que no hacen falta dos pines más.
 - Los dos motores de cada lado van en paralelo a la misma salida.
-- **IO12 e IO4 no se usan.** IO12 es strapping (MTDI): si alguien lo deja en
-  alto durante el arranque, el ESP32 configura el flash a 1,8 V y no bootea.
-  IO4 es el LED flash de la placa.
+- **IO12 no se usa.** Es strapping (MTDI): si alguien lo deja en alto durante
+  el arranque, el ESP32 configura el flash a 1,8 V y no bootea.
+- **IO4 es el LED flash de la placa**, regulado por `/light` (ver más abajo).
+  Sin cablear nada: el LED ya está en la placa.
 - Batería al `12V`/`GND` del L298N. El instructivo dibuja 12 V pero el kit monta
   2×18650, o sea 7,4 V; con la caída de ~2 V del L298N quedan unos 5,4 V en los
   motores.
@@ -67,8 +68,9 @@ libres mientras no se use tarjeta.
 |---|---|
 | `GET /drive?l=<-255..255>&r=<-255..255>` | aplica velocidades y rearma el timeout |
 | `GET /stop` | parada inmediata |
-| `GET /status` | JSON con `l`, `r`, `age_ms`, `timeout_ms`, `rssi`, `heap`, `uptime_s` |
+| `GET /status` | JSON con `l`, `r`, `age_ms`, `timeout_ms`, `rssi`, `heap`, `uptime_s`, `light` |
 | `GET /capture` | un JPEG suelto |
+| `GET /light?v=<0..255>` | luz del flash; responde el mismo JSON que `/status` |
 | `GET :81/stream` | vídeo MJPEG |
 
 - Arranca parado.
@@ -91,6 +93,14 @@ eso `motors.cpp` no usa `analogWrite()` ni `ledcAttach()`: pide a mano
 `LEDC_HIGH_SPEED_MODE`, `LEDC_TIMER_1` y los canales 2–5. Dejar que Arduino
 eligiera el canal podría reconfigurar el timer 0 y la imagen se caería.
 
+La luz (`light.cpp`) sigue la misma regla con **LEDC_TIMER_2** y el canal 6, a
+20 kHz. No comparte el timer de los motores porque a 1 kHz el parpadeo del LED
+se cruza con la lectura del sensor y salen bandas en el vídeo. El brillo de
+`/light` se escala hasta `LIGHT_MAX_DUTY` (128 de 255 en `config.h`): el LED se
+calienta y tira de la misma batería que los motores. Es un valor provisional:
+subirlo solo tras comprobar temperatura y que no hay reinicios con la luz al
+máximo y los motores en marcha. Arranca apagada.
+
 ## Compilar y subir
 
 ```sh
@@ -99,7 +109,8 @@ arduino-cli upload  -b esp32:esp32:esp32cam:PartitionScheme=huge_app \
   -p /dev/cu.usbserial-310 rover_esp32cam
 ```
 
-Core `esp32:esp32` 3.3.12. Ocupa 1.059.537 bytes, el 33 % de `huge_app`.
+Core `esp32:esp32` 3.3.12. Ocupa 1.060.013 bytes, el 33 % de `huge_app`
+(con `/light`, cargado en la placa el 2026-10-27).
 El adaptador USB-serie de esta placa maneja DTR/RTS, así que entra en
 bootloader solo: no hay que puentear IO0 a masa.
 

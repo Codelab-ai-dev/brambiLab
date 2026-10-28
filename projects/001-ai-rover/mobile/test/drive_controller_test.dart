@@ -1,6 +1,7 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rover_control/src/drive_controller.dart';
+import 'package:rover_control/src/drive_link.dart';
 import 'package:rover_control/src/drive_mix.dart';
 
 import 'fakes.dart';
@@ -234,6 +235,97 @@ void main() {
       link.last.reply();
       async.flushMicrotasks();
       expect(link.closed, isTrue);
+    });
+  });
+
+  test('con avance invertido, ▲ envía velocidades negativas', () {
+    fakeAsync((async) {
+      link.autoReply = true;
+      drive.enabled = true;
+      drive.invertForward = true;
+      drive.press(DriveKey.forward);
+      async.flushMicrotasks();
+      expect((link.last.left, link.last.right), (-120, -120));
+
+      // Cambiarlo en marcha afecta a la siguiente orden.
+      drive.invertForward = false;
+      async.elapse(ms150);
+      expect((link.last.left, link.last.right), (120, 120));
+    });
+  });
+
+  group('luz', () {
+    test('cada toque pasa al nivel siguiente y vuelve a apagada', () {
+      fakeAsync((async) {
+        link.autoReply = true;
+        drive.enabled = true;
+        for (var i = 0; i < 4; i++) {
+          drive.cycleLight();
+          async.flushMicrotasks();
+        }
+        expect(link.lights.map((c) => c.left), [64, 128, 255, 0]);
+        expect(drive.light, LightLevel.off);
+      });
+    });
+
+    test('sin vídeo en vivo no hace nada; dos toques seguidos, uno', () {
+      fakeAsync((async) {
+        drive.cycleLight();
+        expect(link.sent, isEmpty);
+
+        drive.enabled = true;
+        drive.cycleLight();
+        drive.cycleLight();
+        expect(link.lights, hasLength(1), reason: 'espera la respuesta');
+      });
+    });
+
+    test('muestra lo que confirma el rover', () {
+      fakeAsync((async) {
+        link.autoReply = true;
+        drive.enabled = true;
+        drive.cycleLight();
+        async.flushMicrotasks();
+        expect(drive.lightConfirmed, LightLevel.low);
+      });
+    });
+
+    test('un firmware sin /light no corta la conducción', () {
+      fakeAsync((async) {
+        link.autoReply = true;
+        drive.enabled = true;
+        drive.press(DriveKey.forward);
+        async.flushMicrotasks();
+
+        link.autoReply = false;
+        drive.cycleLight();
+        link.last.failWith(const DriveException('sin /light', statusCode: 404));
+        async.flushMicrotasks();
+
+        expect(drive.lightError, contains('versión nueva'));
+        expect(drive.light, LightLevel.off);
+        expect(drive.status, DriveStatus.driving);
+        expect(drive.held, contains(DriveKey.forward));
+      });
+    });
+
+    test('al salir la luz se apaga y la conexión se cierra después', () {
+      fakeAsync((async) {
+        link.autoReply = true;
+        drive.enabled = true;
+        drive.cycleLight();
+        async.flushMicrotasks();
+
+        link.autoReply = false;
+        drive.dispose();
+        expect(link.sent.map((c) => c.toString()).toList().sublist(1), [
+          '/stop',
+          '/light(0)',
+        ]);
+        link.replyAll();
+        async.flushMicrotasks();
+        expect(link.closed, isTrue);
+      });
     });
   });
 }

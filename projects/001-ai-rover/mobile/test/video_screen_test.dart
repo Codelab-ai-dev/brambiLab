@@ -520,4 +520,56 @@ void main() {
       expect(mjpeg.opened, hasLength(2));
     });
   });
+
+  testWidgets('invertir adelante y atrás se aplica y se guarda', (
+    tester,
+  ) async {
+    link.autoReply = true;
+    await pumpVideo(tester);
+    await sendFrame(tester);
+
+    await tester.tap(find.byKey(const Key('invertForwardAction')));
+    await tester.pump();
+    expect(store.invertForward, isTrue);
+
+    final g = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('drive-forward'))),
+    );
+    await tester.pump();
+    expect((link.last.left, link.last.right), (-120, -120));
+    await g.up();
+  });
+
+  testWidgets('recupera el ajuste de avance invertido', (tester) async {
+    store.invertForward = true;
+    link.autoReply = true;
+    await pumpVideo(tester);
+    await sendFrame(tester);
+
+    final g = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('drive-forward'))),
+    );
+    await tester.pump();
+    expect(link.last.left, -120);
+    await g.up();
+  });
+
+  testWidgets('el botón de luz recorre los niveles con vídeo en vivo', (
+    tester,
+  ) async {
+    link.autoReply = true;
+    await pumpVideo(tester);
+    final button = find.byKey(const Key('lightAction'));
+    expect(find.text('Luz: Apagada'), findsOneWidget);
+
+    await tester.tap(button);
+    await tester.pump();
+    expect(link.lights, isEmpty, reason: 'sin vídeo en vivo');
+
+    await sendFrame(tester);
+    await tester.tap(button);
+    await tester.pump();
+    expect(link.lights.single.left, 64);
+    expect(find.text('Luz: Baja'), findsOneWidget);
+  });
 }
