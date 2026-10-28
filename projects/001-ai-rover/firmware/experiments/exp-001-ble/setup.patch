@@ -1,0 +1,34 @@
+--- rover_esp32cam.ino
++++ nimble_probe.ino
+@@ -20,6 +20,10 @@
+ #include "motors.h"
+ 
+ void start_web_servers();
++void ble_begin();
++void ble_report();
++void ble_heap(const char *tag);
++#include <WiFi.h>
+ 
+ static bool camera_ok = false;
+ 
+@@ -112,15 +116,20 @@
+   Serial.println();
+   Serial.println("BL-001 rover");
+ 
++  ble_begin();  // sonda #63: antes que camara y wifi
++
+   camera_ok = start_camera();
+   Serial.printf("camara: %s\n", camera_ok ? "ok" : "no disponible (el rover sigue conduciendo)");
+ 
++  ble_heap("tras camara");
+   connect_wifi();
+   start_web_servers();
++  ble_heap("tras camara, wifi y http");
+ }
+ 
+ void loop() {
+   motors_watchdog();
++  ble_report();
+ 
+   // Si se cae el enlace no tiene sentido seguir rodando a ciegas.
+   static bool was_connected = true;
