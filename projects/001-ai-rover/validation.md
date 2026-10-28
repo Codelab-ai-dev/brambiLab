@@ -108,7 +108,7 @@ rover ni en el teléfono**: ninguno de los dos estaba en la red.
 
 | Carga del firmware con `/light` | Arranca y responde | **Pasa (2026-10-27)** — `arduino-cli upload` (commit `4d05057`) entró en modo de carga esta vez; escritura verificada. Arranca con `"light":0`, RSSI −27 a −29 dBm, sin reinicios |
 | Contrato de `/light` | Niveles válidos se aplican; el resto, 400 | **Pasa (2026-10-27, `curl`)** — `v=64/128/255/0` devuelven ese `light`; `v=256`, `-1`, `abc` y sin `v` → 400. `/drive?l=999` sigue en 400 y `/capture` responde |
-| L1 Niveles visibles | Cada nivel más brillante (AC 8) | **Pendiente** — falta que Gustavo vea el LED; con luz ambiente la exposición automática compensa y la captura no lo muestra |
+| L1 Niveles visibles | Cada nivel más brillante (AC 8) | **Pasa (informe de Gustavo, 2026-10-27)** — la luz funciona desde la app. La captura no lo muestra: con luz ambiente la exposición automática compensa |
 | L2 Bandas | Sin bandas con luz *Alta* (AC 8) | **Sin bandas visibles** en una captura 640×480 con `v=255` (2026-10-27); falta mirarlo en el vídeo en vivo |
 | L3–L4 Consumo y temperatura | Sin reinicio con luz *Alta* y motores; LED no quema (AC 8) | **Pendiente** — la carga fue con la batería de motores desconectada |
 
