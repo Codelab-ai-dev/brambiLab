@@ -17,7 +17,7 @@ Git es canónico para código, decisiones y documentación de ingeniería. Postg
 Android/CMF Phone 1: interfaz, cámara y evaluación de inferencia local.
 ESP32: control de motores, recepción de comandos y parada por pérdida de comunicación.
 Driver: entrega de potencia a motores. Alimentación: diseñar tras identificar componentes y consumos.
-Transporte Android–ESP32: pendiente de ADR y prueba de conectividad.
+Transporte Android–ESP32: Wi-Fi + HTTP para vídeo y control; BLE descartado ([ADR-005](docs/architecture/ADR-005-transporte.md)).
 
 La app no debe ser la única responsable de la parada ante desconexión. Timeout, rango de comandos y estado de arranque seguro deberán especificarse y probarse en el firmware antes de movimiento libre.
 
