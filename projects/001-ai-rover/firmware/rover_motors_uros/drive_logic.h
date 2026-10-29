@@ -107,4 +107,27 @@ class SafetyGate {
   Wheels wheels_ = {0, 0};
 };
 
+// Cuarentena de armado tras (re)conectar con el agente. Al reconectar, ROS 2
+// puede volver a entregar un /rover/enable antiguo: el 2026-10-29 el rover se
+// rearmo solo ~0,5 s despues de reconectar, sin orden nueva. Durante
+// quarantine_ms tras cada conexion se ignora cualquier armado.
+class ArmGuard {
+ public:
+  explicit ArmGuard(uint32_t quarantine_ms) : quarantine_ms_(quarantine_ms) {}
+
+  void connected(uint32_t now_ms) {
+    connected_at_ = now_ms;
+    has_connected_ = true;
+  }
+
+  bool allow_arm(uint32_t now_ms) const {
+    return has_connected_ && (uint32_t)(now_ms - connected_at_) >= quarantine_ms_;
+  }
+
+ private:
+  uint32_t quarantine_ms_;
+  uint32_t connected_at_ = 0;
+  bool has_connected_ = false;
+};
+
 }  // namespace rover

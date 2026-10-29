@@ -110,12 +110,26 @@ static void seguridad() {
   CHECK(wrap.tick(0x00000120u).left == 0);   // 544 ms despues
 }
 
+static void cuarentena() {
+  ArmGuard g(2000);
+  CHECK(!g.allow_arm(0));  // nunca conectado
+  g.connected(10000);
+  CHECK(!g.allow_arm(10000));
+  CHECK(!g.allow_arm(11999));
+  CHECK(g.allow_arm(12000));
+  // Cada reconexion reinicia la cuarentena.
+  g.connected(20000);
+  CHECK(!g.allow_arm(20500));
+  CHECK(g.allow_arm(22000));
+}
+
 int main() {
   cinematica();
   saturacion();
   invalidos();
   duty();
   seguridad();
+  cuarentena();
   if (failures == 0) std::printf("drive_logic: todas las pruebas pasan\n");
   return failures == 0 ? 0 : 1;
 }

@@ -5,8 +5,9 @@ Con las ruedas en el aire. Comprueba que no hay otro publicador, arma, recorre
 una secuencia corta a 10 Hz, mide cuándo aplica el rover cada orden y cuánto
 tarda el watchdog en parar, y desarma. Ctrl+C manda parada y desarma.
 
-    python3 rover_test.py            # secuencia completa
+    python3 rover_test.py                 # secuencia completa
     python3 rover_test.py --solo-watchdog
+    python3 rover_test.py --prueba-corte 60   # avance lento para cortar el Wi-Fi
 """
 import argparse
 import json
@@ -32,6 +33,10 @@ SEQUENCE = [
     ('giro izquierda', 0.0, 1.0, 2.0),
     ('parado', 0.0, 0.0, 1.0),
     ('giro derecha', 0.0, -1.0, 2.0),
+    ('parado', 0.0, 0.0, 1.0),
+    ('curva izquierda', 0.1, 1.0, 2.0),
+    ('parado', 0.0, 0.0, 1.0),
+    ('curva derecha', 0.1, -1.0, 2.0),
     ('parado', 0.0, 0.0, 1.0),
 ]
 
@@ -119,9 +124,38 @@ def watchdog_test(node):
     return stopped_after
 
 
+def cut_test(node, seconds):
+    """Arma y avanza despacio; registra el estado para ver un corte de red.
+
+    Durante un corte no llega /rover/state ("sin estado"). Al volver, el rover
+    debe seguir desarmado y rechazando órdenes aunque esta prueba siga
+    publicando: hay que volver a armar.
+    """
+    node.set_armed(True)
+    t = Twist()
+    t.linear.x = 0.1
+    start = time.monotonic()
+    next_log = start
+    while time.monotonic() - start < seconds:
+        node.cmd.publish(t)
+        tick_end = time.monotonic() + 1.0 / RATE_HZ
+        while time.monotonic() < tick_end:
+            rclpy.spin_once(node, timeout_sec=0.01)
+        now = time.monotonic()
+        if now >= next_log:
+            next_log = now + 0.5
+            s = node.state or {}
+            silent = now - node.state_at if node.state_at else float('inf')
+            print(f'{now - start:5.1f} s  armado={s.get("armed")} l={s.get("l")} r={s.get("r")} '
+                  f'rechazadas={s.get("rejected")} uptime={s.get("uptime_s")} '
+                  f'{"sin estado desde hace %.1f s" % silent if silent > 0.5 else ""}', flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--solo-watchdog', action='store_true')
+    parser.add_argument('--prueba-corte', type=float, metavar='SEG',
+                        help='arma y avanza despacio SEG segundos registrando el estado')
     args = parser.parse_args()
 
     rclpy.init()
@@ -136,6 +170,10 @@ def main():
             print(f'Hay otros publicadores, no armo: {others}')
             return 1
         node.open_publishers()
+
+        if args.prueba_corte:
+            cut_test(node, args.prueba_corte)
+            return 0
 
         if not args.solo_watchdog:
             node.set_armed(True)

@@ -2,7 +2,8 @@
 //
 // ESP32 dedicado a los motores. ROS 2 corre en el UNO Q; este firmware es un
 // cliente micro-ROS por Wi-Fi UDP.
-//   /rover/enable   std_msgs/Bool             true arma, false desarma
+//   /rover/enable   std_msgs/Bool             true arma, false desarma (no en los
+//                                             2 s siguientes a (re)conectar)
 //   /rover/cmd_vel  geometry_msgs/Twist       x (m/s) y angular.z (rad/s)
 //   /rover/state    std_msgs/String (JSON)    10 Hz: armado, l, r, antiguedad
 // Arranca desarmado. Sin /rover/cmd_vel valido durante CMD_TIMEOUT_MS, al
@@ -27,6 +28,8 @@
 static const rover::DriveParams PARAMS = {MAX_LINEAR_MPS, TRACK_M, PWM_TEST_LIMIT};
 
 static rover::SafetyGate g_gate(CMD_TIMEOUT_MS);
+static rover::ArmGuard g_arm_guard(ARM_QUARANTINE_MS);
+static unsigned long g_arm_ignored = 0;
 static rover::Wheels g_applied = {0, 0};
 static SemaphoreHandle_t g_lock;
 static unsigned long g_cmds = 0;
@@ -64,7 +67,7 @@ static rclc_executor_t executor;
 static geometry_msgs__msg__Twist msg_cmd;
 static std_msgs__msg__Bool msg_enable;
 static std_msgs__msg__String msg_state;
-static char state_buf[160];
+static char state_buf[224];  // peor caso ~175 caracteres
 
 static void on_cmd(const void *m) {
   const geometry_msgs__msg__Twist *t = (const geometry_msgs__msg__Twist *)m;
@@ -79,8 +82,14 @@ static void on_cmd(const void *m) {
 
 static void on_enable(const void *m) {
   bool arm = ((const std_msgs__msg__Bool *)m)->data;
+  uint32_t now = millis();
+  if (arm && !g_arm_guard.allow_arm(now)) {
+    g_arm_ignored++;
+    Serial.println("ros: armado ignorado (recien conectado)");
+    return;
+  }
   xSemaphoreTake(g_lock, portMAX_DELAY);
-  if (arm) g_gate.arm(millis()); else g_gate.disarm();
+  if (arm) g_gate.arm(now); else g_gate.disarm();
   xSemaphoreGive(g_lock);
   Serial.println(arm ? "ros: armado" : "ros: desarmado");
 }
@@ -93,7 +102,10 @@ static bool create_entities() {
   // reintentar las viejas. /rover/enable sigue reliable: es raro y critico.
   if (rclc_subscription_init_best_effort(&sub_cmd, &node,
           ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "/rover/cmd_vel") != RCL_RET_OK) return false;
-  if (rclc_subscription_init_default(&sub_enable, &node,
+  // Best effort tambien: con reliable, al reconectar se reentrego un armado
+  // antiguo y el rover se rearmo solo (2026-10-29). Quien arma repite el
+  // mensaje (rover_test.py lo manda 3 veces).
+  if (rclc_subscription_init_best_effort(&sub_enable, &node,
           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), "/rover/enable") != RCL_RET_OK) return false;
   if (rclc_publisher_init_best_effort(&pub_state, &node,
           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String), "/rover/state") != RCL_RET_OK) return false;
@@ -125,9 +137,11 @@ static void publish_state() {
   xSemaphoreGive(g_lock);
   int n = snprintf(state_buf, sizeof(state_buf),
                    "{\"armed\":%s,\"l\":%d,\"r\":%d,\"age_ms\":%lu,\"cmds\":%lu,"
-                   "\"rejected\":%lu,\"rssi\":%d,\"heap\":%u,\"uptime_s\":%lu}",
+                   "\"rejected\":%lu,\"arm_ignored\":%lu,\"rssi\":%d,\"heap\":%u,"
+                   "\"uptime_s\":%lu}",
                    armed ? "true" : "false", w.left, w.right, (unsigned long)age, g_cmds,
-                   g_rejected, WiFi.RSSI(), (unsigned)ESP.getFreeHeap(), millis() / 1000);
+                   g_rejected, g_arm_ignored, WiFi.RSSI(), (unsigned)ESP.getFreeHeap(),
+                   millis() / 1000);
   msg_state.data.size = (n > 0 && n < (int)sizeof(state_buf)) ? n : 0;
   rcl_publish(&pub_state, &msg_state, NULL);
 }
@@ -163,6 +177,7 @@ void loop() {
       break;
     case AVAILABLE:
       if (create_entities()) {
+        g_arm_guard.connected(millis());
         g_agent = CONNECTED;
         Serial.println("ros: conectado al agente (desarmado)");
       } else {

@@ -26,8 +26,10 @@ Pruebas del 2026-10-29 (batería de motores desconectada):
   un transporte UDP propio por un problema de tiempos de la librería
   precompilada (README del firmware).
 - 20 de 20 órdenes a 10 Hz recibidas; `/rover/state` a 10 Hz; órdenes aplicadas
-  en ~100 ms (estimación); watchdog a ~520 ms; al perder el agente para,
-  desarma y se reconecta desarmado.
+  en ~100–210 ms (estimación); watchdog a ~520–590 ms; al perder el agente o el
+  Wi-Fi para, desarma y se reconecta desarmado (tras corregir un rearme por
+  reentrega de `/rover/enable`).
+- Con motores y ruedas en el aire: avance, retroceso, giros y curvas correctos.
 - ROS 2 no tiene paquetes para Debian; las imágenes oficiales arm64 funcionan
   en el UNO Q sin tocar el sistema.
 

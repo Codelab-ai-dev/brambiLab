@@ -10,12 +10,14 @@ volver a ellos, ver [Vuelta atrás](#vuelta-atrás).
 
 | Tema | Tipo | QoS | Uso |
 |---|---|---|---|
-| `/rover/enable` | `std_msgs/Bool` | reliable | `true` arma, `false` desarma |
+| `/rover/enable` | `std_msgs/Bool` | best effort | `true` arma, `false` desarma; ignorado 2 s tras cada (re)conexión |
 | `/rover/cmd_vel` | `geometry_msgs/Twist` | best effort | `linear.x` (m/s) y `angular.z` (rad/s), al menos a 10 Hz |
-| `/rover/state` | `std_msgs/String` (JSON) | best effort, 10 Hz | `armed`, `l`, `r` aplicados, `age_ms`, `cmds`, `rejected`, `rssi`, `heap`, `uptime_s` |
+| `/rover/state` | `std_msgs/String` (JSON) | best effort, 10 Hz | `armed`, `l`, `r` aplicados, `age_ms`, `cmds`, `rejected`, `arm_ignored`, `rssi`, `heap`, `uptime_s` |
 
 `/rover/cmd_vel` es *best effort* porque interesa la última orden, no reenviar
-las viejas. Para leer `/rover/state` con `rclpy` hay que suscribirse con
+las viejas. `/rover/enable` también: con *reliable*, al reconectar se
+reentregó un armado antiguo y el rover se rearmó solo (2026-10-29). Quien arma
+debe repetir el mensaje unas veces (`rover_test.py` lo manda 3). Para leer `/rover/state` con `rclpy` hay que suscribirse con
 `qos_profile_sensor_data`; `ros2 topic echo` lo adapta solo.
 
 ## Seguridad
@@ -30,10 +32,11 @@ las viejas. Para leer `/rover/state` con `rclpy` hay que suscribirse con
 - Un `Twist` con NaN o infinito se rechaza y no rearma el watchdog.
 - Un STOP por software **no sustituye** un corte físico de energía (el
   interruptor sigue pendiente, [validation.md](../../validation.md)).
+- Tras cada (re)conexión con el agente, cualquier armado se ignora durante
+  `ARM_QUARANTINE_MS` (2 s) y se cuenta en `arm_ignored`: defensa contra
+  armados antiguos reentregados al reconectar.
 - ROS 2 no impide que haya dos publicadores: se usa un tema propio y
-  `rover_test.py` comprueba que no hay otro antes de armar. Herramientas que
-  esperan a tener suscriptor antes de publicar (como `ros2 topic pub`) pueden
-  entregar un armado retrasado cuando el rover se reconecta.
+  `rover_test.py` comprueba que no hay otro antes de armar.
 
 ## Conversión de `Twist` a PWM
 
@@ -61,10 +64,10 @@ cd projects/001-ai-rover/firmware
 cp rover_motors_uros/secrets.example.h rover_motors_uros/secrets.h   # y rellenar
 L=$(mktemp -d) && curl -sL https://github.com/micro-ROS/micro_ros_arduino/archive/refs/tags/v2.0.8-jazzy.zip -o $L/uros.zip && unzip -q $L/uros.zip -d $L
 arduino-cli compile -b esp32:esp32:esp32cam:PartitionScheme=huge_app --libraries $L rover_motors_uros
-arduino-cli upload  -b esp32:esp32:esp32cam:PartitionScheme=huge_app --libraries $L -p /dev/cu.usbserial-310 rover_motors_uros
+arduino-cli upload  -b esp32:esp32:esp32cam:PartitionScheme=huge_app -p /dev/cu.usbserial-310 rover_motors_uros   # usa lo compilado; upload no acepta --libraries
 ```
 
-Core `esp32:esp32` 3.3.12. Ocupa 985.610 bytes (31 % de `huge_app`); unos
+Core `esp32:esp32` 3.3.12. Ocupa 985.558 bytes (31 % de `huge_app`); unos
 199 kB de RAM libres en marcha. Pruebas de la lógica en el ordenador:
 
 ```sh

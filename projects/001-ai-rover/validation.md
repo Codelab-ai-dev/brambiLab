@@ -136,10 +136,15 @@ motores desconectada**: se comprueba lo que el ESP32 decide aplicar
 | Tiempo hasta aplicar | — | ~100–110 ms (**estimación**, estado a 10 Hz) |
 | Watchdog al dejar de publicar | Para en ~500 ms (AC 4) | **Pasa** — parado y desarmado ~520 ms tras la última orden |
 | Pérdida del agente | Para y desarma (AC 4) | **Pasa** — desarma; al volver se reconecta **desarmado** aunque sigan llegando órdenes |
-| Pérdida del Wi-Fi | Para (AC 4) | **Pendiente** — implementado (la tarea de seguridad desarma), sin provocar en placa |
+| Pérdida del Wi-Fi (router apagado ~40 s) | Para; no arranca solo al volver (AC 4) | **Pasa tras corrección** — primera prueba: al volver la red quedó desarmado y sin reinicio, pero **~0,5 s después de una reconexión se rearmó solo** y aplicó 51/51 (ROS 2 reentregó un `/rover/enable` reliable antiguo). Corregido: `/rover/enable` best effort y cuarentena de 2 s tras cada conexión. Repetido con 3 reconexiones del agente y la prueba publicando: **ningún rearme** |
 | Motores con ruedas en el aire | Avance, retroceso, giros y parada esperados (AC 3) | **Pasa (2026-10-29)** — batería conectada, ESP32 sin USB; `rover_test.py` aplica 51/51, −51/−51, −38/38 y 38/−38, y Gustavo confirma a la vista que las cuatro ruedas giran en el sentido esperado y paran en cada pausa. Sin reinicios del ESP32 (`uptime` continuo). Curva (x y z a la vez) no probada |
 | Watchdog con motores | Para al dejar de publicar (AC 4) | **Pasa** — parado y desarmado ~583 ms tras la última orden; con batería, órdenes aplicadas en ~110–210 ms (**estimación**) |
 | Calibración | `MAX_LINEAR_MPS`, `TRACK_M` | **Pendiente** — valores nominales sin medir |
+
+En la repetición, el ESP32 se reinició una vez: Gustavo cambió en ese momento la
+alimentación del USB a la batería. Antes hubo ~8 s sin comunicación (7–15 s de
+la prueba) con el agente en marcha; el rover se paró por el watchdog. Causa no
+confirmada; a vigilar.
 
 Incidencia del 2026-10-29: dos `ros2 topic pub` de pruebas anteriores seguían
 publicando `/rover/cmd_vel` porque `timeout … docker run` no detiene el

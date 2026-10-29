@@ -54,7 +54,7 @@ estimaciones.
 Órdenes sueltas:
 
 ```sh
-ros2 topic pub -t 3 -r 5 /rover/enable std_msgs/msg/Bool "{data: true}"
+ros2 topic pub -t 3 -r 5 /rover/enable std_msgs/msg/Bool "{data: true}"   # no antes de 2 s tras conectar
 ros2 topic pub -r 10 /rover/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1}}"
 ros2 topic echo /rover/state std_msgs/msg/String
 ```

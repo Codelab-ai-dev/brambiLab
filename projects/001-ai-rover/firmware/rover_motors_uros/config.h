@@ -39,3 +39,6 @@
 #define SAFETY_PERIOD_MS 20    // tarea de seguridad, independiente de micro-ROS
 #define AGENT_PING_MS    1000  // comprobacion del agente con la sesion abierta
 #define STATE_PERIOD_MS  100   // /rover/state a 10 Hz
+// Tras (re)conectar con el agente se ignora cualquier armado durante este
+// tiempo: ROS 2 puede reentregar un /rover/enable antiguo (drive_logic.h).
+#define ARM_QUARANTINE_MS 2000
