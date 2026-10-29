@@ -1,0 +1,11 @@
+# micro-ROS Agent para rover_motors_uros (#69). En el UNO Q:
+#   docker compose -f compose.yaml up -d
+# Red del host: el ESP32 llega por UDP 8888 y los nodos ROS 2 del UNO Q lo ven
+# sin configurar puertos.
+services:
+  microros_agent:
+    image: microros/micro-ros-agent:jazzy
+    container_name: microros_agent
+    network_mode: host
+    command: udp4 --port 8888 -v4
+    restart: unless-stopped
