@@ -119,6 +119,32 @@ Sin comprobar todavía si el panel web también avanza al revés. En la ronda 2
 al corregir la conexión el 2026-10-23 y el arreglo correcto es en el rover
 (cableado o `LEFT_INVERT`/`RIGHT_INVERT`), no en la app.
 
+## ROS 2 + micro-ROS, motores — ROVER-ROS-001 (#69)
+
+Firmware [`rover_motors_uros`](firmware/rover_motors_uros/README.md) en el
+ESP32 y agente en el UNO Q ([ros/](ros/README.md)). 2026-10-29, **batería de
+motores desconectada**: se comprueba lo que el ESP32 decide aplicar
+(`/rover/state`), no el giro real de las ruedas.
+
+| Prueba | Aceptación | Estado |
+|---|---|---|
+| micro-ROS con el core 3.3.12 | Conecta, sincroniza y recibe | **Pasa** — con transporte UDP propio por los tiempos de la librería precompilada |
+| ROS 2 + agente en el UNO Q | Pasos reproducibles (AC 1) | **Pasa** — Docker, imágenes oficiales arm64; 2,8 GB libres tras el agente |
+| Recepción de `/rover/cmd_vel` | Sin vídeo ni HTTP (AC 2) | **Pasa** — 20 de 20 órdenes a 10 Hz; estado a 10 Hz |
+| Arranque desarmado | Nada se mueve sin `/rover/enable` | **Pasa** — órdenes sin armar rechazadas (`rejected`) |
+| Valores aplicados | Avance, retroceso y giros con signo correcto (REP-103) | **Pasa** — 0,1 m/s → 51/51; −0,1 → −51/−51; z=+1 → −38/38; z=−1 → 38/−38 |
+| Tiempo hasta aplicar | — | ~100–110 ms (**estimación**, estado a 10 Hz) |
+| Watchdog al dejar de publicar | Para en ~500 ms (AC 4) | **Pasa** — parado y desarmado ~520 ms tras la última orden |
+| Pérdida del agente | Para y desarma (AC 4) | **Pasa** — desarma; al volver se reconecta **desarmado** aunque sigan llegando órdenes |
+| Pérdida del Wi-Fi | Para (AC 4) | **Pendiente** — implementado (la tarea de seguridad desarma), sin provocar en placa |
+| Motores con ruedas en el aire | Sentidos, curva, STOP (AC 3) | **Pendiente** — necesita batería conectada |
+| Calibración | `MAX_LINEAR_MPS`, `TRACK_M` | **Pendiente** — valores nominales sin medir |
+
+Hallazgo: con `micro_ros_arduino` 2.0.8-jazzy precompilada y el core 3.3.12,
+los tiempos internos de la librería solo avanzan de segundo en segundo. Con su
+transporte llegaban ~10 de 20 órdenes y `spin_some` bloqueaba hasta 1 s.
+Detalle en el README del firmware.
+
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de
 estas pruebas de prototipo.

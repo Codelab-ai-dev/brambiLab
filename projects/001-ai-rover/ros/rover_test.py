@@ -16,6 +16,7 @@ import time
 import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Bool, String
 
 RATE_HZ = 10.0  # el watchdog del ESP32 es de 500 ms: hay que repetir la orden
@@ -40,7 +41,9 @@ class RoverTest(Node):
         super().__init__('rover_test')
         self.state = None
         self.state_at = 0.0
-        self.create_subscription(String, '/rover/state', self._on_state, 10)
+        # El rover publica el estado best effort: con la QoS por defecto
+        # (reliable) no llegaría nada.
+        self.create_subscription(String, '/rover/state', self._on_state, qos_profile_sensor_data)
         self.cmd = None
         self.enable = None
 

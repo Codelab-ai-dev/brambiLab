@@ -22,6 +22,7 @@
 #include "config.h"
 #include "drive_logic.h"
 #include "motors.h"
+#include "uros_transport.h"
 
 static const rover::DriveParams PARAMS = {MAX_LINEAR_MPS, TRACK_M, PWM_TEST_LIMIT};
 
@@ -88,7 +89,9 @@ static bool create_entities() {
   allocator = rcl_get_default_allocator();
   if (rclc_support_init(&support, 0, NULL, &allocator) != RCL_RET_OK) return false;
   if (rclc_node_init_default(&node, "rover_motors", "", &support) != RCL_RET_OK) return false;
-  if (rclc_subscription_init_default(&sub_cmd, &node,
+  // Best effort: a 10 Hz y con watchdog interesa la ultima orden, no
+  // reintentar las viejas. /rover/enable sigue reliable: es raro y critico.
+  if (rclc_subscription_init_best_effort(&sub_cmd, &node,
           ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "/rover/cmd_vel") != RCL_RET_OK) return false;
   if (rclc_subscription_init_default(&sub_enable, &node,
           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), "/rover/enable") != RCL_RET_OK) return false;
@@ -137,15 +140,15 @@ static void agent_lost() {
 
 void setup() {
   // Lo primero: pines del L298N en bajo y la vigilancia en marcha, antes de
-  // la red. set_microros_wifi_transports() espera al Wi-Fi sin limite.
+  // la red. uros_wifi_connect() espera al Wi-Fi sin limite.
   motors_begin();
   g_lock = xSemaphoreCreateMutex();
   xTaskCreatePinnedToCore(safety_task, "safety", 4096, NULL, configMAX_PRIORITIES - 2, NULL, 1);
 
   Serial.begin(115200);
   Serial.println("\nBL-001 rover_motors_uros");
-  set_microros_wifi_transports((char *)WIFI_SSID, (char *)WIFI_PASS, (char *)AGENT_IP, AGENT_PORT);
-  WiFi.setSleep(false);  // el modem sleep mete latencias de cientos de ms
+  uros_wifi_connect(WIFI_SSID, WIFI_PASS);
+  uros_transport_begin(AGENT_IP, AGENT_PORT);
   Serial.printf("wifi: %s; agente %s:%d\n", WiFi.localIP().toString().c_str(), AGENT_IP, AGENT_PORT);
 }
 
@@ -175,10 +178,10 @@ void loop() {
           break;
         }
       }
-      // Timeout 0 y la pausa aqui: con micro_ros_arduino 2.0.8-jazzy y el core
-      // 3.3.12, spin_some con timeout > 0 bloquea ~1 s cuando no llegan datos
-      // (medido el 2026-10-29), y el estado salia a 1 Hz. Sin pausa, el bucle
-      // acapara la CPU y el ping al agente falla.
+      // Timeout 0 y pausa aqui: los tiempos internos de la libreria van de
+      // segundo en segundo (uros_transport.cpp), asi que cualquier timeout > 0
+      // podia bloquear ~1 s. Sin pausa, el bucle acapara la CPU y el ping al
+      // agente falla.
       rclc_executor_spin_some(&executor, 0);
       if (now - last_state >= STATE_PERIOD_MS) {
         last_state = now;

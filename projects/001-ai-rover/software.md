@@ -1,6 +1,9 @@
 # Software
 
 Firmware ESP32: implementado en [`firmware/rover_esp32cam/`](firmware/README.md).
+Alternativa en pruebas (#69, [ADR-008](../../docs/architecture/ADR-008-ros2-microros.md)):
+[`firmware/rover_motors_uros/`](firmware/rover_motors_uros/README.md), solo
+motores con micro-ROS hacia ROS 2 en el UNO Q ([ros/](ros/README.md)).
 Aplicación Android: fase 1 (conexión Wi-Fi y vídeo MJPEG, sin control de
 motores) en [`mobile/`](mobile/README.md), Flutter, probada en un Nothing A015
 con Android 16 ([validación](validation.md)); #58 cerrada el 2026-10-27.
