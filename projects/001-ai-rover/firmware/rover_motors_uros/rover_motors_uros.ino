@@ -30,6 +30,7 @@ static const rover::DriveParams PARAMS = {MAX_LINEAR_MPS, TRACK_M, PWM_TEST_LIMI
 static rover::SafetyGate g_gate(CMD_TIMEOUT_MS);
 static rover::ArmGuard g_arm_guard(ARM_QUARANTINE_MS);
 static unsigned long g_arm_ignored = 0;
+static unsigned long g_reconnects = 0;  // sesiones con el agente tras la primera
 static rover::Wheels g_applied = {0, 0};
 static SemaphoreHandle_t g_lock;
 static unsigned long g_cmds = 0;
@@ -67,7 +68,7 @@ static rclc_executor_t executor;
 static geometry_msgs__msg__Twist msg_cmd;
 static std_msgs__msg__Bool msg_enable;
 static std_msgs__msg__String msg_state;
-static char state_buf[224];  // peor caso ~175 caracteres
+static char state_buf[256];  // peor caso ~195 caracteres
 
 static void on_cmd(const void *m) {
   const geometry_msgs__msg__Twist *t = (const geometry_msgs__msg__Twist *)m;
@@ -137,11 +138,11 @@ static void publish_state() {
   xSemaphoreGive(g_lock);
   int n = snprintf(state_buf, sizeof(state_buf),
                    "{\"armed\":%s,\"l\":%d,\"r\":%d,\"age_ms\":%lu,\"cmds\":%lu,"
-                   "\"rejected\":%lu,\"arm_ignored\":%lu,\"rssi\":%d,\"heap\":%u,"
-                   "\"uptime_s\":%lu}",
+                   "\"rejected\":%lu,\"arm_ignored\":%lu,\"reconnects\":%lu,\"rssi\":%d,"
+                   "\"heap\":%u,\"uptime_s\":%lu}",
                    armed ? "true" : "false", w.left, w.right, (unsigned long)age, g_cmds,
-                   g_rejected, g_arm_ignored, WiFi.RSSI(), (unsigned)ESP.getFreeHeap(),
-                   millis() / 1000);
+                   g_rejected, g_arm_ignored, g_reconnects, WiFi.RSSI(),
+                   (unsigned)ESP.getFreeHeap(), millis() / 1000);
   msg_state.data.size = (n > 0 && n < (int)sizeof(state_buf)) ? n : 0;
   rcl_publish(&pub_state, &msg_state, NULL);
 }
@@ -178,6 +179,9 @@ void loop() {
     case AVAILABLE:
       if (create_entities()) {
         g_arm_guard.connected(millis());
+        static bool first = true;
+        if (!first) g_reconnects++;
+        first = false;
         g_agent = CONNECTED;
         Serial.println("ros: conectado al agente (desarmado)");
       } else {
@@ -187,8 +191,11 @@ void loop() {
       break;
     case CONNECTED:
       if (now - last_ping >= AGENT_PING_MS) {
+        static int fails = 0;
         last_ping = now;
-        if (rmw_uros_ping_agent(100, 1) != RMW_RET_OK) {
+        fails = rmw_uros_ping_agent(100, 1) == RMW_RET_OK ? 0 : fails + 1;
+        if (fails >= AGENT_PING_FAILS) {
+          fails = 0;
           g_agent = DISCONNECTED;
           break;
         }

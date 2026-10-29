@@ -8,6 +8,7 @@ tarda el watchdog en parar, y desarma. Ctrl+C manda parada y desarma.
     python3 rover_test.py                 # secuencia completa
     python3 rover_test.py --solo-watchdog
     python3 rover_test.py --prueba-corte 60   # avance lento para cortar el Wi-Fi
+    python3 rover_test.py --calibrar 150 10    # PWM 150 en las dos ruedas 10 s
 """
 import argparse
 import json
@@ -20,7 +21,11 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Bool, String
 
-RATE_HZ = 10.0  # el watchdog del ESP32 es de 500 ms: hay que repetir la orden
+RATE_HZ = 10.0
+
+# Deben coincidir con config.h del firmware para que --calibrar pida el PWM
+# exacto: x = pwm / 255 * MAX_LINEAR_MPS.
+MAX_LINEAR_MPS = 0.5  # el watchdog del ESP32 es de 500 ms: hay que repetir la orden
 
 # (nombre, linear.x m/s, angular.z rad/s, segundos). Valores bajos: con
 # MAX_LINEAR_MPS = 0,5 y PWM_TEST_LIMIT = 150, 0,1 m/s son ~51 de PWM.
@@ -151,9 +156,24 @@ def cut_test(node, seconds):
                   f'{"sin estado desde hace %.1f s" % silent if silent > 0.5 else ""}', flush=True)
 
 
+def calibrate(node, pwm, seconds):
+    """Arma y mantiene ese PWM en las dos ruedas para contar vueltas."""
+    x = pwm / 255.0 * MAX_LINEAR_MPS
+    node.set_armed(True)
+    print(f'calibración: PWM {pwm} (x={x:.3f} m/s nominal) durante {seconds:.0f} s', flush=True)
+    for remaining in range(int(seconds), 0, -1):
+        _, (l, r) = node.drive(x, 0.0, 1.0)
+        print(f'  quedan {remaining:2d} s  aplicado l={l} r={r}', flush=True)
+    node.cmd.publish(Twist())
+    node.set_armed(False)
+    print('calibración: parado', flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--solo-watchdog', action='store_true')
+    parser.add_argument('--calibrar', type=int, nargs=2, metavar=('PWM', 'SEG'),
+                        help='mantiene PWM (1..255) en las dos ruedas SEG segundos')
     parser.add_argument('--prueba-corte', type=float, metavar='SEG',
                         help='arma y avanza despacio SEG segundos registrando el estado')
     args = parser.parse_args()
@@ -170,6 +190,14 @@ def main():
             print(f'Hay otros publicadores, no armo: {others}')
             return 1
         node.open_publishers()
+
+        if args.calibrar:
+            pwm, seconds = args.calibrar
+            if not 1 <= pwm <= 255 or seconds <= 0:
+                print('PWM de 1 a 255 y SEG mayor que 0')
+                return 1
+            calibrate(node, pwm, seconds)
+            return 0
 
         if args.prueba_corte:
             cut_test(node, args.prueba_corte)

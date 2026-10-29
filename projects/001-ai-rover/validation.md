@@ -146,6 +146,14 @@ alimentación del USB a la batería. Antes hubo ~8 s sin comunicación (7–15 s
 la prueba) con el agente en marcha; el rover se paró por el watchdog. Causa no
 confirmada; a vigilar.
 
+Reconexiones con el agente sin perder el Wi-Fi (2026-10-29, ESP32 solo por
+USB): tras el arranque llegaron a verse varias en 25 s. Con
+`AGENT_PING_FAILS = 3` (3 pings fallidos seguidos para darlo por perdido),
+**1 reconexión en 5 minutos** con RSSI −34 a −40 dBm (contador `reconnects`
+en `/rover/state`). Cada una para y desarma. Causa sin confirmar: **pendiente**.
+Antes, con batería y USB a la vez, el ESP32 dejó de responder incluso por USB
+hasta quitar la batería; causa sin confirmar.
+
 Incidencia del 2026-10-29: dos `ros2 topic pub` de pruebas anteriores seguían
 publicando `/rover/cmd_vel` porque `timeout … docker run` no detiene el
 contenedor. `rover_test.py` los detectó y **no armó**. Desde entonces los

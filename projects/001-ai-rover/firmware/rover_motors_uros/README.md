@@ -12,7 +12,7 @@ volver a ellos, ver [Vuelta atrás](#vuelta-atrás).
 |---|---|---|---|
 | `/rover/enable` | `std_msgs/Bool` | best effort | `true` arma, `false` desarma; ignorado 2 s tras cada (re)conexión |
 | `/rover/cmd_vel` | `geometry_msgs/Twist` | best effort | `linear.x` (m/s) y `angular.z` (rad/s), al menos a 10 Hz |
-| `/rover/state` | `std_msgs/String` (JSON) | best effort, 10 Hz | `armed`, `l`, `r` aplicados, `age_ms`, `cmds`, `rejected`, `arm_ignored`, `rssi`, `heap`, `uptime_s` |
+| `/rover/state` | `std_msgs/String` (JSON) | best effort, 10 Hz | `armed`, `l`, `r` aplicados, `age_ms`, `cmds`, `rejected`, `arm_ignored`, `reconnects`, `rssi`, `heap`, `uptime_s` |
 
 `/rover/cmd_vel` es *best effort* porque interesa la última orden, no reenviar
 las viejas. `/rover/enable` también: con *reliable*, al reconectar se
@@ -67,7 +67,7 @@ arduino-cli compile -b esp32:esp32:esp32cam:PartitionScheme=huge_app --libraries
 arduino-cli upload  -b esp32:esp32:esp32cam:PartitionScheme=huge_app -p /dev/cu.usbserial-310 rover_motors_uros   # usa lo compilado; upload no acepta --libraries
 ```
 
-Core `esp32:esp32` 3.3.12. Ocupa 985.558 bytes (31 % de `huge_app`); unos
+Core `esp32:esp32` 3.3.12. Ocupa 985.654 bytes (31 % de `huge_app`); unos
 199 kB de RAM libres en marcha. Pruebas de la lógica en el ordenador:
 
 ```sh
@@ -92,7 +92,8 @@ Solución: transporte UDP propio (`uros_transport.cpp`) que siempre lee los
 paquetes pendientes y mide la espera con `millis()`, `spin_some` con timeout 0 y
 una pausa de 5 ms por vuelta. Resultado: 20 de 20 órdenes y estado a 10 Hz.
 Otros plazos internos de la librería (ping al agente) siguen teniendo
-resolución de 1 s. Una solución de fondo sería compilar micro-ROS contra
+resolución de 1 s: por eso el agente se da por perdido tras
+`AGENT_PING_FAILS` (3) pings fallidos seguidos y no con uno. Una solución de fondo sería compilar micro-ROS contra
 ESP-IDF 5 (`micro_ros_platformio` o el componente de ESP-IDF).
 
 ## Vuelta atrás
