@@ -59,6 +59,10 @@ ros2 topic pub -r 10 /rover/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1}}"
 ros2 topic echo /rover/state std_msgs/msg/String
 ```
 
+Ojo con `timeout … docker run`: corta el cliente de Docker pero **no detiene el
+contenedor**, que sigue publicando. Usa `--name` y `docker rm -f` al terminar, o
+`ros2 topic pub -t N` para que acabe solo.
+
 `teleop_twist_keyboard` solo publica al pulsar: con el watchdog de 500 ms el
 rover se pararía entre pulsaciones.
 

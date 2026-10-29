@@ -137,8 +137,14 @@ motores desconectada**: se comprueba lo que el ESP32 decide aplicar
 | Watchdog al dejar de publicar | Para en ~500 ms (AC 4) | **Pasa** — parado y desarmado ~520 ms tras la última orden |
 | Pérdida del agente | Para y desarma (AC 4) | **Pasa** — desarma; al volver se reconecta **desarmado** aunque sigan llegando órdenes |
 | Pérdida del Wi-Fi | Para (AC 4) | **Pendiente** — implementado (la tarea de seguridad desarma), sin provocar en placa |
-| Motores con ruedas en el aire | Sentidos, curva, STOP (AC 3) | **Pendiente** — necesita batería conectada |
+| Motores con ruedas en el aire | Avance, retroceso, giros y parada esperados (AC 3) | **Pasa (2026-10-29)** — batería conectada, ESP32 sin USB; `rover_test.py` aplica 51/51, −51/−51, −38/38 y 38/−38, y Gustavo confirma a la vista que las cuatro ruedas giran en el sentido esperado y paran en cada pausa. Sin reinicios del ESP32 (`uptime` continuo). Curva (x y z a la vez) no probada |
+| Watchdog con motores | Para al dejar de publicar (AC 4) | **Pasa** — parado y desarmado ~583 ms tras la última orden; con batería, órdenes aplicadas en ~110–210 ms (**estimación**) |
 | Calibración | `MAX_LINEAR_MPS`, `TRACK_M` | **Pendiente** — valores nominales sin medir |
+
+Incidencia del 2026-10-29: dos `ros2 topic pub` de pruebas anteriores seguían
+publicando `/rover/cmd_vel` porque `timeout … docker run` no detiene el
+contenedor. `rover_test.py` los detectó y **no armó**. Desde entonces los
+contenedores de prueba llevan nombre fijo y se eliminan al terminar.
 
 Hallazgo: con `micro_ros_arduino` 2.0.8-jazzy precompilada y el core 3.3.12,
 los tiempos internos de la librería solo avanzan de segundo en segundo. Con su
