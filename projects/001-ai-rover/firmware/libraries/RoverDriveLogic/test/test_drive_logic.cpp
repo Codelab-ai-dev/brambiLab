@@ -1,5 +1,5 @@
-// Pruebas de drive_logic.h en el ordenador:
-//   c++ -std=c++17 -Wall -Wextra -Werror -I.. test_drive_logic.cpp -o /tmp/t && /tmp/t
+// Pruebas de drive_logic.h en el ordenador (desde este directorio):
+//   c++ -std=c++17 -Wall -Wextra -Werror -I../src test_drive_logic.cpp -o /tmp/t && /tmp/t
 #include <cstdio>
 #include <limits>
 
