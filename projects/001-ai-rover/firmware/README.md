@@ -2,6 +2,9 @@
 
 Dos imágenes para la misma placa; solo una cargada a la vez:
 
+- [`rover_motors_unoq/`](rover_motors_unoq/README.md) — **no es del ESP32**: el
+  STM32 del Arduino UNO Q mueve los motores, con ROS 2 en su Linux por el puente
+  RPC (#71). Es la vía actual: el ESP32-CAM se dañó el 2026-10-29.
 - [`rover_motors_uros/`](rover_motors_uros/README.md) — solo motores, con
   micro-ROS hacia ROS 2 en el UNO Q (#69). Sin cámara ni HTTP.
 - `rover_esp32cam/` — la de abajo: vídeo, API HTTP, panel web y luz. Es la
