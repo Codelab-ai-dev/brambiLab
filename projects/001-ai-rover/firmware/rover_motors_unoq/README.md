@@ -54,6 +54,14 @@ hilo que la vigilancia, sin mutex.
 - Órdenes con NaN o infinito se rechazan y no rearman el watchdog.
 - Misma lógica que `rover_motors_uros`: [`RoverDriveLogic`](../libraries/README.md).
 
+## Pendiente
+
+- **Sentido:** con «avance» las ruedas giran hacia atrás (2026-10-29). Sin cámara
+  no está fijado el frente; corregir en `config.h` cuando se decida.
+- **Arranque sin movimiento:** resistencias de 10 kΩ de IN1–IN4 a GND o medir los
+  pines durante el arranque del STM32.
+- **Calibración:** `MAX_LINEAR_MPS` y `TRACK_M` siguen siendo nominales.
+
 ## Compilar y cargar
 
 ```sh

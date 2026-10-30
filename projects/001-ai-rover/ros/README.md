@@ -1,9 +1,34 @@
 # ros — ROS 2 en el Arduino UNO Q
 
-Lado ROS 2 de [#69](https://github.com/Codelab-ai-dev/brambiLab/issues/69): el
-micro-ROS Agent al que se conecta el ESP32 con
-[`rover_motors_uros`](../firmware/rover_motors_uros/README.md), y un nodo de
-prueba.
+Dos formas de mover los motores, con los mismos temas (`/rover/enable`,
+`/rover/cmd_vel`, `/rover/state`) para que `rover_test.py` sirva igual:
+
+- **Actual (#71):** el STM32 del propio UNO Q
+  ([`rover_motors_unoq`](../firmware/rover_motors_unoq/README.md)) y el nodo
+  `rover_unoq_node.py`, que le habla por el puente RPC. Sin Wi-Fi en el lazo.
+- **Alternativa (#69):** un ESP32 con
+  [`rover_motors_uros`](../firmware/rover_motors_uros/README.md) conectado por
+  micro-ROS al agente (`compose.yaml`).
+
+## Nodo del UNO Q (#71)
+
+```sh
+docker run -d --name rover_unoq_node --restart unless-stopped --net=host \
+  -e FASTDDS_BUILTIN_TRANSPORTS=UDPv4 \
+  -v /var/run/arduino-router.sock:/var/run/arduino-router.sock \
+  -v /home/arduino/brambilab-ros:/w --entrypoint bash unoq-ros2:jazzy \
+  -c "source /opt/ros/jazzy/setup.bash; exec python3 -u /w/rover_unoq_node.py"
+```
+
+- Imagen `unoq-ros2:jazzy` (de la app `ros2_bridge` de Gustavo), porque trae el
+  cliente del puente (`arduino_rpc`).
+- `FASTDDS_BUILTIN_TRANSPORTS=UDPv4` **es necesario**: entre contenedores con
+  `--net=host`, Fast DDS intenta la memoria compartida, que no es común, y los
+  datos no llegan aunque el tema aparezca.
+- Llamadas al puente: ~15 ms. La seguridad (armado, watchdog de 500 ms) está en
+  el STM32, no en el nodo.
+- No convive con la app `ros2_bridge` (contenedor `unoq_ros2`, parado el
+  2026-10-29): usa otro sketch y otro cableado.
 
 ## UNO Q
 

@@ -18,7 +18,7 @@ Android/CMF Phone 1: interfaz, cámara y evaluación de inferencia local.
 ESP32: control de motores, recepción de comandos y parada por pérdida de comunicación.
 Driver: entrega de potencia a motores. Alimentación: diseñar tras identificar componentes y consumos.
 Transporte Android–ESP32: Wi-Fi + HTTP para vídeo y control; BLE descartado ([ADR-005](docs/architecture/ADR-005-transporte.md)).
-En validación (#69, [ADR-008](docs/architecture/ADR-008-ros2-microros.md)): ROS 2 en el Arduino UNO Q y el ESP32 solo con los motores por micro-ROS; con esa imagen no hay vídeo ni HTTP.
+Actual (#71, [ADR-009](docs/architecture/ADR-009-motores-unoq.md)): ROS 2 en el Linux del Arduino UNO Q y los motores en su STM32, por el puente RPC; sin Wi-Fi en el lazo. El ESP32-CAM se dañó el 2026-10-29. Alternativa documentada: ESP32 por micro-ROS ([ADR-008](docs/architecture/ADR-008-ros2-microros.md)).
 
 La app no debe ser la única responsable de la parada ante desconexión. Timeout, rango de comandos y estado de arranque seguro deberán especificarse y probarse en el firmware antes de movimiento libre.
 
