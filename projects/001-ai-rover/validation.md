@@ -119,6 +119,51 @@ Sin comprobar todavía si el panel web también avanza al revés. En la ronda 2
 al corregir la conexión el 2026-10-23 y el arreglo correcto es en el rover
 (cableado o `LEFT_INVERT`/`RIGHT_INVERT`), no en la app.
 
+## ROS 2 + micro-ROS, motores — ROVER-ROS-001 (#69)
+
+Firmware [`rover_motors_uros`](firmware/rover_motors_uros/README.md) en el
+ESP32 y agente en el UNO Q ([ros/](ros/README.md)). 2026-10-29, **batería de
+motores desconectada**: se comprueba lo que el ESP32 decide aplicar
+(`/rover/state`), no el giro real de las ruedas.
+
+| Prueba | Aceptación | Estado |
+|---|---|---|
+| micro-ROS con el core 3.3.12 | Conecta, sincroniza y recibe | **Pasa** — con transporte UDP propio por los tiempos de la librería precompilada |
+| ROS 2 + agente en el UNO Q | Pasos reproducibles (AC 1) | **Pasa** — Docker, imágenes oficiales arm64; 2,8 GB libres tras el agente |
+| Recepción de `/rover/cmd_vel` | Sin vídeo ni HTTP (AC 2) | **Pasa** — 20 de 20 órdenes a 10 Hz; estado a 10 Hz |
+| Arranque desarmado | Nada se mueve sin `/rover/enable` | **Pasa** — órdenes sin armar rechazadas (`rejected`) |
+| Valores aplicados | Avance, retroceso y giros con signo correcto (REP-103) | **Pasa** — 0,1 m/s → 51/51; −0,1 → −51/−51; z=+1 → −38/38; z=−1 → 38/−38 |
+| Tiempo hasta aplicar | — | ~100–110 ms (**estimación**, estado a 10 Hz) |
+| Watchdog al dejar de publicar | Para en ~500 ms (AC 4) | **Pasa** — parado y desarmado ~520 ms tras la última orden |
+| Pérdida del agente | Para y desarma (AC 4) | **Pasa** — desarma; al volver se reconecta **desarmado** aunque sigan llegando órdenes |
+| Pérdida del Wi-Fi (router apagado ~40 s) | Para; no arranca solo al volver (AC 4) | **Pasa tras corrección** — primera prueba: al volver la red quedó desarmado y sin reinicio, pero **~0,5 s después de una reconexión se rearmó solo** y aplicó 51/51 (ROS 2 reentregó un `/rover/enable` reliable antiguo). Corregido: `/rover/enable` best effort y cuarentena de 2 s tras cada conexión. Repetido con 3 reconexiones del agente y la prueba publicando: **ningún rearme** |
+| Motores con ruedas en el aire | Avance, retroceso, giros y parada esperados (AC 3) | **Pasa (2026-10-29)** — batería conectada, ESP32 sin USB; `rover_test.py` aplica 51/51, −51/−51, −38/38 y 38/−38, y Gustavo confirma a la vista que las cuatro ruedas giran en el sentido esperado y paran en cada pausa. Sin reinicios del ESP32 (`uptime` continuo). Curva (x y z a la vez) no probada |
+| Watchdog con motores | Para al dejar de publicar (AC 4) | **Pasa** — parado y desarmado ~583 ms tras la última orden; con batería, órdenes aplicadas en ~110–210 ms (**estimación**) |
+| Calibración | `MAX_LINEAR_MPS`, `TRACK_M` | **Pendiente** — valores nominales sin medir |
+
+En la repetición, el ESP32 se reinició una vez: Gustavo cambió en ese momento la
+alimentación del USB a la batería. Antes hubo ~8 s sin comunicación (7–15 s de
+la prueba) con el agente en marcha; el rover se paró por el watchdog. Causa no
+confirmada; a vigilar.
+
+Reconexiones con el agente sin perder el Wi-Fi (2026-10-29, ESP32 solo por
+USB): tras el arranque llegaron a verse varias en 25 s. Con
+`AGENT_PING_FAILS = 3` (3 pings fallidos seguidos para darlo por perdido),
+**1 reconexión en 5 minutos** con RSSI −34 a −40 dBm (contador `reconnects`
+en `/rover/state`). Cada una para y desarma. Causa sin confirmar: **pendiente**.
+Antes, con batería y USB a la vez, el ESP32 dejó de responder incluso por USB
+hasta quitar la batería; causa sin confirmar.
+
+Incidencia del 2026-10-29: dos `ros2 topic pub` de pruebas anteriores seguían
+publicando `/rover/cmd_vel` porque `timeout … docker run` no detiene el
+contenedor. `rover_test.py` los detectó y **no armó**. Desde entonces los
+contenedores de prueba llevan nombre fijo y se eliminan al terminar.
+
+Hallazgo: con `micro_ros_arduino` 2.0.8-jazzy precompilada y el core 3.3.12,
+los tiempos internos de la librería solo avanzan de segundo en segundo. Con su
+transporte llegaban ~10 de 20 órdenes y `spin_some` bloqueaba hasta 1 s.
+Detalle en el README del firmware.
+
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de
 estas pruebas de prototipo.

@@ -1,5 +1,12 @@
 # firmware
 
+Dos imágenes para la misma placa; solo una cargada a la vez:
+
+- [`rover_motors_uros/`](rover_motors_uros/README.md) — solo motores, con
+  micro-ROS hacia ROS 2 en el UNO Q (#69). Sin cámara ni HTTP.
+- `rover_esp32cam/` — la de abajo: vídeo, API HTTP, panel web y luz. Es la
+  que usa la app Android y la vuelta atrás de la anterior.
+
 `rover_esp32cam/` — cámara en streaming y conducción diferencial sobre
 ESP32-CAM + L298N. Gustavo lo condujo en el suelo el 2026-10-09 con batería
 de litio: direcciones, parada al soltar y STOP correctos, sin reinicios
