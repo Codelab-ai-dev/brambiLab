@@ -15,7 +15,7 @@ cámara; **no** verifica nada mecánico.
 | Comando inválido | Enviar dato fuera de contrato | Rechazo sin actuación inesperada | **Pasa** — `l=999`, `l=-300`, `l=abc`, `l=10x`, falta de `r` y query vacía devuelven 400, y `/status` sigue en `0,0` |
 | Pérdida de enlace | Interrumpir envío | Parada dentro del timeout especificado | **Pasa** — tras `l=150,r=-150` y 0,8 s en silencio, `/status` vuelve a `0,0` |
 | Reinicio | Reiniciar controlador durante ensayo | Regresa a estado parado | **Parcial** — arranca parado tras el reset; falta con motores alimentados |
-| Corte físico | Accionar el interruptor de potencia con motores en marcha | Los motores se detienen sin intervención del software | **Pendiente** — el interruptor todavía no existe |
+| Corte físico | Accionar el interruptor de potencia con motores en marcha | Los motores se detienen sin intervención del software | **Pendiente** — interruptor instalado el 2026-10-29 (Gustavo), sin probar el corte |
 
 Medidas de la misma ronda:
 - Latencia de `/drive`: 10 peticiones entre 17 y 64 ms, media ~33 ms. El
@@ -163,6 +163,39 @@ Hallazgo: con `micro_ros_arduino` 2.0.8-jazzy precompilada y el core 3.3.12,
 los tiempos internos de la librería solo avanzan de segundo en segundo. Con su
 transporte llegaban ~10 de 20 órdenes y `spin_some` bloqueaba hasta 1 s.
 Detalle en el README del firmware.
+
+## Motores desde el STM32 del UNO Q — ROVER-MCU-001 (#71)
+
+[`rover_motors_unoq`](firmware/rover_motors_unoq/README.md) en el STM32,
+llamado por el puente RPC desde Linux. 2026-10-29, ruedas en el aire, batería
+de motores conectada, cableado D5/D6/D9/D10 sin resistencias de 10 kΩ.
+Pruebas por llamadas directas al puente (aún sin nodo ROS 2), con el contenedor
+`unoq_ros2` de Gustavo en marcha.
+
+| Prueba | Aceptación | Estado |
+|---|---|---|
+| Carga del sketch | Por `arduino-cli upload` (OpenOCD por ADB) | **Pasa** — 97.148 bytes |
+| Arranque | Desarmado, motores a 0 | **Pasa** |
+| Orden sin armar | Rechazada | **Pasa** |
+| Valor NaN | Rechazado | **Pasa** |
+| Latencia de una llamada al puente | — | 15 ms de media (20 llamadas) |
+| Valores aplicados | Avance, retroceso, giros y curvas (AC 3) | **Pasa** — 51/51, −51/−51, −38/38, 38/−38, 13/89, 89/13, en ~20 ms (giros ~130 ms, sin explicar) |
+| Sentidos de giro a la vista | Coinciden con la orden (AC 3) | **Pasa (Gustavo)** |
+| Watchdog en el STM32 | Para y desarma sin órdenes (AC 2) | **Pasa** — desarmado con `age_ms` 506 tras la última orden |
+| Arranque o reinicio del STM32 sin movimiento | AC 4 | **Pendiente** — sin las resistencias de 10 kΩ, medir o instalarlas |
+| Nodo ROS 2 (`/rover/cmd_vel` → puente) | AC 1 | **Pasa** — `rover_test.py` por ROS 2: 51/51, −51/−51, −38/38, 38/−38, 13/89, 89/13; watchdog ~450 ms (estado a 10 Hz); `/rover/state` a 10 Hz |
+| Sentido de avance a la vista | ▲ = hacia delante | **No coincide** — con «avance» las ruedas giraron hacia atrás (Gustavo). Sin investigar a petición de Gustavo; corregir con `LEFT_INVERT`/`RIGHT_INVERT` (y cambio de lados si los giros salen bien) cuando se defina el frente sin cámara |
+| Interruptor de potencia | En la línea de los motores | **Instalado** (Gustavo, 2026-10-29); prueba de corte con motores en marcha pendiente |
+
+Contenedores: con dos contenedores ROS 2 en `--net=host`, Fast DDS descubre el
+otro pero intenta mandar los datos por memoria compartida, que cada contenedor
+tiene aparte: el nodo publicaba y nadie recibía. El nodo corre con
+`FASTDDS_BUILTIN_TRANSPORTS=UDPv4`.
+
+El 2026-10-29 la carga de este sketch sobrescribió el de la app `ros2_bridge`
+de Gustavo (otro cableado: ENA/ENB en D9/D10, sonar y servo), sin comprobarlo
+antes. Su código fuente sigue en el UNO Q
+(`/home/arduino/ArduinoApps/ros2_bridge/sketch/`).
 
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de

@@ -10,6 +10,7 @@ Fecha base: 2026-09-27. Aceptado = parte del alcance solicitado; propuesto = nec
 | ADR-005 | Transporte Android–ESP32: Wi-Fi + HTTP, sin BLE | Aceptado | [ADR-005](docs/architecture/ADR-005-transporte.md): BLE no deja RAM o reduce el vídeo a la mitad ([EXP-001](docs/experiments/EXP-001-ble-coexistencia.md)) |
 | ADR-006 | Web v1: React SSR, Go, PostgreSQL y Docker/Coolify | Aceptado | [Decisión y cambio de prioridad](docs/architecture/ADR-006-web-stack.md) |
 | ADR-007 | Licencias: Apache-2.0 (código), CC BY 4.0 (docs), CERN-OHL-W-2.0 (diseños) | Aceptado | [ADR-007](docs/architecture/ADR-007-licencias.md) |
-| ADR-008 | ROS 2 en el UNO Q y micro-ROS en el ESP32 (solo motores) | Aceptado, en validación | [ADR-008](docs/architecture/ADR-008-ros2-microros.md): sustituye en parte a ADR-004 y ADR-005 (#69) |
+| ADR-008 | ROS 2 en el UNO Q y micro-ROS en el ESP32 (solo motores) | Sustituido en la práctica por ADR-009 (se conserva como alternativa) | [ADR-008](docs/architecture/ADR-008-ros2-microros.md): sustituye en parte a ADR-004 y ADR-005 (#69) |
+| ADR-009 | Motores desde el STM32 del UNO Q, ROS 2 por el puente RPC | Aceptado | [ADR-009](docs/architecture/ADR-009-motores-unoq.md): ESP32-CAM dañado; sin Wi-Fi en el lazo (#71) |
 
 Para desarrollar una decisión usa docs/templates/adr.md y guárdala en docs/architecture/ADR-NNN-titulo.md. Actualiza esta tabla; no borres decisiones reemplazadas.
