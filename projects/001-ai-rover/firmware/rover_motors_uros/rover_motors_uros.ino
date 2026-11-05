@@ -21,7 +21,7 @@
 #include <std_msgs/msg/string.h>
 
 #include "config.h"
-#include "drive_logic.h"
+#include <drive_logic.h>  // firmware/libraries/RoverDriveLogic
 #include "motors.h"
 #include "uros_transport.h"
 

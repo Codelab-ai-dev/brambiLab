@@ -63,17 +63,14 @@ librerías: se descarga de su repositorio y se pasa a `arduino-cli` con
 cd projects/001-ai-rover/firmware
 cp rover_motors_uros/secrets.example.h rover_motors_uros/secrets.h   # y rellenar
 L=$(mktemp -d) && curl -sL https://github.com/micro-ROS/micro_ros_arduino/archive/refs/tags/v2.0.8-jazzy.zip -o $L/uros.zip && unzip -q $L/uros.zip -d $L
-arduino-cli compile -b esp32:esp32:esp32cam:PartitionScheme=huge_app --libraries $L rover_motors_uros
+arduino-cli compile -b esp32:esp32:esp32cam:PartitionScheme=huge_app --libraries $L --libraries libraries rover_motors_uros
 arduino-cli upload  -b esp32:esp32:esp32cam:PartitionScheme=huge_app -p /dev/cu.usbserial-310 rover_motors_uros   # usa lo compilado; upload no acepta --libraries
 ```
 
 Core `esp32:esp32` 3.3.12. Ocupa 985.654 bytes (31 % de `huge_app`); unos
-199 kB de RAM libres en marcha. Pruebas de la lógica en el ordenador:
-
-```sh
-cd rover_motors_uros/test
-c++ -std=c++17 -Wall -Wextra -Werror -I.. test_drive_logic.cpp -o /tmp/t && /tmp/t
-```
+199 kB de RAM libres en marcha. La lógica (`drive_logic.h`) es la librería
+compartida [`libraries/RoverDriveLogic`](../libraries/README.md), con sus
+pruebas en el ordenador.
 
 ## micro-ROS con el core 3.3.12: detalle que no es obvio
 
