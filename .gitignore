@@ -35,3 +35,5 @@ secrets.h
 projects/001-ai-rover/firmware/backup/*.bin
 # Copias locales de backups cifrados de producción (nunca al repo público)
 platform/.backup-remote*/
+# ROS: rueda de websockets descargada para el UNO Q (ver ros/README.md)
+projects/001-ai-rover/ros/.deps/

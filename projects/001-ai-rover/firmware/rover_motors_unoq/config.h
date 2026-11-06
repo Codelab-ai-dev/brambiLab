@@ -11,8 +11,15 @@
 // PWM a 500 Hz, la frecuencia fija de la variante arduino:zephyr:unoq.
 
 // Si un lado gira al reves, cambia esto a 1 en vez de recablear.
-#define LEFT_INVERT  0
-#define RIGHT_INVERT 0
+// 2026-11-05: avance y retroceso salian al reves con los giros bien (Gustavo,
+// app por Bluetooth): el frente del rover esta en el otro extremo. Se corrige
+// cambiando de lado y invirtiendo los dos; asi los giros siguen correctos.
+#define LEFT_INVERT  1
+#define RIGHT_INVERT 1
+
+// 1: la orden del lado izquierdo va a OUT3/OUT4 (IN3/IN4) y la del derecho a
+// OUT1/OUT2 (IN1/IN2).
+#define SWAP_SIDES 1
 
 // ---------- PWM ----------
 #define PWM_MAX        255  // analogWrite() de 8 bits (resolucion por defecto)

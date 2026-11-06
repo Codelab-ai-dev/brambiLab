@@ -32,8 +32,13 @@ static void drive_side(int fwd, int rev, int speed, bool invert) {
 }
 
 static void motors_apply(const rover::Wheels &w) {
+#if SWAP_SIDES
+  drive_side(2, 3, w.left, LEFT_INVERT);
+  drive_side(0, 1, w.right, RIGHT_INVERT);
+#else
   drive_side(0, 1, w.left, LEFT_INVERT);
   drive_side(2, 3, w.right, RIGHT_INVERT);
+#endif
 }
 
 // ---------- Funciones del puente ----------
