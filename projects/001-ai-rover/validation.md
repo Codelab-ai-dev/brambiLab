@@ -184,7 +184,7 @@ Pruebas por llamadas directas al puente (aún sin nodo ROS 2), con el contenedor
 | Watchdog en el STM32 | Para y desarma sin órdenes (AC 2) | **Pasa** — desarmado con `age_ms` 506 tras la última orden |
 | Arranque o reinicio del STM32 sin movimiento | AC 4 | **Pendiente** — sin las resistencias de 10 kΩ, medir o instalarlas |
 | Nodo ROS 2 (`/rover/cmd_vel` → puente) | AC 1 | **Pasa** — `rover_test.py` por ROS 2: 51/51, −51/−51, −38/38, 38/−38, 13/89, 89/13; watchdog ~450 ms (estado a 10 Hz); `/rover/state` a 10 Hz |
-| Sentido de avance a la vista | ▲ = hacia delante | **No coincide** — con «avance» las ruedas giraron hacia atrás (Gustavo). Sin investigar a petición de Gustavo; corregir con `LEFT_INVERT`/`RIGHT_INVERT` (y cambio de lados si los giros salen bien) cuando se defina el frente sin cámara |
+| Sentido de avance a la vista | ▲ = hacia delante | **No coincide** — con «avance» las ruedas giraron hacia atrás (Gustavo). Corregido el 2026-11-06 con cambio de lados e inversión de ambos (ver #73, ronda 4) |
 | Interruptor de potencia | En la línea de los motores | **Instalado** (Gustavo, 2026-10-29); prueba de corte con motores en marcha pendiente |
 
 Contenedores: con dos contenedores ROS 2 en `--net=host`, Fast DDS descubre el
@@ -196,6 +196,80 @@ El 2026-10-29 la carga de este sketch sobrescribió el de la app `ros2_bridge`
 de Gustavo (otro cableado: ENA/ENB en D9/D10, sonar y servo), sin comprobarlo
 antes. Su código fuente sigue en el UNO Q
 (`/home/arduino/ArduinoApps/ros2_bridge/sketch/`).
+
+## Pasarela de teleoperación — ROVER-MOBILE-004 (#73), bloque 1
+
+Ronda 1 — 2026-11-05, pasarela `teleop_gateway.py` en el UNO Q (contenedor
+`rover_teleop`, `ros:jazzy-ros-base`) junto a `rover_unoq_node`. Cliente
+`teleop_probe.py` en el ordenador **por USB** (`adb forward tcp:8765
+tcp:8765`): el Wi-Fi del UNO Q sigue caído, así que no hay prueba inalámbrica
+ni con el teléfono. **Sin movimiento**: solo se arma con órdenes en reposo
+(0, 0) o rechazadas; la batería de motores no hacía falta. Las latencias
+incluyen el túnel de adb, no la red Wi-Fi.
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| Pruebas automáticas (`tests/`, ordenador) | — | **Pasa** — 34/34 (27 del núcleo, 7 del servidor con sockets reales y ROS falso) |
+| Token incorrecto | Cierre 4401, nada publicado | **Pasa** |
+| Segundo mando | Cierre 4409, el primero sigue | **Pasa** |
+| Estado real reenviado | `/rover/state` del STM32 en la app | **Pasa** — 10,5 Hz |
+| Arranque | Desarmado | **Pasa** |
+| Movimiento sin armar | Rechazado (`disarmed`) | **Pasa** |
+| Movimiento tras armar sin reposo | Rechazado (`neutral_required`) | **Pasa** |
+| Armado confirmado por el STM32 | `armed: true`, `l = r = 0` | **Pasa** — 11–45 ms desde la primera orden en reposo |
+| Latencia `ping` (ida y vuelta) | — | Mediana 4,9 ms, p95 5,6 ms, máx. 11,1 ms (50) |
+| Latencia de `ack` de `drive` | — | Mediana 6,3 ms, p95 6,6 ms (20) |
+| STOP | Desarmado en el STM32 | **Pasa** — visto en `/rover/state` a 85–112 ms |
+| Mando en silencio | La pasarela desarma antes que el STM32 | **Pasa** — aviso a 224–233 ms, STM32 desarmado a 281–284 ms. `timed_out` del STM32 siguió en `false`: no tuvo que actuar su watchdog |
+| Cierre del mando (TCP) | Para y desarma | **Pasa** — la pasarela desarma en 3 ms. Por el túnel de adb el corte llega como cierre ordenado; una caída real de la red la cubre la fila anterior |
+| Reconectar | No rearma ni reenvía | **Pasa** |
+| `docker stop` de la pasarela armada | La pasarela desarma al salir | **Falla, corregido**: los manejadores de señales de rclpy invalidaban el contexto antes de publicar; paró el watchdog del STM32 (`timed_out: true`). Con `SignalHandlerOptions.NO`: **pasa**, STM32 desarmado 144 ms después del `docker stop` (observador ROS 2 en el UNO Q, mismo reloj); salida con código 0 |
+| Teléfono por Wi-Fi directo al UNO Q | AC 1–3 de #73 | **Bloqueado** — Wi-Fi del UNO Q ([diagnóstico](ros/README.md#wi-fi-del-uno-q)) |
+
+Ronda 2 — 2026-11-05, ruedas en el aire y batería de motores conectada
+(Gustavo). El UNO Q se reinició entre rondas (el adb del UNO Q dejó de
+responder; Gustavo lo reconectó). Repetidas las 13 comprobaciones sin
+movimiento: 13/13.
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| `teleop_probe.py --mover`: avance 0,1 m/s | l = r > 0 | **Pasa** — 51/51, aplicado a 113 ms, parado a 91 ms de soltar |
+| Retroceso | l = r < 0 | **Pasa** — −51/−51, 85 ms / 57 ms |
+| Giro izquierda 1 rad/s | l < 0 < r | **Pasa** — −38/38, 45 ms / 111 ms |
+| Giro derecha | l > 0 > r | **Pasa** — 38/−38, 102 ms / 79 ms |
+| STOP en pleno avance | Para, desarma y rechaza lo que siga llegando | **Pasa** — ruedas a 0 a 102 ms; 2,5 s más pidiendo avance: 0/0 |
+| Silencio en pleno avance | Para y desarma | **Pasa** — ruedas a 0 a 319 ms de la última orden |
+| Lo visto en las ruedas | Giran con cada orden y paran | **Pendiente de confirmar por Gustavo** (avance invertido conocido) |
+
+Tiempos medidos sobre `/rover/state` a 10 Hz: resolución de ~100 ms.
+
+Ronda 3 — 2026-11-05, **app en el teléfono** (CMF Phone 1, Android 16, build
+de depuración) por `adb reverse` (Wi-Fi) → ordenador → `adb forward` (USB) →
+UNO Q. Toques simulados con `adb shell input`, capturas con `screencap`.
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| Pruebas automáticas (`flutter test`) | — | **Pasa** — 131/131 (21 nuevas del mando); `flutter analyze` sin avisos |
+| Handshake desde el teléfono sin token | 101 y cierre 4408 a los 2 s | **Pasa** (`nc` en el teléfono) |
+| Conectar con token | Estado real del rover; sin armar | **Pasa** — «desarmado · izq 0 / der 0» |
+| Armar y mantener ▲ | El STM32 aplica la orden | **Pasa** — «armado · izq 51 / der 51», latencia de `ack` 21 ms |
+| Soltar ▲ | (0, 0), sigue armado | **Pasa** — «armado · izq 0 / der 0», 23 ms |
+| Botón de inicio con el rover armado | Para, desarma y cierra | **Pasa** — la pasarela registra STOP y cierre en el mismo instante; al volver, la app pide conectar y armar |
+| Conducción manual por Gustavo con la app | AC 2–3 de #73 | **Pendiente de su informe** |
+| Corte de red real (Wi-Fi del teléfono) | Para por silencio | **No ejecutado** |
+
+
+Ronda 4 — 2026-11-05, **app por Bluetooth (RFCOMM)** directa al UNO Q, sin red
+ni ordenador en el camino. Teléfono vinculado con el UNO Q («gus»).
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| Pruebas automáticas | — | **Pasa** — pasarela 38/38 (4 nuevas del transporte de líneas); app 134/134 |
+| Conectar por Bluetooth | `mando conectado` en la pasarela | **Falla, corregido**: `cancelDiscovery()` exige `BLUETOOTH_SCAN` en Android 12+; quitado. Después **pasa** |
+| Enlace estable | Sin desconexiones ni desarmes con la app conectada | **Pasa** en los primeros minutos (armado por Gustavo, sin cierres) |
+| Latencia (`ping`/`ack`) | — | ~60 ms en pantalla (una lectura) |
+| Conducción por Bluetooth | AC 2–3 de #73 | **Pasa (Gustavo, 2026-11-05)** — «ya funcionó», con avance y retroceso invertidos |
+| Sentido de avance corregido en el STM32 | ▲ = hacia delante, giros sin cambiar | **Pasa (Gustavo, 2026-11-06)** — `SWAP_SIDES 1` y `LEFT_INVERT`/`RIGHT_INVERT` a 1 en `config.h`, cargado el 2026-11-06 (97.148 bytes); el STM32 arranca desarmado con l = r = 0 |
 
 Registrar fecha, versión/commit, configuración, responsable, tiempo observado y
 archivo de evidencia. No afirmar seguridad funcional certificada a partir de

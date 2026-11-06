@@ -12,5 +12,6 @@ Fecha base: 2026-09-27. Aceptado = parte del alcance solicitado; propuesto = nec
 | ADR-007 | Licencias: Apache-2.0 (código), CC BY 4.0 (docs), CERN-OHL-W-2.0 (diseños) | Aceptado | [ADR-007](docs/architecture/ADR-007-licencias.md) |
 | ADR-008 | ROS 2 en el UNO Q y micro-ROS en el ESP32 (solo motores) | Sustituido en la práctica por ADR-009 (se conserva como alternativa) | [ADR-008](docs/architecture/ADR-008-ros2-microros.md): sustituye en parte a ADR-004 y ADR-005 (#69) |
 | ADR-009 | Motores desde el STM32 del UNO Q, ROS 2 por el puente RPC | Aceptado | [ADR-009](docs/architecture/ADR-009-motores-unoq.md): ESP32-CAM dañado; sin Wi-Fi en el lazo (#71) |
+| ADR-010 | Mando manual por una pasarela WebSocket propia, sin rosbridge | Propuesto | [ADR-010](docs/architecture/ADR-010-teleop-websocket.md): un solo publicador autenticado; rosbridge no autentica (#73) |
 
 Para desarrollar una decisión usa docs/templates/adr.md y guárdala en docs/architecture/ADR-NNN-titulo.md. Actualiza esta tabla; no borres decisiones reemplazadas.
