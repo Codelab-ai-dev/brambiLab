@@ -3,6 +3,11 @@
          puerto 80 y el vídeo MJPEG en el 81. Ver README.md, «Permisos y HTTP». -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Mando por Bluetooth (puerto serie RFCOMM) con la pasarela del UNO Q
+         (#73). Solo con dispositivos ya vinculados: no se busca ni se anuncia. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+
     <!-- usesCleartextTraffic: el firmware solo sirve HTTP sin TLS. Se acepta en
          una LAN de confianza; Android no permite acotar la excepción a rangos de
          IP privadas, por eso es global. Ver README.md. -->

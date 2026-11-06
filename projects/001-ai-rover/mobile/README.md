@@ -9,7 +9,67 @@ placa sigue siendo la referencia y no depende de esta app.
 - Fase 2 ([#62](https://github.com/Codelab-ai-dev/brambiLab/issues/62)):
   conducción con `/drive` y `/stop`. Ver [Conducir](#conducir).
 
-Fuera de alcance: Bluetooth/BLE, Arduino UNO Q, IA y telemetría avanzada.
+- Fase 3 ([#73](https://github.com/Codelab-ai-dev/brambiLab/issues/73)):
+  **mando manual sin vídeo** por la pasarela WebSocket del Arduino UNO Q. Es
+  la pantalla que abre la app ahora; ver [Mando por el UNO Q](#mando-por-el-uno-q-73).
+  Las pantallas del ESP32-CAM siguen en el código (el ESP32-CAM está dañado).
+
+Fuera de alcance: Bluetooth/BLE, IA y telemetría avanzada.
+
+## Mando por el UNO Q (#73)
+
+La app habla con [`ros/teleop_gateway.py`](../ros/README.md#pasarela-de-teleoperación-73),
+nunca con ROS 2 directamente, por uno de dos transportes:
+
+- **Bluetooth** (por defecto): puerto serie RFCOMM con el UNO Q vinculado
+  («gus»), sin red ni ordenador; sirve con el rover en la powerbank. El puente
+  nativo está en `android/.../MainActivity.kt` (sin librerías de terceros) y
+  pide el permiso «Dispositivos cercanos» (`BLUETOOTH_CONNECT`).
+- **Red / adb**: WebSocket `ws://<host>:8765` (ver la vía por adb abajo).
+
+- **Conectar** con el rover vinculado (o host y puerto) y el token (el de `teleop_token` en el UNO Q). Se
+  guardan en el teléfono, el token sin cifrar. Conectar **no arma**.
+- **Armar** es un botón aparte. Armado, la app manda una orden cada 100 ms,
+  también (0, 0) en reposo; la pasarela desarma a los 300 ms sin órdenes.
+- **Cruceta** de pulsación mantenida: soltar manda (0, 0) en el acto.
+  **STOP** actúa al apoyar el dedo, para y desarma.
+- **Velocidad**: 25–100 % de los límites de la pasarela (0,2 m/s y 2 rad/s
+  por defecto). En marcha, el giro solo corrige (factor 0,55), como el panel.
+- **Estado**: «Pedido» es lo que manda la app; «Rover» es lo que confirma el
+  STM32 en `/rover/state` (armado y velocidad aplicada a cada lado). La latencia
+  es la del `ack` de la pasarela.
+- **Seguridad**: perder la conexión, desconectar, salir de la pantalla o que la
+  app deje de estar en primer plano (incluido `inactive`) manda STOP y cierra.
+  Al volver hay que conectar y armar otra vez; nada se reenvía. Un aviso
+  `disarmed` de la pasarela olvida los botones.
+- Sin vídeo: conducir solo con el rover a la vista, en un sitio despejado.
+
+Código: `lib/src/teleop_link.dart` (WebSocket con `dart:io` y Bluetooth por
+canal de plataforma), `teleop_controller.dart`
+(lógica), `teleop_screen.dart`, `teleop_store.dart`. Pruebas:
+`test/teleop_controller_test.dart` y `test/teleop_screen_test.dart`.
+
+### Sin Wi-Fi en el UNO Q: por adb
+
+Mientras el Wi-Fi del UNO Q no funcione ([diagnóstico](../ros/README.md#wi-fi-del-uno-q)),
+el teléfono llega a la pasarela a través del ordenador:
+
+```text
+teléfono 127.0.0.1:8765 ──adb reverse (Wi-Fi)──▶ ordenador :8765 ──adb forward (USB)──▶ UNO Q :8765
+```
+
+1. Teléfono y ordenador en la misma red. En el teléfono: *Opciones de
+   desarrollador → Depuración inalámbrica → Vincular dispositivo con código QR*.
+   El QR se genera en el ordenador con el contenido
+   `WIFI:T:ADB;S:<nombre>;P:<clave>;;` (p. ej. `qrencode -o qr.png …`), y
+   `adb pair <ip:puerto> <clave>` con el servicio `_adb-tls-pairing._tcp` que
+   anuncia el teléfono (`adb mdns services`).
+2. `adb -s <UNO Q> forward tcp:8765 tcp:8765`
+3. `adb -s <teléfono> reverse tcp:8765 tcp:8765`
+4. En la app: host `127.0.0.1` (el valor por defecto), puerto 8765.
+
+`adb reverse` se pierde si se reinicia el servidor adb o el teléfono se
+desconecta: repetir los pasos 2 y 3.
 
 ## Qué hace
 
