@@ -1,5 +1,5 @@
 # BL-001 — BrambiLab AI Rover
-Estado: firmware ESP32-CAM escrito · ronda 1 de validación sin potencia en motores. Categorías: robótica, embedded, Android, IA.
+Estado (2026-11-25): motores desde el STM32 del UNO Q por ROS 2 y mando manual desde la app, probados por Gustavo · cámara USB en curso ([#75](https://github.com/Codelab-ai-dev/brambiLab/issues/75)). Proyecto de investigación, independiente de la [plataforma de integración](../../products/integration-platform/README.md). Categorías: robótica, embedded, Android, IA.
 
 ## Objetivo
 Evolucionar un rover existente hacia una plataforma experimental de control y visión, documentando cada incremento de forma reproducible.
@@ -20,13 +20,24 @@ Identificar componentes y funcionamiento actual. Después lograr movimiento y pa
 - [Validación](validation.md)
 
 ## Resultado actual
-Control con el ESP32-CAM y un L298N; el Arduino UNO Q quedó fuera del proyecto
-(2026-10-09). El firmware [`rover_esp32cam`](firmware/rover_esp32cam/) da vídeo
-y conducción diferencial desde el navegador, con parada a los 500 ms sin
-órdenes.
+Arquitectura vigente ([ADR-009](../../docs/architecture/ADR-009-motores-unoq.md)):
+ROS 2 en el Linux del Arduino UNO Q, y los motores en su STM32 a través del puente
+RPC ([`rover_motors_unoq`](firmware/rover_motors_unoq/README.md),
+[`ros/`](ros/README.md)). El STM32 arranca desarmado y para y desarma a los
+~500 ms sin órdenes.
 
-Probado solo con la batería de motores **desconectada** (ronda 1 de
-[validación](validation.md)): rechazo de órdenes inválidas y parada por pérdida
-de enlace, ambos observados en `/status`. **El rover todavía no se ha movido con
-este firmware**: sentido de giro, umbral de arranque y corte físico siguen
-pendientes. No hay autonomía ni detección de objetos.
+- [#71](https://github.com/Codelab-ai-dev/brambiLab/issues/71) (cerrado):
+  `/rover/cmd_vel` mueve los motores con las ruedas en el aire.
+- [#73](https://github.com/Codelab-ai-dev/brambiLab/issues/73) (cerrado,
+  [ADR-010](../../docs/architecture/ADR-010-teleop-websocket.md) propuesto):
+  pasarela de teleoperación con un solo mando autenticado. Gustavo condujo con
+  la app por Bluetooth RFCOMM, y el sentido de avance se corrigió el 2026-11-06.
+- [#75](https://github.com/Codelab-ai-dev/brambiLab/issues/75) (abierto):
+  webcam USB como nodo de cámara ROS 2.
+
+Pendiente: las resistencias de 10 kΩ (arranque sin movimiento), la prueba de
+corte con el interruptor, la parada al perder el Bluetooth y el Wi-Fi del UNO Q,
+que sigue caído. Detalle en [validación](validation.md). El ESP32-CAM se dañó
+el 2026-10-29; su firmware [`rover_esp32cam`](firmware/rover_esp32cam/) y la
+variante micro-ROS se conservan como historial. No hay autonomía ni detección
+de objetos.

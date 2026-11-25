@@ -1,22 +1,35 @@
 # Roadmap
-Actualizado 2026-09-27: web y panel desde el inicio para documentar el proceso; no esperar a terminar BL-001.
-Sin fechas comprometidas. [Especificación web v1](docs/architecture/web-v1.md).
+Actualizado 2026-11-25 (FND-V2-001, [#76](https://github.com/Codelab-ai-dev/brambiLab/issues/76)). Sin fechas comprometidas. Las líneas avanzan de forma independiente; ninguna bloquea a otra.
 
-| Etapa | Resultado | Condición de salida |
+## Plataforma de integración (producto)
+Detalle y condiciones de salida en [products/integration-platform/roadmap.md](products/integration-platform/roadmap.md). Solo existe la etapa 0 en curso.
+
+| # | Etapa | Estado |
 |---|---|---|
-| Foundation | Gobierno y licencias | FND-001 y FND-002 terminadas |
-| Web v1 · base | SSR, API Go, Postgres, Docker y acceso GitHub | WEB-001 y WEB-002 verificadas |
-| Web v1 · edición | Contenido bilingüe, editor y medios | WEB-003 y WEB-004 verificadas |
-| Web v1 · publicación | Revisiones, programación, sitio público, SEO y búsqueda | WEB-005 y WEB-006 verificadas |
-| Web v1 · lanzamiento | Contacto y operación en Coolify | WEB-007 y WEB-008; restauración comprobada |
-| BL-001 · continuo | Inventario, pruebas y bitácora | Evidencias por incremento; no bloquea desarrollo web |
-| Difusión | Contenido social derivado de avances | Primera pieza respaldada por evidencia |
-| Monetización | Experimento comercial | Demanda y costes evaluados |
-| Integración de agentes | MCP/automatización | Necesidad de coordinación medida |
+| 0 | Fundación: visión, PRD, arquitectura, ADR-011 | En revisión (PR de #76) |
+| 1 | Contrato de conectores y laboratorio POS sintético | Propuesta; siguiente incremento |
+| 2 | Gateway MCP de solo lectura (MVP) | Propuesta |
+| 3 | Edge y controles de producción | Propuesta |
+| 4 | Studio y piloto | Propuesta |
+| — | Discovery y Flow | Posterior, sin especificar |
 
-El backup externo queda pendiente de elegir antes de lanzar; dominio y configuración de servicios se concretan durante implementación.
-Descargas y recursos públicos forman parte de web v1, no se difieren.
+## Web (presencia pública)
+| Etapa | Resultado | Estado |
+|---|---|---|
+| Foundation v1 | Gobierno y licencias | Terminada (FND-001, FND-002) |
+| Web v1 · base, edición y publicación | SSR, API Go, Postgres, acceso GitHub, editor, medios, publicación, SEO y búsqueda | Terminada (WEB-001 a WEB-006) |
+| Web v1 · lanzamiento | Contacto y operación en Coolify | Desplegada en https://brambilab.dev; WEB-007 terminada y WEB-008 cerrada con excepciones; pendientes en [#43](https://github.com/Codelab-ai-dev/brambiLab/issues/43) |
+| Rediseño editorial y movimiento | WEB-009, UI-52, UI-53 | Unidas en `main`; despliegue pendiente de autorización |
 
-## Evolución posible del rover
-V0 inventario → V1 control ESP32 → V2 Android → V3 pan/tilt y visión → V4 inferencia → V5 sensores → V6 evaluación ROS → V7 navegación → V8 telemetría.
-Son hipótesis, no capacidades demostradas. El inventario continúa de forma independiente.
+Durante FND-V2-001 la web conserva su identidad visual y sus rutas. Cualquier cambio para presentar el producto será una tarea aparte.
+
+## AI Rover (investigación)
+Hecho y probado por Gustavo: motores desde el STM32 del UNO Q por ROS 2 (#71) y mando manual desde la app (#73). En curso: cámara USB como nodo ROS 2 ([#75](https://github.com/Codelab-ai-dev/brambiLab/issues/75)). Pendientes de seguridad antes de conducir libremente en el suelo: resistencias de 10 kΩ, prueba de corte con el interruptor de potencia y parada al perder el Bluetooth ([validation.md](projects/001-ai-rover/validation.md)).
+
+Hipótesis, no capacidades demostradas: visión → sensores (LiDAR) → navegación → telemetría. Como laboratorio opcional de la plataforma: telemetría de solo lectura, sin control de motores ([roadmap del producto](products/integration-platform/roadmap.md#laboratorio-opcional-rover)).
+
+## Más adelante
+| Etapa | Condición |
+|---|---|
+| Difusión | Primera pieza respaldada por evidencia |
+| Monetización | Por la plataforma de integración, tras un piloto con métricas |
