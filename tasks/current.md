@@ -1,5 +1,5 @@
 # Punto de reanudación
-Actualizado: 2026-11-05
+Actualizado: 2026-11-25
 
 Foundation versionada y licenciada en https://github.com/Codelab-ai-dev/brambiLab (repositorio público). FND-001 y FND-002 terminadas.
 
@@ -21,6 +21,14 @@ No inferir estos datos de la planificación anterior. Fotos según [conventions.
 
 ## Última entrega
 2026-11-05 · ROVER-MOBILE-004 (#73) pasarela WebSocket de teleoperación (un mando con token, armado explícito, frescura de 300 ms, parada al desconectar o apagar) desplegada en el UNO Q, conducción con ruedas en el aire, app Flutter con el mando por Bluetooth (y WebSocket), sentido de avance corregido en el STM32, y diagnóstico del Wi-Fi. PR vinculado a #73. [Handoff](../docs/handoffs/2026-11-05-rover-mobile-004-gateway.md).
+
+2026-10-16 · Caja de batería y plataforma de sensores v1: pack 75×67×20 con 1 mm de holgura por lado, 4 torres de esquina (inserto M3 o tuerca cautiva para la tapa y zona maciza para fijar al deck), anclaje de brida, salida de cable de 8×5, ventilación y tapa plana con nervaduras sólo sobre la zona de cables. En [mechanical/battery-box-v1](../projects/001-ai-rover/mechanical/battery-box-v1/README.md). Sin imprimir. Zona de cableado de 33.9 mm (no caben los 45 pedidos). [Handoff](../docs/handoffs/2026-10-16-bl-001-battery-box-v1.md).
+
+2026-10-15 · Open frame ESP32-CAM v2: placa suspendida sobre 4 M2 (C y D calculados desde A y B con las distancias medidas; ranuras abajo), zonas de exclusión modeladas y comprobadas; brazo rígido con 2 M3 por lado. En [mechanical/cam-mount-v2](../projects/001-ai-rover/mechanical/cam-mount-v2/README.md). Sustituye a cam-mount-v1. Sin imprimir. `arm_offset` pasa de 15 a 16.5. Falta medir la posición de los pines y la altura al suelo.
+
+2026-10-15 · Soporte frontal ESP32-CAM v1 (brazo, carrier y pieza de prueba M2; FCStd, STEP, STL, plano y vistas) en [mechanical/cam-mount-v1](../projects/001-ai-rover/mechanical/cam-mount-v1/README.md). Sin imprimir. `forward_offset` pasa de 15 a 20. Faltan la altura al suelo y la prueba del patrón M2. [Handoff](../docs/handoffs/2026-10-15-bl-001-cam-mount-v1.md).
+
+2026-10-13 · Piso superior modular v1 (CAD paramétrico FreeCAD, STL, STEP y planos) en [mechanical/deck-v1](../projects/001-ai-rover/mechanical/deck-v1/README.md). Sin imprimir. Faltan el patrón real del UNO Q, el patrón del LiDAR, el espesor del acrílico y las holguras con ruedas y motores. [Handoff](../docs/handoffs/2026-10-13-bl-001-deck-v1.md).
 
 2026-10-13 · BL-001-003: ronda 2 registrada a partir del informe de Gustavo (conducción en el suelo el 2026-10-09) en validation.md, build-log.md y el README del firmware; revisión del código de la página de control. [Handoff](../docs/handoffs/2026-10-13-bl-001-003-ronda2.md).
 
