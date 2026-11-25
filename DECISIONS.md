@@ -1,5 +1,5 @@
 # Registro de decisiones
-Fecha base: 2026-09-27. Aceptado = parte del alcance solicitado; propuesto = necesita evaluación técnica.
+Fecha base: 2026-09-27; actualizado 2026-11-25. Aceptado = parte del alcance solicitado; propuesto = necesita evaluación técnica.
 
 | ID | Decisión | Estado | Motivo |
 |---|---|---|---|
@@ -13,5 +13,8 @@ Fecha base: 2026-09-27. Aceptado = parte del alcance solicitado; propuesto = nec
 | ADR-008 | ROS 2 en el UNO Q y micro-ROS en el ESP32 (solo motores) | Sustituido en la práctica por ADR-009 (se conserva como alternativa) | [ADR-008](docs/architecture/ADR-008-ros2-microros.md): sustituye en parte a ADR-004 y ADR-005 (#69) |
 | ADR-009 | Motores desde el STM32 del UNO Q, ROS 2 por el puente RPC | Aceptado | [ADR-009](docs/architecture/ADR-009-motores-unoq.md): ESP32-CAM dañado; sin Wi-Fi en el lazo (#71) |
 | ADR-010 | Mando manual por una pasarela WebSocket propia, sin rosbridge | Propuesto | [ADR-010](docs/architecture/ADR-010-teleop-websocket.md): un solo publicador autenticado; rosbridge no autentica (#73) |
+| ADR-011 | BrambiLab evoluciona hacia una plataforma de integración empresarial con MCP; núcleo comercial en un repositorio privado (`brambilab-core`, provisional) | Dirección: aceptada por Gustavo. Repositorio privado: propuesto, pendiente de aprobación | [ADR-011](docs/architecture/ADR-011-evolucion-plataforma.md): sin cambiar licencias ni publicar datos de clientes (#76) |
 
 Para desarrollar una decisión usa docs/templates/adr.md y guárdala en docs/architecture/ADR-NNN-titulo.md. Actualiza esta tabla; no borres decisiones reemplazadas.
+
+ADRs propuestos para la plataforma, aún sin número (se asigna al redactarlos): stack, contrato de conectores, transporte MCP, identidad y aislamiento de clientes, y ejecución local. Ver [decisiones pendientes](products/integration-platform/architecture.md#decisiones-pendientes).
