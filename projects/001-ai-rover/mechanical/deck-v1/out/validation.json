@@ -1,0 +1,159 @@
+{
+ "checks": [
+  [
+   "1. Huella del piso <= chasis",
+   "OK",
+   "X 7.50..152.50, Y 0.91..89.09 (145.00 x 88.18 mm, chasis 160 x 90)"
+  ],
+  [
+   "2. Posición de soportes",
+   "OK",
+   "centros Support_G1R1 (36.455, 4.41); Support_G1R2 (36.455, 85.59); Support_G2R1 (86.455, 4.41); Support_G2R2 (86.455, 85.59); interferencia soportes-chasis 0.0000 mm3 (guía y tornillo dentro de los orificios)"
+  ],
+  [
+   "3. Guía 2.55 en orificio 2.89",
+   "OK",
+   "holgura 0.170 mm por lado (0.34 total); punta cónica 6°; altura 2.5 mm vs acrílico 3.0 mm (SUPUESTO)"
+  ],
+  [
+   "2b. Columnas en sus alojamientos",
+   "OK",
+   "interferencia soporte-piso 0.0000 mm3; holgura lateral 0.15 mm por lado; la cara superior de la columna apoya contra la placa (contacto previsto)"
+  ],
+  [
+   "4/5. Ruedas y motores",
+   "NO VERIFICABLE",
+   "sin geometría de ruedas/motores. Todo queda dentro de la huella del chasis (X 7.50..152.50, Y 0.91..89.09) y por encima de Z=0 salvo las guías (2.5 mm dentro del acrílico)"
+  ],
+  [
+   "6. Acceso al UNO Q",
+   "OK",
+   "sin interferencia (0.0000 mm3); cara superior libre; bordes: frente 1.7 mm a la zona LiDAR, trasera 12.2 mm al borde, laterales sobre las franjas de cableado; patrón de agujeros PROVISIONAL"
+  ],
+  [
+   "7. Espesores mínimos",
+   "OK",
+   "pared mínima 2.40 mm (nervadura); separación mínima entre pasantes 2.20 mm (ventilación / ventilación); pasantes que cortan nervaduras: ninguno"
+  ],
+  [
+   "8. Ventilación",
+   "OK",
+   "24 ranuras, 693 mm2 de paso bajo la placa (19 % de la huella del UNO Q)"
+  ],
+  [
+   "9. Imprimible sin soportes",
+   "OK",
+   "piso: 10 caras colgantes, máx 4.0 mm (fondo de rótulos grabados y de pilotos ciegos Ø2.2); soporte: 1 caras colgantes, máx 2.5 mm (guía de 2.5 mm y techos de pilotos)"
+  ],
+  [
+   "10. Editable",
+   "OK",
+   "18 sketches, todos totalmente restringidos; 1292 expresiones atadas a Params"
+  ]
+ ],
+ "fillets": [
+  [
+   "chaflán 0.5 en el borde que apoya en la cama",
+   true,
+   32
+  ]
+ ],
+ "deck_cm3": 58.72971638566771,
+ "support_cm3": 6.115811058448109,
+ "deck_bbox": [
+  7.499999999999998,
+  0.9100000000000001,
+  34.0,
+  152.5,
+  89.09,
+  43.0000001
+ ],
+ "m3_points": {
+  "front": [
+   [
+    14.0,
+    25.0
+   ],
+   [
+    14.0,
+    65.0
+   ]
+  ],
+  "lidar": [
+   [
+    25.0,
+    25.0
+   ],
+   [
+    25.0,
+    65.0
+   ],
+   [
+    65.0,
+    25.0
+   ],
+   [
+    65.0,
+    65.0
+   ]
+  ],
+  "third": [
+   [
+    14.0,
+    12.0
+   ],
+   [
+    14.0,
+    78.0
+   ],
+   [
+    146.0,
+    12.0
+   ],
+   [
+    146.0,
+    78.0
+   ]
+  ]
+ },
+ "unoq_points": [
+  [
+   76.7,
+   23.3
+  ],
+  [
+   76.7,
+   66.7
+  ],
+  [
+   135.3,
+   23.3
+  ],
+  [
+   135.3,
+   66.7
+  ]
+ ],
+ "supports": [
+  [
+   "Support_G1R1",
+   36.455,
+   4.41
+  ],
+  [
+   "Support_G1R2",
+   36.455,
+   85.59
+  ],
+  [
+   "Support_G2R1",
+   86.455,
+   4.41
+  ],
+  [
+   "Support_G2R2",
+   86.455,
+   85.59
+  ]
+ ]
+}
